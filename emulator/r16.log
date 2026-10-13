@@ -1,0 +1,48 @@
+qemu-system-arm: warning: nano7: cannot read bootrom 'bootrom-vrom.bin', using loop stub
+qemu-system-arm: info: nano7: preloaded '/home/pavliukov/ipodwork/bt-research-20261007/nano-os-20261007/iram-22000000.bin' (262144 bytes) at 0x22000000
+qemu-system-arm: info: nano7: preloaded '/home/pavliukov/ipodwork/bt-research-20261007/nano-os-20261007/ram-full-08000000.bin' (67108864 bytes) at 0x08000000
+qemu-system-arm: info: nano7: reset, PC=0x08000000
+[nano7-clkcon] pc=0x08000a24 R32 addr=0x3c500000
+[nano7-clkcon] pc=0x08000a2c W32 addr=0x3c500000 value=0xffffffff
+[nano7-vic] pc=0x08426f60 R32 addr=0x39700014
+[nano7-clkcon] pc=0x0800059e R32 addr=0x3c50006c
+[nano7-clkcon] pc=0x080005a4 W32 addr=0x3c50006c value=0xffffffbf
+[nano7-tmr] pc=0x080005ac W32 addr=0x3c70008c value=0xffffffff
+[nano7-tmr] pc=0x080005ae W32 addr=0x3c700090 value=0xffffffff
+[nano7-tmr] pc=0x080005b0 R32 addr=0x3c700088
+[nano7-tmr] pc=0x080005b6 W32 addr=0x3c700088 value=0xffffffff
+[nano7-tmr] pc=0x080005ba W32 addr=0x3c700088 value=0x10018170
+[nano7-b3e0] pc=0x080009bc R32 addr=0x3e00000c
+[nano7-b3e0] pc=0x080009e0 W32 addr=0x3e00000c value=0xffffffff
+[nano7-b38e] pc=0x08054f3e W32 addr=0x38e00014 value=0x00000100
+[nano7-clkcon] pc=0x08003644 R32 addr=0x3c50004c
+[nano7-clkcon] pc=0x0800364a W32 addr=0x3c50004c value=0xffffbfff
+[nano7-pmgr] pc=0x08003658 R32 addr=0x3d100004
+[nano7-pmgr] pc=0x0800365e R32 addr=0x3d100008
+[nano7-clkcon] pc=0x0800658c R32 addr=0x3c500068
+[nano7-b3c8] pc=0x08417ca2 W32 addr=0x3c800000 value=0x00104a00
+[nano7-clkcon] pc=0x080057e2 R32 addr=0x3c500044
+[nano7-clkcon] pc=0x08005834 R32 addr=0x3c50001c
+[nano7-clkcon] pc=0x0800583a R32 addr=0x3c50001c
+[nano7-clkcon] pc=0x08005840 W32 addr=0x3c50001c value=0xbfffffff
+[nano7-clkcon] pc=0x08005842 R32 addr=0x3c50001c
+[nano7-clkcon] pc=0x08005848 R32 addr=0x3c50001c
+[nano7-clkcon] pc=0x0800584e W32 addr=0x3c50001c value=0x3fffffff
+[nano7-b3c8] pc=0x083c9252 W32 addr=0x3c800000 value=0x00104a00
+[nano7-vic] pc=0x08005856 R32 addr=0x39700014
+[nano7-b3cf] pc=0x08005898 R32 addr=0x3cf00034
+[nano7-b3cf] pc=0x0800589e W32 addr=0x3cf00034 value=0xffffffff
+[nano7-b3cf] pc=0x080058a4 W32 addr=0x3cf001e0 value=0x0001000f
+[nano7-tmr] pc=0x080058ac R32 addr=0x3c700084
+[nano7-tmr] pc=0x080058b0 R32 addr=0x3c700084
+[nano7-clkcon] pc=0x080058bc R32 addr=0x3c50001c
+[nano7-fmc] pc=0x08010b76 W32 addr=0x38a00000 value=0x000ff003
+[nano7-tmr] pc=0x08017736 R32 addr=0x3c700084
+[nano7-tmr] pc=0x0801773a R32 addr=0x3c700084
+[nano7-fmc] pc=0x08010b7e W32 addr=0x38a00008 value=0x000000ff
+[nano7-tmr] pc=0x08010b84 R32 addr=0x3c700084
+[nano7-fmc] pc=0x08010b98 R32 addr=0x38a00048
+[nano7-fmc] pc=0x08010b9e W32 addr=0x38a00048 value=0x00000002
+[nano7-fmc] pc=0x08010bbe W32 addr=0x38a00000 value=0x00000001
+[nano7-clkcon] pc=0x08417cac W32 addr=0x3c500050 value=0x000000a5
+qemu-system-arm: terminating on signal 15 from pid 932585 (timeout)

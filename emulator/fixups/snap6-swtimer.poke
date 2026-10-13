@@ -1,0 +1,7 @@
+# snap6: OS software-timer service (globals g = 0x08817218: +0 armed list sorted by expiry, +4 expired
+# stack, +0x14 cond waking timer thread T3). In the T0 overlay g+0 still points at 500 ms timer
+# 0x0b3c77e8, which had ALREADY fired (+0x24 'expi', in-list +0x28 = 0, next 0; its 'time' node is
+# queued to run-loop queue 0x0b439dec for T5 to complete). The overlay blocks were copied ~97 ms apart.
+# T3 then re-fires it as the head forever and deadlocks in cancel-wait 0x080247c8 (Session 15).
+# The real armed chain is intact: 0x0b3bd724 -> 0x0b3c07f8 -> 0x0b3bd764 (all 'run ', in-list 1).
+0x08817218 0x0b3bd724
