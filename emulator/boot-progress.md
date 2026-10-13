@@ -729,3 +729,38 @@ CMD: ./run.sh --ramfull ../dumps/snap6/ram-full.bin --iram ../dumps/snap6/iram.b
   --overlay ../dumps/snap6/overlay.bin --os-poke-file fixups/snap6-resume.poke --torn-map
   ../dumps/snap6/torn-map.bin --pcsample 1000 --nand-miss oracle [--disp-dump DIR]
   -M nano7,mmu=0x08b28000,torn-ignore-pc=0x093d2a80:0x093d4100
+
+## Session 17 (2026-10-13): I2C + PMU + GPIO IRQs, Home button wakes the screen -> real iPod UI
+RE: I2C (S3C-style) bus0 0x3c600000 IRQ 21, bus1 0x3c900000 IRQ 22: +0 IICCON (bit7 ACK, bit4 pending,
+  write 0 = resume), +4 IICSTAT (mode bits7:6, bit5 START/STOP/busy, bit0 NACK), +0xc IICDS, +0x20
+  status2 (bit8 byte done, bit13 stop done, W1C); IRAM driver 0x22000522.., ISR 0x22001214. PMU = bus1
+  0x73 (also 0x1a, 0x18; bus0 0x08). A PMU reg read = [reg] write + STOP, then a 1-byte read.
+  Buttons: PMU regs 1..4 event status (read + W1C, reg3 bit0 Home, bit1 Power, bit3 Play), 5..8 levels
+  (reg7 bit4 Home, bit5 Power, reg8 bit1 Play; 0 = pressed), 0x7c..0x7f wake status. GPIO 0x56 = PMU
+  event line (active-low, 0x3cf00144 bit 6). GPIO irq groups in 0x39700080..: GPIO n -> b = n>>3,
+  g = b ? 1 + ((b-1)>>2) : 0, bit = b ? (n&7) + 8*((b-1)&3) : (n&7)+2; +0x80 cfg, +0xa0 pending W1C,
+  +0xc0 mask, +0xe0 enable; g0..g4 -> VIC 33/32/31/3/2. GPIO ISR 0x083a33be: callback, then posts the
+  registered semaphore (0x08427a66). Button thread T25 entry 0x08567808, semaphore {cnt, event 0x74}.
+MODEL (new files, build.sh + meson.snippet updated): nano7_i2c.[ch] (both controllers, byte done 20 us
+  after start, regfile slaves), nano7_pmu.[ch] (slave 0x73: regs, W1C status, GPIO 0x56 low while
+  regs 1..4 != 0; buttons via keyboard h/p/space (monitor `sendkey`) and `buttons=` / run.sh --buttons
+  "SEC:home|power|play[:MS]/..." ("/" separated: -M splits on commas); PMU accesses traced for 64
+  accesses after each button), nano7_gpio.[ch] (groups + level overlay at 0x3cf00144). resume-hw
+  re-arms GPIO 0x56 (0x397000ec/cc |= 1<<14). nano7_disp: t= timestamps, skips layers < 64x64 px.
+EFFECT OF A REAL PMU (no buttons): PMU reads used to time out (error 0x60); now the app's UI heartbeat
+  runs at ~60 fps from t=1.8 s, the OS dims at ~20 s (frames every ~5 s) and turns the screen off at
+  t=37.6 s (PMU serial frame 0x6200, first LCD write 0x38900008 = 0). NAND numbers unchanged.
+SNAPSHOT TEAR #4: T25 blocked on its semaphore, but count 0 instead of -1 -> the ISR's post (signals
+  only when old count == -1) bumped it to 1 and never woke T25. fixups/snap6-buttons.poke (0x0899c0fc =
+  -1), now part of fixups/snap6-resume.poke. (A general repair: for every thread in event wait on a
+  {cnt, id} semaphore, cnt 0 -> -1.)
+RUN (125 s, --buttons "60:home:100/90:home:100"): press -> IRQ 3 -> T25 reads regs 1..4 (reg3 = 1),
+  W1C, samples reg7 0x20 (pressed) then 0x30; t=61.0 PMU power-up writes (0x0d, 0x24-0x27); t=61.5 the
+  app exits with the springboard icon-zoom animation (112x112 / 118x128 layers ~60 fps, game icon), a
+  240x27 status bar "12:52 PM"; second press at 90 s -> animation again at 91.7 s; at t=112 a full
+  home-screen layer (icon rows, page dots, "7:07 AM", battery), then dim. PNGs: screens/session17/.
+OPEN: the 240x432 home layer at t=112 is sheared diagonally (stride/format of that layer: check +0x3c
+  and the format code before blaming the OS); dumps are per layer, no compositing yet; Power/Play
+  presses untested; volume buttons (GPIO 0x28/0x29, 0x3cf000a4 bits 0/1, IRQ 31) not modeled.
+CMD: add --buttons "60:home:100" (or `sendkey h` on a -monitor) to the Session 16 CMD; fixups/
+  snap6-resume.poke now also contains snap6-buttons.

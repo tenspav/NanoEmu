@@ -1,4 +1,4 @@
-# snap6 resume fixups = snap6-power + snap6-timerlist (kernel sleep list, relinks thr 30) + snap6-swtimer
+# snap6 resume fixups = snap6-power + snap6-timerlist (kernel sleep list, relinks thr 30) + snap6-swtimer + snap6-buttons
 # snap6: NAND power-save flag (ANDCall struct 0x0895c554 +8, set/cleared only by ANDCall op 4) is 1 in
 # ram-full, but the power manager (obj 0x0b40a3c4, +0x54 byte, T0-masked overlay copy) says 0 and thr 24
 # is blocked at T0 in 0x0819d8a4 about to ENTER power-save. Thr 24 entered it right after T0, before the
@@ -37,3 +37,8 @@
 # T3 then re-fires it as the head forever and deadlocks in cancel-wait 0x080247c8 (Session 15).
 # The real armed chain is intact: 0x0b3bd724 -> 0x0b3c07f8 -> 0x0b3bd764 (all 'run ', in-list 1).
 0x08817218 0x0b3bd724
+# snap6: button thread T25 (entry 0x08567808) is blocked (state 0x40, event 0x74) on its counting
+# semaphore {count, event id} at 0x0899c0fc (handle stored at 0x08a7a700 on T25's stack), but the
+# snapshot has count 0 instead of -1. The GPIO ISR's post (0x080019d0 via 0x08005e5c) signals the
+# kernel event only when the old count is -1, so a Home press bumped it to 1 and never woke T25.
+0x0899c0fc 0xffffffff

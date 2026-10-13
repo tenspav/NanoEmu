@@ -18,7 +18,7 @@
  * Model: a kick sets +0x00 = 2 (running); 16 ms later +0x00 = 1, +0x0c
  * bit0 = 1, IRQ 37 while (+0x0c & +0x08 & 1). With disp-dump=DIR each
  * frame whose layer contents changed is written as DIR/frame-NNNN-lK.ppm
- * (alpha dropped).
+ * (alpha dropped; layers under 64x64 px, e.g. the 16x16 cursor, skipped).
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -83,8 +83,8 @@ static void disp_dump_layer(Nano7DispState *s, int l, hwaddr fmt,
     g_autofree char *path = NULL;
     FILE *f;
 
-    if (!fb || !w || !h || w > DISP_MAX_W || h > DISP_MAX_H ||
-        s->regs[fmt / 4] != 6) {
+    if (!fb || w * h < 64 * 64 || w > DISP_MAX_W || h > DISP_MAX_H ||
+        s->regs[fmt / 4] != 6) {    /* skip cursor-sized layers too */
         return;
     }
     if (pitch < w) {
@@ -124,8 +124,9 @@ static void disp_dump_layer(Nano7DispState *s, int l, hwaddr fmt,
     fwrite(rgb, 3, (size_t)w * h, f);
     fclose(f);
     s->dumps++;
-    fprintf(stderr, "[nano7-disp] frame %" PRIu64 " layer %d FB 0x%08x "
-            "%ux%u -> %s\n", s->frames, l, fb, w, h, path);
+    fprintf(stderr, "[nano7-disp] t=%.3f s frame %" PRIu64 " layer %d FB "
+            "0x%08x %ux%u -> %s\n", qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9,
+            s->frames, l, fb, w, h, path);
     fflush(stderr);
 }
 

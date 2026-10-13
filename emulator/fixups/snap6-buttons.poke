@@ -1,0 +1,5 @@
+# snap6: button thread T25 (entry 0x08567808) is blocked (state 0x40, event 0x74) on its counting
+# semaphore {count, event id} at 0x0899c0fc (handle stored at 0x08a7a700 on T25's stack), but the
+# snapshot has count 0 instead of -1. The GPIO ISR's post (0x080019d0 via 0x08005e5c) signals the
+# kernel event only when the old count is -1, so a Home press bumped it to 1 and never woke T25.
+0x0899c0fc 0xffffffff
