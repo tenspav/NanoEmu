@@ -24,9 +24,9 @@ The goal: boot the original nano 7G firmware in a window on your computer, with 
 - ⬜ Boot-to-Home-screen with real disk content
 - ⬜ macOS build
 
-![First home screen, rendered by the emulated OS](docs/images/home-screen-first.png)
+![First home screen, rendered by the emulated OS](docs/images/home-screen-clean.png)
 
-*Above: the actual nano 7G home screen rendered by RetailOS inside NanoEmu (the diagonal shear is a screenshot-dump stride bug, not an OS bug). The status bar shows the live clock and battery.*
+*Above: the actual nano 7G home screen rendered by RetailOS inside NanoEmu with its real homebrew apps, live clock and battery indicator.*
 
 ## Repository layout
 

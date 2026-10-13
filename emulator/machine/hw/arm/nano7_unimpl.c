@@ -4,8 +4,9 @@
  * Every read/write to the covered address range is logged to stderr with
  * guest PC, address, size and value. Logging is deduplicated: each unique
  * (PC, address) pair is reported only once, so polling loops do not flood
- * the log. This is the reverse-engineering workhorse: boot firmware against
- * it and let the firmware tell us which peripheral to implement next.
+ * the log (per-1 MB-region totals are printed at exit). This is the
+ * reverse-engineering workhorse: boot firmware against it and let the
+ * firmware tell us which peripheral to implement next.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -24,6 +25,23 @@ typedef struct Nano7UnimplRegion {
 /* Shared across all regions so dedup works across ranges. */
 static GHashTable *seen;        /* set of (pc << 32) | addr */
 static bool capped_notice_done;
+static GHashTable *mb_counts;   /* 1 MB region -> total accesses (summary) */
+
+static void nano7_unimpl_summary(void)
+{
+    GHashTableIter it;
+    gpointer k, v;
+
+    if (!mb_counts) {
+        return;
+    }
+    g_hash_table_iter_init(&it, mb_counts);
+    while (g_hash_table_iter_next(&it, &k, &v)) {
+        fprintf(stderr, "[nano7-unimpl] summary: 0x%08x.. %" PRIu64
+                " accesses\n", (uint32_t)GPOINTER_TO_UINT(k) << 20,
+                *(uint64_t *)v);
+    }
+}
 
 static uint32_t nano7_guest_pc(void)
 {
@@ -42,9 +60,20 @@ static void nano7_unimpl_log(Nano7UnimplRegion *r, hwaddr offset,
     uint32_t pc = nano7_guest_pc();
     uint64_t key = ((uint64_t)pc << 32) | (uint32_t)addr;
 
+    uint64_t *cnt;
+
     if (!seen) {
         seen = g_hash_table_new(g_direct_hash, g_direct_equal);
+        mb_counts = g_hash_table_new_full(g_direct_hash, g_direct_equal,
+                                          NULL, g_free);
+        atexit(nano7_unimpl_summary);
     }
+    cnt = g_hash_table_lookup(mb_counts, GUINT_TO_POINTER(addr >> 20));
+    if (!cnt) {
+        cnt = g_new0(uint64_t, 1);
+        g_hash_table_insert(mb_counts, GUINT_TO_POINTER(addr >> 20), cnt);
+    }
+    (*cnt)++;
     if (g_hash_table_contains(seen, GUINT_TO_POINTER(key))) {
         return;
     }

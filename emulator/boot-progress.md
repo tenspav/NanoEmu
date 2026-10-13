@@ -764,3 +764,39 @@ OPEN: the 240x432 home layer at t=112 is sheared diagonally (stride/format of th
   presses untested; volume buttons (GPIO 0x28/0x29, 0x3cf000a4 bits 0/1, IRQ 31) not modeled.
 CMD: add --buttons "60:home:100" (or `sendkey h` on a -monitor) to the Session 16 CMD; fixups/
   snap6-resume.poke now also contains snap6-buttons.
+
+## Session 18 (2026-10-13): real scan-out = LCD 0x38900000 + panel TE; blitter modeled -> correct home screen
+FINDING 1: 0x39000000 is a memory-to-memory 2D BLITTER, not a compositor (records: type 1 0x081bb534,
+  2 0x081bb3dc, 3 0x081bb8e8, 9 0x081bb83c, 8 0x081baa3c). L0 = source (+0x10 fmt, +0x14 addr, +0x1c
+  stride px, +0x20 origin x<<16|y in quarter px, +0x24 size), L1 = destination read-modify-write (+0x30
+  fmt, +0x34 base, +0x3c stride, +0x40 size, +0x44 position x<<16|y). +0x04 bits 25:24 mode: 0 copy,
+  2 blend (+0x280..+0x28c), 1 fill (+0x290). +0x50/+0x54 scale steps. Blend words: bits 30:29 selector
+  (0 = the word's own constant: bytes 0-2 colour, byte 0 alpha), 27:24 op (0 one, 1 src alpha, 7 const
+  alpha = low byte of w1/w3), bit 28 = 1 - f; out = S*fs + D*fd. (First guess "selector 0 = factor 0"
+  zeroed the alpha of icons blended into tiles -> labels without icons; the constant reading matches
+  all 5 driver presets.) Format 6 = ARGB8888 straight alpha. The old model never moved pixels: the
+  "sheared home layer" of Session 17 was a stale pre-snapshot scratch buffer, not the screen.
+FINDING 2: the screen is LCD controller 0x38900000, 2 windows (+0x20 / +0x40: ctl alpha 7:0 + format
+  11:8 (4 RGB565, 7 ARGB8888), base, stride px, src x/y, size, dst x/y; enables +0x04 bits 4/5),
+  RE'd from the screenshot capturer 0x08240860 and commit 0x08080b70. The commit only runs from the
+  panel TE GPIO callback 0x08060b19 (GPIO 14 = 0x3cf00024 bit 6, group 1 bit 6, VIC IRQ 32): with no
+  TE the home composite was rendered but never flipped (drv 0x0998a9c4 slot +0xc0 = 6, +0xc4 = 5).
+  A commit rewrites only enable, +0x10 and window 0's base; the geometry was set once before T0.
+  LCD IRQ 13 has an assert-stub handler: never raised.
+MODEL: nano7_lcd.[ch] (new; build.sh + meson.snippet): registers read back, TE on GPIO 14 every
+  16.67 ms (1 ms low), at each TE windows composited (win0 opaque, win1 alpha) into a 240x432 frame;
+  disp-dump=DIR now writes DIR/screen-NNNNN.ppm when the SCANNED-OUT frame changes. nano7_disp: real
+  blits (copy/blend/fill, nearest scaling, format 6 only), done after 20 us + 5 ns/px (was 16 ms per
+  kick), its own screen guessing removed; NANO7_DISP_TRACE=1 logs every kick. nano7_gpio: any pin can
+  be modeled (per-bank level overlays), edge logs capped per pin, NANO7_GPIO_TRACE=1 for register
+  traces. resume-hw: GPIO 14 mask (0x397000c4 bit 6) + LCD window 0 geometry (ctl 0x002107ff, stride
+  240, size 240x432, at 0,0). nano7_unimpl: per-1 MB-region access totals at exit.
+RUN (125 s, Session 17 CMD + --disp-dump, Home at 60 s and 90 s): commits flip window 0 between pool
+  buffers 0x0bec3f00 / 0x0bf29380 at ~16 fps; dumps: the app ("OK - REBOOT ME"), the app-exit zoom
+  animation (t=64.2), and the HOME SCREEN page with all icons (Lines, Nanoracle, Nanosync, Mario Kart,
+  DumpROM, DumpRAM), status bar 12:52 PM, battery, page dots (t=65.1). PNGs: screens/session18/.
+NEW WALL: after the second press the OS shows "Low Battery / Connect to Power" (t=95.8): the PMU model
+  returns 0 for the battery/charger registers it polls every 20 s (0x30 reads 0x14 only because the
+  OS wrote it; 0x3c..0x3f, 0x05 = 0). Next: RE the battery gauge reads and give the PMU plausible
+  values (charged, on USB power) before the OS decides to shut down.
+CMD: Session 17 CMD (fixups/snap6-resume.poke, --nand-miss oracle, --buttons ...) + --disp-dump DIR.

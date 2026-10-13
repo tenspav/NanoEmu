@@ -42,6 +42,7 @@
 #include "nano7_regfile.h"
 #include "nano7_fmc.h"
 #include "nano7_disp.h"
+#include "nano7_lcd.h"
 #include "nano7_gpio.h"
 #include "nano7_i2c.h"
 #include "nano7_pmu.h"
@@ -140,6 +141,21 @@ static void nano7_resume_hw(void)
                          NULL);
     address_space_stl_le(as, 0x397000cc, 1u << 14, MEMTXATTRS_UNSPECIFIED,
                          NULL);
+    /* GPIO 14 (panel TE, group 1 bit 6 -> IRQ 32) armed by the display
+     * driver (commit callback 0x08060b19) */
+    address_space_stl_le(as, 0x397000c4, 1u << 6, MEMTXATTRS_UNSPECIFIED,
+                         NULL);
+    /* LCD window 0 geometry: programmed once at display init, before T0; a
+     * commit (0x08080b70) only rewrites enable, +0x10 and the base. Full-
+     * screen layer: ctl 0x002107ff (ARGB8888, alpha 0xff), stride 240 px,
+     * source 0,0, size 240x432, panel position 0,0 (Session 18 RE). */
+    address_space_stl_le(as, 0x38900020, 0x002107ff, MEMTXATTRS_UNSPECIFIED,
+                         NULL);
+    address_space_stl_le(as, 0x38900028, 240, MEMTXATTRS_UNSPECIFIED, NULL);
+    address_space_stl_le(as, 0x3890002c, 0, MEMTXATTRS_UNSPECIFIED, NULL);
+    address_space_stl_le(as, 0x38900030, 240u << 16 | 432,
+                         MEMTXATTRS_UNSPECIFIED, NULL);
+    address_space_stl_le(as, 0x38900034, 0, MEMTXATTRS_UNSPECIFIED, NULL);
     /* timer ch1 (B): 3 MHz / 6000 = 500 Hz scheduler tick on IRQ 8 */
     address_space_stl_le(as, 0x3c700030, 0, MEMTXATTRS_UNSPECIFIED, NULL);
     address_space_stl_le(as, 0x3c700028, 6000, MEMTXATTRS_UNSPECIFIED, NULL);
@@ -489,11 +505,14 @@ static void nano7_init(MachineState *machine)
     nano7_fmc_attach(get_system_memory(), 0x38a00000,
                      s->vic_in[NANO7_IRQ_FMSS]);
     nano7_fmc_nand_config(s->nand_store, s->nand_miss, s->nand_disk);
-    /* 0x39000000: display pipe (layer compositor), frame done = IRQ 37 */
+    /* 0x39000000: display pipe = 2D blitter, done = IRQ 37 */
     nano7_disp_attach(get_system_memory(), 0x39000000,
-                      s->vic_in[NANO7_IRQ_DISP], s->disp_dump);
+                      s->vic_in[NANO7_IRQ_DISP]);
     /* GPIO interrupt groups (0x39700080..) + modeled input levels */
     nano7_gpio_attach(get_system_memory(), s->vic_in);
+    /* 0x38900000: LCD controller (2 scan-out windows) + panel TE on GPIO 14;
+     * disp-dump writes the scanned-out screen */
+    nano7_lcd_attach(get_system_memory(), 0x38900000, s->disp_dump);
     /* I2C buses: bus 0 slave 0x08; bus 1 PMU 0x73 (buttons) + 0x1a, 0x18 */
     {
         Nano7I2CBus *i2c0 = nano7_i2c_attach(get_system_memory(), 0x3c600000,
@@ -1130,7 +1149,7 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
                                   nano7_set_disp_dump);
     object_class_property_set_description(oc, "disp-dump",
                                           "directory: write each changed "
-                                          "display-pipe layer as a PPM");
+                                          "scanned-out LCD frame as a PPM");
     object_class_property_add_str(oc, "buttons", nano7_get_buttons,
                                   nano7_set_buttons);
     object_class_property_set_description(oc, "buttons",

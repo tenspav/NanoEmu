@@ -11,9 +11,12 @@
 #include "hw/irq.h"
 
 #define NANO7_GPIO_PMU_IRQ  0x56    /* PMU event line, active-low */
+#define NANO7_GPIO_LCD_TE   14      /* panel tearing-effect line */
 
 /* vic_in: the VIC's input lines (groups raise IRQ 33/32/31/3/2) */
 void nano7_gpio_attach(MemoryRegion *parent, qemu_irq *vic_in);
+/* make GPIO n a modeled input (its level bit is overlaid), initial level */
+void nano7_gpio_model_pin(unsigned n, int level);
 /* drive a modeled input pin; a falling edge latches its pending bit */
 void nano7_gpio_set_level(unsigned n, int level);
 

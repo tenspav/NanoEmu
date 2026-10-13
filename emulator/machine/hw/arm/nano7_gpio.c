@@ -14,9 +14,11 @@
  * The ISR calls cb[g][bit] for pending & mask, then writes pending back.
  *
  * Input levels: GPIO n reads at 0x3cf00000 + b * 0x20 + 4, bit p. Only
- * pins driven by a model are overlaid (GPIO 0x56 = PMU event line,
- * 0x3cf00144 bit 6, idle high); other bits of that word read back what
- * was written, as the regfile did. A falling edge latches pending.
+ * pins driven by a model (nano7_gpio_model_pin) are overlaid, e.g. GPIO
+ * 0x56 = PMU event line (0x3cf00144 bit 6), GPIO 14 = panel TE (0x3cf00024
+ * bit 6); other bits of those words read back what was written, as the
+ * regfile did. A falling edge latches pending. NANO7_GPIO_TRACE=1 logs
+ * group-register accesses.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -26,17 +28,29 @@
 #include "target/arm/cpu.h"
 
 #define GPIO_GROUPS     8
+#define GPIO_PINS       256
+#define GPIO_BANK_WORDS 8
 
 static const int gpio_group_irq[GPIO_GROUPS] = { 33, 32, 31, 3, 2, -1, -1, -1 };
 
+typedef struct GpioBankWord {   /* overlay of one bank's level word */
+    MemoryRegion mr;
+    unsigned bank;
+    uint32_t written;           /* value last written (unmodeled bits) */
+    uint32_t model_mask;        /* bits driven by models */
+    uint32_t level;             /* their levels */
+} GpioBankWord;
+
 typedef struct Nano7GpioState {
     MemoryRegion irq_mr;        /* 0x39700080..0x397000ff */
-    MemoryRegion lvl_mr;        /* 0x3cf00144: bank 10 level word */
+    MemoryRegion *parent;
     uint32_t cfg[GPIO_GROUPS], pend[GPIO_GROUPS], mask[GPIO_GROUPS];
     uint32_t extra[GPIO_GROUPS];
     qemu_irq irq[GPIO_GROUPS];
-    uint32_t bank10;            /* written value of 0x3cf00144 */
-    int pmu_level;              /* GPIO 0x56 */
+    GpioBankWord banks[GPIO_BANK_WORDS];
+    unsigned nbanks;
+    uint8_t edge_logs[GPIO_PINS];
+    bool trace;
     unsigned log_lines;
 } Nano7GpioState;
 
@@ -64,7 +78,7 @@ static void gpio_update(Nano7GpioState *s)
 /* group-register accesses, logged (capped) to follow the button path */
 static void gpio_trace(Nano7GpioState *s, bool wr, hwaddr off, uint32_t v)
 {
-    if (s->log_lines++ < 200) {
+    if (s->trace && s->log_lines++ < 2000) {
         fprintf(stderr, "[nano7-gpio] pc=0x%08x %s 0x%08x %s 0x%08x\n",
                 current_cpu ? ARM_CPU(current_cpu)->env.regs[15] : 0,
                 wr ? "W" : "R", (uint32_t)(0x39700080 + off), wr ? "=" : "->",
@@ -114,17 +128,17 @@ static const MemoryRegionOps gpio_irq_ops = {
 
 static uint64_t gpio_lvl_read(void *opaque, hwaddr off, unsigned size)
 {
-    Nano7GpioState *s = opaque;
+    GpioBankWord *w = opaque;
 
-    return (s->bank10 & ~(1u << 6)) | (s->pmu_level ? 1u << 6 : 0);
+    return (w->written & ~w->model_mask) | (w->level & w->model_mask);
 }
 
 static void gpio_lvl_write(void *opaque, hwaddr off, uint64_t v,
                            unsigned size)
 {
-    Nano7GpioState *s = opaque;
+    GpioBankWord *w = opaque;
 
-    s->bank10 = v;
+    w->written = v;
 }
 
 static const MemoryRegionOps gpio_lvl_ops = {
@@ -135,26 +149,65 @@ static const MemoryRegionOps gpio_lvl_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
+static GpioBankWord *gpio_bank(Nano7GpioState *s, unsigned bank)
+{
+    unsigned i;
+
+    for (i = 0; i < s->nbanks; i++) {
+        if (s->banks[i].bank == bank) {
+            return &s->banks[i];
+        }
+    }
+    return NULL;
+}
+
+void nano7_gpio_model_pin(unsigned n, int level)
+{
+    Nano7GpioState *s = gpio_singleton;
+    GpioBankWord *w;
+
+    if (!s || n >= GPIO_PINS) {
+        return;
+    }
+    w = gpio_bank(s, n >> 3);
+    if (!w) {
+        g_autofree char *name = g_strdup_printf("nano7.gpio-lvl%u", n >> 3);
+
+        assert(s->nbanks < GPIO_BANK_WORDS);
+        w = &s->banks[s->nbanks++];
+        w->bank = n >> 3;
+        memory_region_init_io(&w->mr, NULL, &gpio_lvl_ops, w, name, 4);
+        memory_region_add_subregion_overlap(s->parent,
+                                            0x3cf00000 + w->bank * 0x20 + 4,
+                                            &w->mr, 1);
+    }
+    w->model_mask |= 1u << (n & 7);
+    w->level = (w->level & ~(1u << (n & 7))) | (level ? 1u << (n & 7) : 0);
+}
+
 void nano7_gpio_set_level(unsigned n, int level)
 {
     Nano7GpioState *s = gpio_singleton;
-    unsigned g, bit;
+    GpioBankWord *w = s && n < GPIO_PINS ? gpio_bank(s, n >> 3) : NULL;
+    uint32_t bit = 1u << (n & 7);
+    unsigned g, gbit;
 
-    if (!s || n != NANO7_GPIO_PMU_IRQ) {
+    if (!w || !(w->model_mask & bit)) {
         return;
     }
-    level = !!level;
-    if (s->pmu_level && !level) {
-        gpio_map(n, &g, &bit);
-        s->pend[g] |= 1u << bit;
-        if (s->log_lines++ < 64) {
+    if ((w->level & bit) && !level) {
+        gpio_map(n, &g, &gbit);
+        s->pend[g] |= 1u << gbit;
+        if (s->edge_logs[n] < 8) {
+            s->edge_logs[n]++;
             fprintf(stderr, "[nano7-gpio] GPIO 0x%x falling edge -> group %u "
-                    "bit %u pending (mask 0x%08x, IRQ %d)\n", n, g, bit,
-                    s->mask[g], gpio_group_irq[g]);
+                    "bit %u pending (mask 0x%08x, IRQ %d)%s\n", n, g, gbit,
+                    s->mask[g], gpio_group_irq[g],
+                    s->edge_logs[n] == 8 ? " (further edges not logged)" : "");
         }
         gpio_update(s);
     }
-    s->pmu_level = level;
+    w->level = level ? w->level | bit : w->level & ~bit;
 }
 
 void nano7_gpio_attach(MemoryRegion *parent, qemu_irq *vic_in)
@@ -167,12 +220,10 @@ void nano7_gpio_attach(MemoryRegion *parent, qemu_irq *vic_in)
             s->irq[g] = vic_in[gpio_group_irq[g]];
         }
     }
-    s->pmu_level = 1;
+    s->parent = parent;
+    s->trace = getenv("NANO7_GPIO_TRACE") != NULL;
     gpio_singleton = s;
     memory_region_init_io(&s->irq_mr, NULL, &gpio_irq_ops, s,
                           "nano7.gpio-irq", 0x80);
     memory_region_add_subregion_overlap(parent, 0x39700080, &s->irq_mr, 1);
-    memory_region_init_io(&s->lvl_mr, NULL, &gpio_lvl_ops, s,
-                          "nano7.gpio-lvl", 4);
-    memory_region_add_subregion_overlap(parent, 0x3cf00144, &s->lvl_mr, 1);
 }

@@ -242,6 +242,7 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script)
     };
     QemuInputHandlerState *hs;
 
+    nano7_gpio_model_pin(NANO7_GPIO_PMU_IRQ, 1);   /* event line idle high */
     s->regs[7] = 0x30;      /* home, power released */
     s->regs[8] = 0x02;      /* play/pause released */
     pmu_singleton = s;
