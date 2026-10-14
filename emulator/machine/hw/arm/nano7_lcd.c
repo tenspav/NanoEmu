@@ -22,8 +22,10 @@
  * Model: registers read back what was written. Every 16.67 ms GPIO 14
  * goes low for 1 ms (falling edge -> pending). At each TE the enabled
  * windows are composited (window 0 opaque, window 1 over it with its
- * alpha) into a 240x432 frame; with lcd dumps on (disp-dump=DIR) a
- * changed frame is written as DIR/screen-NNNNN.ppm.
+ * alpha) into a 240x432 XRGB frame, which is the surface of a QEMU
+ * graphic console (any -display / -vnc shows it; refreshed when the frame
+ * changes). With disp-dump=DIR a changed frame is also written as
+ * DIR/screen-NNNNN.ppm.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -34,6 +36,7 @@
 #include "hw/core/cpu.h"
 #include "target/arm/cpu.h"
 #include "exec/address-spaces.h"
+#include "ui/console.h"
 
 #define LCD_SIZE        0x1000
 #define LCD_TE_PERIOD   16666667    /* ns, 60 Hz */
@@ -51,6 +54,8 @@ typedef struct Nano7LcdState {
     uint64_t tes, dumps, base_changes;
     bool warned_fmt;
     bool written[LCD_SIZE / 4];
+    QemuConsole *con;
+    uint64_t updates;           /* frames pushed to the console */
 } Nano7LcdState;
 
 static Nano7LcdState *lcd_singleton;
@@ -61,8 +66,9 @@ static void lcd_summary(void)
 
     if (s) {
         fprintf(stderr, "[nano7-lcd] summary: %" PRIu64 " TE pulses, %" PRIu64
-                " window-base changes, %" PRIu64 " screen dumps; written regs:",
-                s->tes, s->base_changes, s->dumps);
+                " window-base changes, %" PRIu64 " console updates, %" PRIu64
+                " screen dumps; written regs:", s->tes, s->base_changes,
+                s->updates, s->dumps);
         for (unsigned i = 0; i < LCD_SIZE / 4; i++) {
             if (s->written[i]) {
                 fprintf(stderr, " +0x%03x=%08x", i * 4, s->regs[i]);
@@ -72,18 +78,16 @@ static void lcd_summary(void)
     }
 }
 
-static uint32_t lcd_pixel(uint32_t fmt, uint32_t addr)
+static uint32_t lcd_pixel(uint32_t fmt, const uint8_t *p)
 {
     if (fmt == 4) {                                 /* RGB565 */
-        uint16_t p = address_space_lduw_le(&address_space_memory, addr,
-                                           MEMTXATTRS_UNSPECIFIED, NULL);
-        uint32_t r = (p >> 11) & 0x1f, g = (p >> 5) & 0x3f, b = p & 0x1f;
+        uint16_t v = lduw_le_p(p);
+        uint32_t r = (v >> 11) & 0x1f, g = (v >> 5) & 0x3f, b = v & 0x1f;
 
         return 0xff000000 | (r << 3 | r >> 2) << 16 | (g << 2 | g >> 4) << 8 |
                (b << 3 | b >> 2);
     }
-    return address_space_ldl_le(&address_space_memory, addr,
-                                MEMTXATTRS_UNSPECIFIED, NULL);   /* ARGB */
+    return ldl_le_p(p);                             /* ARGB8888 */
 }
 
 static void lcd_window(Nano7LcdState *s, int w)
@@ -95,6 +99,7 @@ static void lcd_window(Nano7LcdState *s, int w)
     uint32_t dx = r[5] >> 16, dy = r[5] & 0xffff;
     uint32_t fmt = (ctl >> 8) & 0xf, galpha = ctl & 0xff;
     unsigned bpp = fmt == 4 ? 2 : 4, x, y;
+    g_autofree uint8_t *row = NULL;
 
     if (fmt != 4 && fmt != 7) {
         if (!s->warned_fmt) {
@@ -107,10 +112,13 @@ static void lcd_window(Nano7LcdState *s, int w)
     if (!base || !stride) {
         return;
     }
+    row = g_malloc(ww * bpp);
     for (y = 0; y < wh && dy + y < NANO7_LCD_H; y++) {
+        address_space_read(&address_space_memory,
+                           base + ((sy + y) * stride + sx) * bpp,
+                           MEMTXATTRS_UNSPECIFIED, row, ww * bpp);
         for (x = 0; x < ww && dx + x < NANO7_LCD_W; x++) {
-            uint32_t p = lcd_pixel(fmt, base + ((sy + y) * stride + sx + x) *
-                                        bpp);
+            uint32_t p = lcd_pixel(fmt, row + x * bpp);
             uint32_t *o = &s->fb[(dy + y) * NANO7_LCD_W + dx + x];
 
             if (w == 0) {
@@ -134,20 +142,17 @@ static void lcd_dump(Nano7LcdState *s)
 {
     g_autofree uint8_t *rgb = g_malloc(sizeof(s->fb) / 4 * 3);
     g_autofree char *path = NULL;
-    uint32_t hash = 2166136261u;
     unsigned i;
     FILE *f;
 
+    if (s->dumps >= LCD_DUMP_MAX) {
+        return;
+    }
     for (i = 0; i < ARRAY_SIZE(s->fb); i++) {
         rgb[i * 3] = s->fb[i] >> 16;
         rgb[i * 3 + 1] = s->fb[i] >> 8;
         rgb[i * 3 + 2] = s->fb[i];
-        hash = (hash ^ s->fb[i]) * 16777619u;
     }
-    if ((s->dumps && hash == s->last_hash) || s->dumps >= LCD_DUMP_MAX) {
-        return;
-    }
-    s->last_hash = hash;
     path = g_strdup_printf("%s/screen-%05" PRIu64 ".ppm", s->dump_dir, s->tes);
     f = fopen(path, "wb");
     if (!f) {
@@ -164,6 +169,35 @@ static void lcd_dump(Nano7LcdState *s)
     fflush(stderr);
 }
 
+/* Composite the enabled windows; push the frame out if it changed. */
+static void lcd_scanout(Nano7LcdState *s)
+{
+    uint32_t hash = 2166136261u;
+    unsigned i;
+
+    memset(s->fb, 0, sizeof(s->fb));
+    if (s->regs[0x04 / 4] & 0x10) {
+        lcd_window(s, 0);
+    }
+    if (s->regs[0x04 / 4] & 0x20) {
+        lcd_window(s, 1);
+    }
+    for (i = 0; i < ARRAY_SIZE(s->fb); i++) {
+        hash = (hash ^ s->fb[i]) * 16777619u;
+    }
+    if (s->tes > 1 && hash == s->last_hash) {
+        return;
+    }
+    s->last_hash = hash;
+    if (s->con) {
+        dpy_gfx_update_full(s->con);
+        s->updates++;
+    }
+    if (s->dump_dir) {
+        lcd_dump(s);
+    }
+}
+
 static void lcd_te(void *opaque)
 {
     Nano7LcdState *s = opaque;
@@ -173,16 +207,7 @@ static void lcd_te(void *opaque)
         s->te_low = true;
         s->tes++;
         nano7_gpio_set_level(NANO7_GPIO_LCD_TE, 0);
-        if (s->dump_dir) {
-            memset(s->fb, 0, sizeof(s->fb));
-            if (s->regs[0x04 / 4] & 0x10) {
-                lcd_window(s, 0);
-            }
-            if (s->regs[0x04 / 4] & 0x20) {
-                lcd_window(s, 1);
-            }
-            lcd_dump(s);
-        }
+        lcd_scanout(s);
         timer_mod_ns(s->te_timer, now + LCD_TE_LOW);
     } else {
         s->te_low = false;
@@ -223,6 +248,23 @@ static const MemoryRegionOps lcd_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
+static void lcd_invalidate(void *opaque)
+{
+    Nano7LcdState *s = opaque;
+
+    dpy_gfx_update_full(s->con);
+}
+
+static void lcd_gfx_update(void *opaque)
+{
+    /* frames are pushed from the TE pulse (lcd_scanout) */
+}
+
+static const GraphicHwOps lcd_gfx_ops = {
+    .invalidate = lcd_invalidate,
+    .gfx_update = lcd_gfx_update,
+};
+
 void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
 {
     Nano7LcdState *s = g_new0(Nano7LcdState, 1);
@@ -233,6 +275,10 @@ void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
     }
     lcd_singleton = s;
     atexit(lcd_summary);
+    s->con = graphic_console_init(NULL, 0, &lcd_gfx_ops, s);
+    dpy_gfx_replace_surface(s->con, qemu_create_displaysurface_from(
+                                NANO7_LCD_W, NANO7_LCD_H, PIXMAN_x8r8g8b8,
+                                NANO7_LCD_W * 4, (uint8_t *)s->fb));
     nano7_gpio_model_pin(NANO7_GPIO_LCD_TE, 1);
     s->te_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, lcd_te, s);
     timer_mod_ns(s->te_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +
