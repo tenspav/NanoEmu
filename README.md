@@ -45,7 +45,7 @@ Boots the **real RetailOS** from a live device snapshot into a **clickable windo
 | Cold boot from IPSW | ⬜ Planned (needs one-time on-device decryption) |
 | macOS build | ⬜ Planned |
 
-Full hardware reverse-engineering notes live in [`docs/research/`](docs/research/). The session-by-session development journal is [`emulator/boot-progress.md`](emulator/boot-progress.md).
+Full hardware specs live in [`docs/HARDWARE.md`](docs/HARDWARE.md); reverse-engineering notes live in [`docs/research/`](docs/research/). The session-by-session development journal is [`emulator/boot-progress.md`](emulator/boot-progress.md).
 
 ## Building
 
