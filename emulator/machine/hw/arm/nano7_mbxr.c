@@ -90,6 +90,10 @@ struct MbxR {
     uint32_t *fb;
     float *zb;
     uint64_t frames, warned;
+    /* NANO7_MBXR_STATS: distinct draw states (isp, b1, fmt, tex word 0) */
+    bool stats;
+    uint32_t dump_isp;          /* NANO7_MBXR_DUMP=isp: print one segment */
+    uint32_t st_key[64][4], st_n[64], st_cnt;
 };
 
 static float f32(uint32_t w)
@@ -119,6 +123,10 @@ MbxR *mbxr_new(void)
     r->texs = g_new(MbxTex, TRI_MAX);
     r->fb = g_new(uint32_t, FB_MAX_W * FB_MAX_H);
     r->zb = g_new(float, FB_MAX_W * FB_MAX_H);
+    r->stats = getenv("NANO7_MBXR_STATS") != NULL;
+    if (getenv("NANO7_MBXR_DUMP")) {
+        r->dump_isp = strtoul(getenv("NANO7_MBXR_DUMP"), NULL, 16);
+    }
     return r;
 }
 
@@ -199,6 +207,21 @@ static void draw(MbxR *r, uint32_t prim, const uint32_t *v, uint32_t nw)
     n = nw / stride;
     if (!n) {
         return;
+    }
+    if (r->stats) {
+        uint32_t key[4] = { r->isp, r->b1, r->fmt,
+                            tex >= 0 ? r->layer[0].w[0] : 0 }, j;
+
+        for (j = 0; j < r->st_cnt && memcmp(r->st_key[j], key, 16); j++) {
+        }
+        if (j == r->st_cnt && j < 64) {
+            memcpy(r->st_key[j], key, 16);
+            r->st_n[j] = 0;
+            r->st_cnt++;
+        }
+        if (j < 64) {
+            r->st_n[j] += n;
+        }
     }
     vx = g_new(MbxVtx, n);
     for (i = 0; i < n; i++) {
@@ -334,6 +357,16 @@ void mbxr_doorbell(MbxR *r)
             }
             if (m & ~0x1ffu) {
                 warn_once(r, 3, "draw dirty mask 0x%03x: unknown blocks", m);
+            }
+            if (r->dump_isp && r->isp == r->dump_isp) {
+                uint32_t k;
+
+                r->dump_isp = 0;                /* once */
+                fprintf(stderr, "[nano7-mbxr] segment of isp %08x:", r->isp);
+                for (k = 0; k < n; k++) {
+                    fprintf(stderr, "%s%08x", k % 8 ? " " : "\n  ", s[k]);
+                }
+                fputc('\n', stderr);
             }
             if (i + 2 <= n) {
                 draw(r, s[i], &s[i + 2], n - (i + 2));
@@ -621,4 +654,12 @@ void mbxr_render(MbxR *r, const uint32_t *core)
     }
     g_free(ht);
     r->frames++;
+    if (r->stats && r->frames == 300) {
+        for (i = 0; i < r->st_cnt; i++) {
+            fprintf(stderr, "[nano7-mbxr] state isp %08x b1 %08x fmt %04x "
+                    "tex0 %08x: %u vertices\n", r->st_key[i][0],
+                    r->st_key[i][1], r->st_key[i][2], r->st_key[i][3],
+                    r->st_n[i]);
+        }
+    }
 }

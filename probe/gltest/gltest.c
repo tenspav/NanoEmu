@@ -27,7 +27,13 @@
  * 0 = the scene above, 1 = no texture, 2 = no colour array,
  * 3 = GL_TRIANGLES (6 vertices), 4 = clear colour (1, 0.5, 0.25),
  * 5 = no texture and no colour, quad not rotated (identity modelview),
- * 6 = 32x16 RGBA texture, 7 = 64x64 RGB565 texture */
+ * 6 = 32x16 RGBA texture, 7 = 64x64 RGB565 texture,
+ * 8 = GL_REPLACE, 9 = blend SRC_ALPHA / ONE_MINUS_SRC_ALPHA with vertex
+ * alpha 128, 10 = blend ONE / ONE, 11 = depth func LEQUAL, 12 = cull back,
+ * 13 = depth test off, 14 = RGBA4444 texture, 15 = RGBA5551 texture,
+ * 16 = LUMINANCE_ALPHA texture, 17 = ALPHA texture (vertex colours, blend),
+ * 18 = LUMINANCE texture, 19 = no colour array, glColor4f(1, .5, .25, .5)
+ * and blend (the constant colour path) */
 #ifndef VARIANT
 #define VARIANT 0
 #endif
@@ -75,6 +81,52 @@ static void setup_once(void)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEX, TEX, 0, GL_RGB,
                      GL_UNSIGNED_SHORT_5_6_5, t565);
     }
+#elif VARIANT == 14 || VARIANT == 15
+    {
+        static uint16_t t16[TEX * TEX];
+        int i;
+
+        /* alpha: 255 on the checker's light cells, ~half on the dark ones */
+        for (i = 0; i < TEX * TEX; i++) {
+            const uint8_t *p = &g_tex[i * 4];
+            int a = p[0] == 96 ? 128 : 255;
+#if VARIANT == 14
+            t16[i] = (uint16_t)((p[0] >> 4) << 12 | (p[1] >> 4) << 8 |
+                                (p[2] >> 4) << 4 | a >> 4);
+#else
+            t16[i] = (uint16_t)((p[0] >> 3) << 11 | (p[1] >> 3) << 6 |
+                                (p[2] >> 3) << 1 | (a == 255));
+#endif
+        }
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TEX, TEX, 0, GL_RGBA,
+                     VARIANT == 14 ? GL_UNSIGNED_SHORT_4_4_4_4 :
+                     GL_UNSIGNED_SHORT_5_5_5_1, t16);
+    }
+#elif VARIANT >= 16 && VARIANT <= 18
+    {
+        static uint8_t t8[TEX * TEX * 2];
+        int i;
+
+        for (i = 0; i < TEX * TEX; i++) {
+            const uint8_t *p = &g_tex[i * 4];
+#if VARIANT == 16
+            t8[2 * i] = p[1];                   /* luminance */
+            t8[2 * i + 1] = p[0] == 96 ? 128 : 255;
+#else
+            t8[i] = p[1];
+#endif
+        }
+#if VARIANT == 16
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, TEX, TEX, 0,
+                     GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, t8);
+#elif VARIANT == 17
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, TEX, TEX, 0, GL_ALPHA,
+                     GL_UNSIGNED_BYTE, t8);
+#else
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, TEX, TEX, 0,
+                     GL_LUMINANCE, GL_UNSIGNED_BYTE, t8);
+#endif
+    }
 #else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TEXW, TEXH, 0, GL_RGBA,
                  GL_UNSIGNED_BYTE, g_tex);
@@ -92,6 +144,12 @@ void gl_app_frame(int w, int h, uint32_t frame)
         255, 64, 64, 255,   64, 255, 64, 255,   64, 64, 255, 255,
         255, 255, 255, 255,
     };
+#if VARIANT == 9
+    static const GLubyte cola[] = {
+        255, 64, 64, 128,   64, 255, 64, 128,   64, 64, 255, 128,
+        255, 255, 255, 128,
+    };
+#endif
     GLfloat aspect = (GLfloat)w / (GLfloat)h;
 
     if (!g_ready) {
@@ -116,21 +174,53 @@ void gl_app_frame(int w, int h, uint32_t frame)
     glRotatef((GLfloat)((frame * 2) % 360), 0.f, 0.f, 1.f);
 #endif
 
+#if VARIANT == 13
+    glDisable(GL_DEPTH_TEST);
+#else
     glEnable(GL_DEPTH_TEST);
+#endif
+#if VARIANT == 11
+    glDepthFunc(GL_LEQUAL);
+#endif
+#if VARIANT == 12
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+#else
     glDisable(GL_CULL_FACE);
+#endif
     glDisable(GL_LIGHTING);
+#if VARIANT == 9 || VARIANT == 14 || VARIANT == 15 || VARIANT == 16 || \
+    VARIANT == 17 || VARIANT == 19
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+#elif VARIANT == 10
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+#else
     glDisable(GL_BLEND);
-#if VARIANT != 1 && VARIANT != 5
+#endif
+#if VARIANT == 19
+    glColor4f(1.f, 0.5f, 0.25f, 0.5f);
+#endif
+#if VARIANT != 1 && VARIANT != 5 && VARIANT != 19
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, g_tex_id);
+#if VARIANT == 8
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+#else
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+#endif
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glTexCoordPointer(2, GL_FLOAT, 0, uv);
 #endif
     glEnableClientState(GL_VERTEX_ARRAY);
-#if VARIANT != 2 && VARIANT != 5
+#if VARIANT != 2 && VARIANT != 5 && VARIANT != 19
     glEnableClientState(GL_COLOR_ARRAY);
+#if VARIANT == 9
+    glColorPointer(4, GL_UNSIGNED_BYTE, 0, cola);
+#else
     glColorPointer(4, GL_UNSIGNED_BYTE, 0, col);
+#endif
 #endif
 #if VARIANT == 3
     {
