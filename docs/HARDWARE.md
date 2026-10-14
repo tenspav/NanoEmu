@@ -15,7 +15,7 @@ Everything the NanoEmu project has learned about the nano 7G hardware, from our 
 
 | | |
 |---|---|
-| DRAM | 64 MB at 0x08000000-0x0bffffff **[confirmed]** |
+| DRAM | 64 MB at 0x08000000-0x0bffffff **[confirmed on-device; CS1 probe app (RAMScope) verified no second die responds, 2026-10-14]** |
 | IRAM (SRAM) | 256 KB at 0x22000000-0x2203ffff **[confirmed]** |
 | App heap limit | ~8 MB (OS-imposed per-app limit; the reason for the full-RAM homebrew goal) **[confirmed]** |
 | Unified memory | GPU shares system DRAM; no separate VRAM chip **[confirmed]** |

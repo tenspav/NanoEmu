@@ -1044,3 +1044,12 @@ NEXT (real sound): host-side MP3 decode in nano7_adsp - compressed bytes come fr
   (block-internal DMA, port regs 0x38500100.., layout to trace), chunks up to 0x8020 bytes, not frame
   aligned -> buffer + minimp3 (no decoder lib installed here), h1 = 2 until a full frame is ready.
 TOOLS: rsp_trace.py RSP_REGMEM=reg:len dumps memory at registers, importable (main guarded).
+
+## 2026-10-14 — RAMScope v3 validated in the emulator (bare-metal harness) + extra-dram= property
+nano7.c: new machine property `extra-dram=N` (what answers at PA 0x0c000000+): 1 open bus
+(reads 0 / writes dropped, matches the device's read behaviour), 2 independent 64 MB RAM, 3 alias of
+DRAM. Default 0 = unchanged. `tools/ramscope_harness/` runs probe/ramscope/ramscope.c unmodified
+(user mode, MMU on, L1 at 0x08b28000, svc #70 stubbed, fake DMC in RAM) via semihosting output:
+modes 0/1 -> NO STORAGE, 2 -> INDEPENDENT MEMORY, 3 -> ALIASED. Found+fixed a real bug this way:
+write offsets beyond the single mapped 1 MB section would have translation-faulted.
+Not modelled: the hardware's bus hang on writes to a rank-less PA 0x0c000000 (device evidence).

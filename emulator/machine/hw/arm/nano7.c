@@ -82,6 +82,8 @@ struct Nano7MachineState {
     MemoryRegion dram;
     MemoryRegion iram;
     MemoryRegion iram_vec;
+    MemoryRegion extra_mr;   /* PA 0x0c000000 test region (extra-dram=) */
+    uint64_t extra_dram;     /* 0 none, 1 open bus RAZ/WI, 2 own RAM, 3 alias */
     MemoryRegion vrom;
 
     char *bootrom;
@@ -421,6 +423,13 @@ static void nano7_load_vrom(Nano7MachineState *s)
                                 &s->vrom);
 }
 
+static uint64_t nano7_openbus_read(void *o, hwaddr a, unsigned sz) { return 0; }
+static void nano7_openbus_write(void *o, hwaddr a, uint64_t v, unsigned sz) { }
+static const MemoryRegionOps nano7_openbus_ops = {
+    .read = nano7_openbus_read, .write = nano7_openbus_write,
+    .endianness = DEVICE_LITTLE_ENDIAN,
+};
+
 static void nano7_init(MachineState *machine)
 {
     Nano7MachineState *s = NANO7_MACHINE(machine);
@@ -470,6 +479,28 @@ static void nano7_init(MachineState *machine)
                            NANO7_DRAM_SIZE, &error_fatal);
     memory_region_add_subregion(get_system_memory(), NANO7_DRAM_BASE,
                                 &s->dram);
+
+    switch (s->extra_dram) {
+    case 1:
+        memory_region_init_io(&s->extra_mr, NULL, &nano7_openbus_ops, NULL,
+                              "nano7.extra.openbus", NANO7_DRAM_SIZE);
+        break;
+    case 2:
+        memory_region_init_ram(&s->extra_mr, NULL, "nano7.extra.ram",
+                               NANO7_DRAM_SIZE, &error_fatal);
+        break;
+    case 3:
+        memory_region_init_alias(&s->extra_mr, NULL, "nano7.extra.alias",
+                                 &s->dram, 0, NANO7_DRAM_SIZE);
+        break;
+    default:
+        break;
+    }
+    if (s->extra_dram >= 1 && s->extra_dram <= 3) {
+        memory_region_add_subregion(get_system_memory(),
+                                    NANO7_DRAM_BASE + NANO7_DRAM_SIZE,
+                                    &s->extra_mr);
+    }
 
     if (s->iram_protect == 2) {
         /* Whole IRAM read-only: keep the dumped trampoline code intact;
@@ -586,10 +617,9 @@ static void nano7_init(MachineState *machine)
                        s->vic_in[NANO7_IRQ_SPI0]);
     nano7_i2s_attach(get_system_memory(), 0x3ca00000, s->audio_out);
     /* 0x38500000: media decode co-processor (IRQ 18, ID 0x004e7309, job
-     * completion), see nano7_adsp.c; 0x38501000: separate block, stored */
+     * completion), see nano7_adsp.c */
     nano7_adsp_attach(get_system_memory(), 0x38500000,
                       s->vic_in[NANO7_IRQ_ADSP]);
-    nano7_regfile_attach(get_system_memory(), "b3851", 0x38501000, 0x1000);
     /* PowerVR MBX GPU (0x3b000000 core, FIFO apertures, planes 0x391-3,
      * IRQ 53): job completion only, nothing is rendered (nano7_mbx.c) */
     nano7_mbx_attach(get_system_memory(), s->vic_in[NANO7_IRQ_MBX]);
@@ -927,6 +957,22 @@ static void nano7_set_warm(Object *obj, Visitor *v, const char *name,
     visit_type_uint64(v, name, &NANO7_MACHINE(obj)->warm, errp);
 }
 
+/* extra-dram=N: what answers at PA 0x0c000000..0x0fffffff (RAMScope tests).
+ * 1 = open bus (reads 0, writes dropped), 2 = independent 64 MB RAM,
+ * 3 = alias of the 64 MB DRAM (address wraps). Default 0 = nothing mapped. */
+static void nano7_get_extra_dram(Object *obj, Visitor *v, const char *name,
+                                 void *opaque, Error **errp)
+{
+    uint64_t value = NANO7_MACHINE(obj)->extra_dram;
+    visit_type_uint64(v, name, &value, errp);
+}
+
+static void nano7_set_extra_dram(Object *obj, Visitor *v, const char *name,
+                                 void *opaque, Error **errp)
+{
+    visit_type_uint64(v, name, &NANO7_MACHINE(obj)->extra_dram, errp);
+}
+
 static void nano7_get_iram_protect(Object *obj, Visitor *v, const char *name,
                                    void *opaque, Error **errp)
 {
@@ -1172,6 +1218,12 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
     object_class_property_set_description(oc, "iram-image",
                                           "IRAM snapshot (incl. live vector "
                                           "table) preloaded at 0x22000000");
+    object_class_property_add(oc, "extra-dram", "uint64",
+                              nano7_get_extra_dram, nano7_set_extra_dram,
+                              NULL, NULL);
+    object_class_property_set_description(oc, "extra-dram",
+                                          "PA 0x0c000000 test region: 1 open "
+                                          "bus, 2 independent RAM, 3 alias");
     object_class_property_add(oc, "warm", "uint64",
                               nano7_get_warm, nano7_set_warm, NULL, NULL);
     object_class_property_set_description(oc, "warm",

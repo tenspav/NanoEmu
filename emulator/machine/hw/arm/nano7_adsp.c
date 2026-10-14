@@ -44,7 +44,7 @@
 #include "exec/address-spaces.h"
 #include "migration/vmstate.h"
 
-#define ADSP_SIZE       0x1000
+#define ADSP_SIZE       0x2000
 #define ADSP_ID         0x004e7309
 #define ADSP_JOB_NS     20000
 #define PEND_DONE       (1u << 2)
@@ -144,6 +144,10 @@ static void adsp_write(void *opaque, hwaddr off, uint64_t value,
     Nano7AdspState *s = opaque;
     uint32_t v = value;
 
+    if (getenv("NANO7_ADSP_TRACE") && s->frames < 4) {
+        fprintf(stderr, "[nano7-adsp] t=%.6f W +0x%03x = 0x%08x\n",
+                nano7_now_ns() / 1e9, (unsigned)off, v);
+    }
     switch (off) {
     case 0xa8c:
         s->mask[0] |= v & PEND_MASK;
