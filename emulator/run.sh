@@ -8,8 +8,8 @@
 #   --nand-store FILE / --nand-miss blank|oracle / --nand-disk IMG: NAND page
 #                                store (see nano7_fmc.c)
 #   --disp-dump DIR              write display-pipe frames as PPMs
-#   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play); keys h/p/space
-#                                via the monitor's sendkey
+#   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play|volup|voldown);
+#                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
 #   --rtc snapshot|host|SECONDS  PMU real-time clock at start (default snapshot)
 #   --vnc [N]                    serve the LCD on VNC display :N (port 5900+N,
 #                                default :0); mouse = touch, keys h/p/space

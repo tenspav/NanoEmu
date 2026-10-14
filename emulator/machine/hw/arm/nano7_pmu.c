@@ -68,6 +68,9 @@ static const PmuBtn pmu_btns[NANO7_BTN_COUNT] = {
     [NANO7_BTN_HOME]  = { "home",  7, 1u << 4, 1u << 0 },
     [NANO7_BTN_POWER] = { "power", 7, 1u << 5, 1u << 1 },
     [NANO7_BTN_PLAY]  = { "play",  8, 1u << 1, 1u << 3 },
+    /* volume buttons are plain GPIOs (lvl_reg 0 = not on the PMU) */
+    [NANO7_BTN_VOLUP]   = { "volup",   0, 0, 0 },
+    [NANO7_BTN_VOLDOWN] = { "voldown", 0, 0, 0 },
 };
 
 typedef struct PmuEvent {
@@ -81,7 +84,7 @@ typedef struct Nano7PmuState {
     uint8_t ptr;
     bool have_ptr;
     bool seen[256][2];          /* register logged (read / write) */
-    unsigned trace_left;        /* log every access for a while after a button */
+    unsigned trace_left;        /* log all accesses for a while after a button */
     bool trace;                 /* NANO7_PMU_TRACE: log every access */
     int64_t rtc_base;           /* counter value at virtual time 0 */
     bool rtc_from_snapshot;     /* rtc_base still to be set from the cache */
@@ -206,8 +209,8 @@ static uint8_t pmu_read(void *opaque)
         pmu_rtc_from_snapshot(s);
     }
     if (r == 0x40) {        /* latch the RTC counter for 0x40..0x43 */
-        uint32_t c = s->rtc_base +
-                     qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / NANOSECONDS_PER_SECOND;
+        uint32_t c = s->rtc_base + qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) /
+                                   NANOSECONDS_PER_SECOND;
 
         stl_le_p(&s->regs[0x40], c);
     }
@@ -221,6 +224,16 @@ void nano7_pmu_button(int btn, bool pressed)
     const PmuBtn *b = &pmu_btns[btn];
 
     if (!s || btn < 0 || btn >= NANO7_BTN_COUNT) {
+        return;
+    }
+    if (btn == NANO7_BTN_VOLUP || btn == NANO7_BTN_VOLDOWN) {
+        /* GPIOButtonManagerTask (0x080de2cc): both edges, 10 ms debounce,
+         * emits 0x08408570(8 up / 7 down, 1/0) */
+        nano7_gpio_set_level(btn == NANO7_BTN_VOLUP ? NANO7_GPIO_VOL_UP :
+                             NANO7_GPIO_VOL_DOWN, !pressed);
+        fprintf(stderr, "[nano7-pmu] t=%.3f s button %s %s\n",
+                qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9, b->name,
+                pressed ? "pressed" : "released");
         return;
     }
     if (pressed) {
@@ -245,6 +258,11 @@ static void pmu_release(Nano7PmuState *s, int btn)
 static void pmu_release_home(void *o)  { pmu_release(o, NANO7_BTN_HOME); }
 static void pmu_release_power(void *o) { pmu_release(o, NANO7_BTN_POWER); }
 static void pmu_release_play(void *o)  { pmu_release(o, NANO7_BTN_PLAY); }
+static void pmu_release_volup(void *o) { pmu_release(o, NANO7_BTN_VOLUP); }
+static void pmu_release_voldown(void *o)
+{
+    pmu_release(o, NANO7_BTN_VOLDOWN);
+}
 
 static void pmu_tap(Nano7PmuState *s, int btn, uint32_t hold_ms)
 {
@@ -289,7 +307,7 @@ static void pmu_parse_script(Nano7PmuState *s, const char *script)
         }
         if (e->btn < 0) {
             fprintf(stderr, "[nano7-pmu] unknown button '%s' (home, power, "
-                    "play)\n", f[1]);
+                    "play, volup, voldown)\n", f[1]);
             exit(1);
         }
         e->at_ns = (int64_t)(g_ascii_strtod(f[0], NULL) * 1e9);
@@ -301,7 +319,8 @@ static void pmu_parse_script(Nano7PmuState *s, const char *script)
     }
 }
 
-/* keyboard (QEMU display window or monitor `sendkey`): h, p, space */
+/* keyboard (VNC / display window / monitor `sendkey`): h home, p power,
+ * space play, Up / = / keypad + volume up, Down / - / keypad - volume down */
 static void pmu_key_event(DeviceState *dev, QemuConsole *src,
                           InputEvent *evt)
 {
@@ -312,6 +331,12 @@ static void pmu_key_event(DeviceState *dev, QemuConsole *src,
     case Q_KEY_CODE_H:     btn = NANO7_BTN_HOME;  break;
     case Q_KEY_CODE_P:     btn = NANO7_BTN_POWER; break;
     case Q_KEY_CODE_SPC:   btn = NANO7_BTN_PLAY;  break;
+    case Q_KEY_CODE_UP:
+    case Q_KEY_CODE_EQUAL:
+    case Q_KEY_CODE_KP_ADD:   btn = NANO7_BTN_VOLUP;   break;
+    case Q_KEY_CODE_DOWN:
+    case Q_KEY_CODE_MINUS:
+    case Q_KEY_CODE_KP_SUBTRACT: btn = NANO7_BTN_VOLDOWN; break;
     default:               return;
     }
     nano7_pmu_button(btn, key->down);
@@ -365,6 +390,12 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
         timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_release_power, s);
     s->release_timer[NANO7_BTN_PLAY] =
         timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_release_play, s);
+    s->release_timer[NANO7_BTN_VOLUP] =
+        timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_release_volup, s);
+    s->release_timer[NANO7_BTN_VOLDOWN] =
+        timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_release_voldown, s);
+    nano7_gpio_model_pin_both_edges(NANO7_GPIO_VOL_UP, 1);     /* idle high */
+    nano7_gpio_model_pin_both_edges(NANO7_GPIO_VOL_DOWN, 1);
     nano7_i2c_add_slave(bus, &sl);
     if (script) {
         pmu_parse_script(s, script);

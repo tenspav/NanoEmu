@@ -17,8 +17,10 @@
  * pins driven by a model (nano7_gpio_model_pin) are overlaid, e.g. GPIO
  * 0x56 = PMU event line (0x3cf00144 bit 6), GPIO 14 = panel TE (0x3cf00024
  * bit 6); other bits of those words read back what was written, as the
- * regfile did. A falling edge latches pending. NANO7_GPIO_TRACE=1 logs
- * group-register accesses.
+ * regfile did. A falling edge latches pending (both edges for pins
+ * modeled with nano7_gpio_model_pin_both_edges, e.g. the volume buttons,
+ * whose ISR flips the polarity to see press and release).
+ * NANO7_GPIO_TRACE=1 logs group-register accesses.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -39,6 +41,7 @@ typedef struct GpioBankWord {   /* overlay of one bank's level word */
     uint32_t written;           /* value last written (unmodeled bits) */
     uint32_t model_mask;        /* bits driven by models */
     uint32_t level;             /* their levels */
+    uint32_t both_edges;        /* pins whose rising edge also latches */
 } GpioBankWord;
 
 typedef struct Nano7GpioState {
@@ -161,6 +164,18 @@ static GpioBankWord *gpio_bank(Nano7GpioState *s, unsigned bank)
     return NULL;
 }
 
+void nano7_gpio_model_pin_both_edges(unsigned n, int level)
+{
+    Nano7GpioState *s = gpio_singleton;
+    GpioBankWord *w;
+
+    nano7_gpio_model_pin(n, level);
+    w = s && n < GPIO_PINS ? gpio_bank(s, n >> 3) : NULL;
+    if (w) {
+        w->both_edges |= 1u << (n & 7);
+    }
+}
+
 void nano7_gpio_model_pin(unsigned n, int level)
 {
     Nano7GpioState *s = gpio_singleton;
@@ -207,13 +222,15 @@ void nano7_gpio_set_level(unsigned n, int level)
     if (!w || !(w->model_mask & bit)) {
         return;
     }
-    if ((w->level & bit) && !level) {
+    if (((w->level & bit) && !level) ||
+        ((w->both_edges & bit) && !(w->level & bit) && level)) {
         gpio_map(n, &g, &gbit);
         s->pend[g] |= 1u << gbit;
         if (s->edge_logs[n] < 8) {
             s->edge_logs[n]++;
-            fprintf(stderr, "[nano7-gpio] GPIO 0x%x falling edge -> group %u "
-                    "bit %u pending (mask 0x%08x, IRQ %d)%s\n", n, g, gbit,
+            fprintf(stderr, "[nano7-gpio] GPIO 0x%x %s edge -> group %u "
+                    "bit %u pending (mask 0x%08x, IRQ %d)%s\n", n,
+                    level ? "rising" : "falling", g, gbit,
                     s->mask[g], gpio_group_irq[g],
                     s->edge_logs[n] == 8 ? " (further edges not logged)" : "");
         }

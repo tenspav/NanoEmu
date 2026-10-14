@@ -19,13 +19,25 @@
  * new frames are rendered but never flipped. The LCD's own IRQ 13 has an
  * assert-stub handler: never raised here.
  *
+ * The panel (a command-mode MIPI DSI panel with its own frame memory) is
+ * also written directly through the DSI controller at 0x3d800000 by the
+ * homebrew SDK (hb_mipi.c: hb_fill_rect, hb_mipi_blit_rgb888) and the
+ * homebrew launcher (code at 0x08006xxx): payload words at +0x38 (bytes
+ * LSB first), then a packet header at +0x34 (type 0x29 = DCS long write,
+ * length << 8) sends them; +0x44 FIFO control is polled for bits 22/20
+ * (header/payload FIFO empty) and bit 21 (payload FIFO full); +0x10 config
+ * bit28 is cleared per packet. DCS 0x2a / 0x2b set the column / page
+ * window, 0x2c / 0x3c write RGB888 pixels from the window start / onward.
+ *
  * Model: registers read back what was written. Every 16.67 ms GPIO 14
  * goes low for 1 ms (falling edge -> pending). At each TE the enabled
  * windows are composited (window 0 opaque, window 1 over it with its
- * alpha) into a 240x432 XRGB frame, which is the surface of a QEMU
- * graphic console (any -display / -vnc shows it; refreshed when the frame
- * changes). With disp-dump=DIR a changed frame is also written as
- * DIR/screen-NNNNN.ppm.
+ * alpha); a changed composite is copied into the panel memory (GRAM), so
+ * direct DSI drawing survives until the OS flips a new frame. GRAM is the
+ * surface of a QEMU graphic console (any -display / -vnc shows it;
+ * refreshed at the TE after a change). The DSI FIFOs always read empty;
+ * packets complete at once. With disp-dump=DIR a changed frame is also
+ * written as DIR/screen-NNNNN.ppm.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -49,7 +61,15 @@ typedef struct Nano7LcdState {
     QEMUTimer *te_timer;
     bool te_low;
     char *dump_dir;
-    uint32_t fb[NANO7_LCD_W * NANO7_LCD_H];   /* composited frame, XRGB */
+    uint32_t fb[NANO7_LCD_W * NANO7_LCD_H];   /* panel GRAM, XRGB: shown */
+    uint32_t comp[NANO7_LCD_W * NANO7_LCD_H]; /* last window composite */
+    bool dirty;                 /* GRAM changed since the last TE */
+    MemoryRegion dsim_mr;       /* 0x3d800000 MIPI DSI controller */
+    uint32_t dsim_regs[LCD_SIZE / 4];
+    uint8_t pkt[0x4000];        /* payload FIFO */
+    unsigned pkt_len;
+    unsigned win_x0, win_x1, win_y0, win_y1, cur_x, cur_y;
+    uint64_t dsi_packets, dsi_pixels;
     uint32_t last_hash;
     uint64_t tes, dumps, base_changes;
     bool warned_fmt;
@@ -67,8 +87,9 @@ static void lcd_summary(void)
     if (s) {
         fprintf(stderr, "[nano7-lcd] summary: %" PRIu64 " TE pulses, %" PRIu64
                 " window-base changes, %" PRIu64 " console updates, %" PRIu64
-                " screen dumps; written regs:", s->tes, s->base_changes,
-                s->updates, s->dumps);
+                " screen dumps, %" PRIu64 " DSI packets (%" PRIu64 " px); "
+                "written regs:", s->tes, s->base_changes, s->updates,
+                s->dumps, s->dsi_packets, s->dsi_pixels);
         for (unsigned i = 0; i < LCD_SIZE / 4; i++) {
             if (s->written[i]) {
                 fprintf(stderr, " +0x%03x=%08x", i * 4, s->regs[i]);
@@ -119,7 +140,7 @@ static void lcd_window(Nano7LcdState *s, int w)
                            MEMTXATTRS_UNSPECIFIED, row, ww * bpp);
         for (x = 0; x < ww && dx + x < NANO7_LCD_W; x++) {
             uint32_t p = lcd_pixel(fmt, row + x * bpp);
-            uint32_t *o = &s->fb[(dy + y) * NANO7_LCD_W + dx + x];
+            uint32_t *o = &s->comp[(dy + y) * NANO7_LCD_W + dx + x];
 
             if (w == 0) {
                 *o = p & 0xffffff;
@@ -129,8 +150,10 @@ static void lcd_window(Nano7LcdState *s, int w)
                 int sh;
 
                 for (sh = 0; sh < 24; sh += 8) {
-                    out |= ((((p >> sh) & 0xff) * a +
-                             ((*o >> sh) & 0xff) * (255 - a) + 127) / 255) << sh;
+                    unsigned c = (((p >> sh) & 0xff) * a +
+                                  ((*o >> sh) & 0xff) * (255 - a) + 127) / 255;
+
+                    out |= c << sh;
                 }
                 *o = out;
             }
@@ -175,20 +198,25 @@ static void lcd_scanout(Nano7LcdState *s)
     uint32_t hash = 2166136261u;
     unsigned i;
 
-    memset(s->fb, 0, sizeof(s->fb));
+    memset(s->comp, 0, sizeof(s->comp));
     if (s->regs[0x04 / 4] & 0x10) {
         lcd_window(s, 0);
     }
     if (s->regs[0x04 / 4] & 0x20) {
         lcd_window(s, 1);
     }
-    for (i = 0; i < ARRAY_SIZE(s->fb); i++) {
-        hash = (hash ^ s->fb[i]) * 16777619u;
+    for (i = 0; i < ARRAY_SIZE(s->comp); i++) {
+        hash = (hash ^ s->comp[i]) * 16777619u;
     }
-    if (s->tes > 1 && hash == s->last_hash) {
+    if (s->tes == 1 || hash != s->last_hash) {
+        s->last_hash = hash;
+        memcpy(s->fb, s->comp, sizeof(s->fb));
+        s->dirty = true;
+    }
+    if (!s->dirty) {
         return;
     }
-    s->last_hash = hash;
+    s->dirty = false;
     if (s->con) {
         dpy_gfx_update_full(s->con);
         s->updates++;
@@ -248,6 +276,109 @@ static const MemoryRegionOps lcd_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
+/* ------------------------------------------------ MIPI DSI controller --- */
+#define DSIM_CONFIG     0x10
+#define DSIM_PKTHDR     0x34
+#define DSIM_PAYLOAD    0x38
+#define DSIM_FIFOCTRL   0x44
+#define DSIM_EMPTY      (1u << 22 | 1u << 20)   /* header + payload FIFO */
+#define DSIM_FULL       (1u << 21)
+
+static void dsi_pixel(Nano7LcdState *s, const uint8_t *rgb)
+{
+    if (s->cur_x < NANO7_LCD_W && s->cur_y < NANO7_LCD_H) {
+        s->fb[s->cur_y * NANO7_LCD_W + s->cur_x] =
+            rgb[0] << 16 | rgb[1] << 8 | rgb[2];
+    }
+    s->dsi_pixels++;
+    if (++s->cur_x > s->win_x1) {
+        s->cur_x = s->win_x0;
+        if (++s->cur_y > s->win_y1) {
+            s->cur_y = s->win_y0;
+        }
+    }
+}
+
+/* one DCS long write: command byte + parameters */
+static void dsi_dcs(Nano7LcdState *s, const uint8_t *p, unsigned len)
+{
+    unsigned i;
+
+    switch (p[0]) {
+    case 0x2a:                  /* SET_COLUMN_ADDRESS */
+        if (len >= 5) {
+            s->win_x0 = p[1] << 8 | p[2];
+            s->win_x1 = p[3] << 8 | p[4];
+        }
+        break;
+    case 0x2b:                  /* SET_PAGE_ADDRESS */
+        if (len >= 5) {
+            s->win_y0 = p[1] << 8 | p[2];
+            s->win_y1 = p[3] << 8 | p[4];
+        }
+        break;
+    case 0x2c:                  /* WRITE_MEMORY_START */
+        s->cur_x = s->win_x0;
+        s->cur_y = s->win_y0;
+        /* fall through */
+    case 0x3c:                  /* WRITE_MEMORY_CONTINUE */
+        for (i = 1; i + 3 <= len; i += 3) {
+            dsi_pixel(s, p + i);
+        }
+        s->dirty = true;
+        break;
+    default:
+        break;
+    }
+}
+
+static uint64_t dsim_read(void *opaque, hwaddr off, unsigned size)
+{
+    Nano7LcdState *s = opaque;
+
+    if (off == DSIM_FIFOCTRL) {
+        return (s->dsim_regs[off / 4] | DSIM_EMPTY) & ~DSIM_FULL;
+    }
+    return s->dsim_regs[off / 4];
+}
+
+static void dsim_write(void *opaque, hwaddr off, uint64_t v, unsigned size)
+{
+    Nano7LcdState *s = opaque;
+
+    switch (off) {
+    case DSIM_PAYLOAD:
+        if (s->pkt_len + 4 <= sizeof(s->pkt)) {
+            stl_le_p(s->pkt + s->pkt_len, v);
+            s->pkt_len += 4;
+        }
+        break;
+    case DSIM_PKTHDR: {
+        unsigned type = v & 0x3f, len = (v >> 8) & 0xffff;
+
+        if ((type == 0x29 || type == 0x39) && len && len <= s->pkt_len) {
+            dsi_dcs(s, s->pkt, len);
+        }
+        if (s->dsi_packets++ < 8) {
+            fprintf(stderr, "[nano7-lcd] t=%.3f s DSI packet type 0x%02x len "
+                    "%u cmd 0x%02x\n", qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) /
+                    1e9, type, len, s->pkt_len ? s->pkt[0] : 0);
+        }
+        s->pkt_len = 0;
+        break;
+    }
+    }
+    s->dsim_regs[off / 4] = v;
+}
+
+static const MemoryRegionOps dsim_ops = {
+    .read = dsim_read,
+    .write = dsim_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = { .min_access_size = 4, .max_access_size = 4 },
+    .impl = { .min_access_size = 4, .max_access_size = 4 },
+};
+
 static void lcd_invalidate(void *opaque)
 {
     Nano7LcdState *s = opaque;
@@ -285,4 +416,9 @@ void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
                  LCD_TE_PERIOD);
     memory_region_init_io(&s->mr, NULL, &lcd_ops, s, "nano7.lcd", LCD_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);
+    s->win_x1 = NANO7_LCD_W - 1;
+    s->win_y1 = NANO7_LCD_H - 1;
+    memory_region_init_io(&s->dsim_mr, NULL, &dsim_ops, s, "nano7.dsim",
+                          LCD_SIZE);
+    memory_region_add_subregion_overlap(parent, 0x3d800000, &s->dsim_mr, 0);
 }

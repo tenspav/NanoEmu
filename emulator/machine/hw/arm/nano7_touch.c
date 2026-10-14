@@ -127,7 +127,8 @@ static void tp_queue(Nano7TouchState *s, uint8_t state, int px, int py)
     r = &s->q[(s->q_head + s->q_n++) % TP_QUEUE];
 fill:
     r->state = state;
-    /* invert x = (rawX + 75) * 239 / 2845, y = 431 - (rawY + 75) * 431 / 5250 */
+    /* invert x = (rawX + 75) * 239 / 2845,
+     *        y = 431 - (rawY + 75) * 431 / 5250 */
     r->x = (px * 2845 + 238) / 239 - 75;
     r->y = ((TP_H - 1 - py) * 5250 + 430) / 431 - 75;
     if (s->reports++ < 64) {

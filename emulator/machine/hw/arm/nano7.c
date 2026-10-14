@@ -150,6 +150,10 @@ static void nano7_resume_hw(void)
                          MEMTXATTRS_UNSPECIFIED, NULL);
     address_space_stl_le(as, 0x397000e4, 1u << 30, MEMTXATTRS_UNSPECIFIED,
                          NULL);
+    /* group 2 -> IRQ 31: volume up/down (GPIO 0x28/0x29, bits 0/1) armed by
+     * GPIOButtonManagerTask; its ISR flips +0x88 polarity per edge */
+    address_space_stl_le(as, 0x397000c8, 3, MEMTXATTRS_UNSPECIFIED, NULL);
+    address_space_stl_le(as, 0x39700088, 3, MEMTXATTRS_UNSPECIFIED, NULL);
     /* LCD window 0 geometry: programmed once at display init, before T0; a
      * commit (0x08080b70) only rewrites enable, +0x10 and the base. Full-
      * screen layer: ctl 0x002107ff (ARGB8888, alpha 0xff), stride 240 px,
@@ -1171,7 +1175,8 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
                                   nano7_set_buttons);
     object_class_property_set_description(oc, "buttons",
                                           "timed button presses "
-                                          "SEC:home|power|play[:HOLD_MS]/...");
+                                          "SEC:home|power|play|volup|voldown"
+                                          "[:HOLD_MS]/...");
     object_class_property_add_str(oc, "torn-map", nano7_get_torn_map,
                                   nano7_set_torn_map);
     object_class_property_set_description(oc, "torn-map",

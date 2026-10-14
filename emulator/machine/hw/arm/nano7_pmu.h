@@ -9,11 +9,13 @@
 
 #include "nano7_i2c.h"
 
-enum { NANO7_BTN_HOME, NANO7_BTN_POWER, NANO7_BTN_PLAY, NANO7_BTN_COUNT };
+enum { NANO7_BTN_HOME, NANO7_BTN_POWER, NANO7_BTN_PLAY, NANO7_BTN_VOLUP,
+       NANO7_BTN_VOLDOWN, NANO7_BTN_COUNT };
 
 /* script: "SEC:BUTTON[:HOLD_MS]/..." (virtual time from start; "/" or
  * ";" separated, -M splits on commas), e.g. "200:home:100/240:power";
- * NULL = none. Keys: h = home, p = power, space = play. */
+ * NULL = none; buttons home, power, play, volup, voldown. Keys: h home,
+ * p power, space play, Up/=/+ volume up, Down/- volume down. */
 /* rtc: "snapshot" / NULL = the OS's cached time of day at T0, "host" =
  * host clock, else Unix seconds (UTC) at start */
 void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc);
