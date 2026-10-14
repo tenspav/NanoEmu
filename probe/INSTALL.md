@@ -120,3 +120,17 @@ the tap (kernel 0x08900000 + stacks 0x0b400000 + IRAM copied with IRQs off). New
 overlay_masked (expect 2), overlay_masked_fallback, masked_section_us, irq_mask_saved,
 fmc_idle_retries. If it reboots on tap like v4 did, the stage=prepared breadcrumb still lands
 first; roll back to v5 (scratchpad copy).
+
+## DumpBoot (2026-10-14) — reserved NAND region dump, NOT yet installed
+
+Source `dumpboot/` (raw-surface app, per-frame state machine so progress is live: BUSY... +
+bar, %, MB counter, ERR count, elapsed s, hold-to-cancel). Build `make -C dumpboot`, copy
+`dumpboot/build/dumpboot.hbapp` -> `install/DumpBoot.hbapp`. Bundle `hb.dumpboot` app_id
+0x0dadac91 (FNV scheme, probed clear of the 10 existing ids), icon `install/DumpBoot.bin`.
+Dry run: `python3 repack_dumpboot.py install/AllApps-B.pack.new install/AllApps-B.pack.dumpboot-dryrun`
+(11 apps, DumpBoot last, old bundles byte-identical).
+Install = same as DumpROM: device mounted, `sudo python3 repack_dumpboot.py` (reads the live
+pack, writes install/AllApps-B.pack.new), then copy DumpBoot.hbapp -> /Apps/Executables/,
+DumpBoot.bin -> /Apps/Icons/, pack last; back up the pack first; sync/umount/eject; reboot.
+Needs ~193 MB free on the data partition. Outputs in /Apps/Data/probe/: reserved.bin (49216 x
+4 KB, fixed offsets), status.bin (1 byte/LBA), manifest.json, report.txt (ALL_DONE at the end).

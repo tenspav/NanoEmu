@@ -14,6 +14,9 @@ STACK = [int(x, 0) for x in os.environ['RSP_STACK'].split(':')] \
 # RSP_SPSTACK=N -> on every hit also list Thumb return addresses in the N
 # bytes above the stopped thread's sp
 SPSTACK = int(os.environ.get('RSP_SPSTACK', '0'), 0)
+# RSP_REGMEM=r5:0x20[,sp:0x40] -> on every hit also dump N bytes at a register
+REGMEM = [(x.split(':')[0], int(x.split(':')[1], 0)) for x in
+          os.environ.get('RSP_REGMEM', '').split(',') if x]
 
 
 class RSP:
@@ -102,6 +105,9 @@ def main():
                   (pc, g[0], g[1], g[2], g[3], g[13], g[14]))
             if 0x08000000 <= g[0] < 0x0c000000:     # 16 bytes at r0
                 print('    [r0 0x%08x] %s' % (g[0], r.cmd('m%x,10' % g[0])))
+            for reg, n in REGMEM:
+                a = g[13] if reg == 'sp' else g[int(reg[1:])]
+                print('    [%s 0x%08x] %s' % (reg, a, r.cmd('m%x,%x' % (a, n))))
             if STACK or SPSTACK:
                 lo, hi = STACK if STACK else (g[13], g[13] + SPSTACK)
                 mem = bytes.fromhex(r.cmd('m%x,%x' % (lo, hi - lo)))
