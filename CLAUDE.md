@@ -13,6 +13,7 @@ Homebrew QEMU emulator for a legacy ARM media-player SoC (Samsung S5L8747-class,
 ## Mission (user's goals, in order)
 1. Preservation: a working emulator that boots the original RetailOS to the Home screen, visible window, mouse = touch, keyboard = buttons.
 2. Use the emulator as a safe testbed for the real prize: giving homebrew games access to the FULL 64MB RAM (apps are confined to a small ~8MB heap today). Experiments go to the emulator first, real iPod only after proven safe.
+3. Bluetooth done right: investigate classic BT pairing/handshake with other devices (phone/PC) so we are not stuck with BLE-only, which is slow and unreliable. Goal: a fast reliable host channel for file transfer, app installs, and debugging.
 
 ## Emulator feature checklist (user requirements — do not drop)
 - Visible screen window (QEMU display), mouse = touchscreen (touch spec: workers/codex-touch.txt)
