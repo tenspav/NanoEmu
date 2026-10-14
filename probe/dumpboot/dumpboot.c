@@ -205,17 +205,27 @@ static bool dram_ptr(uint32_t p)
     return p >= DRAM_LO && p < DRAM_HI && (p & 3u) == 0;
 }
 
+/* Live chain (verified on snap2-6 RAM dumps):
+ *   dev  = *(0x08971660+4)          e.g. 0x0b206f2c
+ *   p    = *(dev+4)                 e.g. 0x0b20825c  (wrapper: [0]=vtbl, [1]=obj, [7]=0x1000)
+ *   obj  = *(p+4)                   e.g. 0x0b3bc9bc  (NOT *p, which is a vtable)
+ *   be   = *(obj+4)                 e.g. 0x0b3bc988, [be+0x20] == 0 (unshifted LBAs)
+ * Every hop is kept in g_hop[] so a failure reports where the chain broke. */
+static uint32_t g_hop[6];       /* global, dev, p, obj, backend, blocksize */
+
 static bool resolve_reader(void)
 {
-    uint32_t dev = *(volatile uint32_t *)(DEV_GLOBAL + 4);
+    g_hop[0] = *(volatile uint32_t *)DEV_GLOBAL;
+    uint32_t dev = g_hop[1] = *(volatile uint32_t *)(DEV_GLOBAL + 4);
     if (!dram_ptr(dev)) return false;
     g_dev = dev;
-    uint32_t p = *(volatile uint32_t *)(dev + 4);
+    uint32_t p = g_hop[2] = *(volatile uint32_t *)(dev + 4);
     if (!dram_ptr(p)) return false;
-    uint32_t obj = *(volatile uint32_t *)p;
+    uint32_t obj = g_hop[3] = *(volatile uint32_t *)(p + 4);
     if (!dram_ptr(obj)) return false;
     g_obj = obj;
-    uint32_t be = *(volatile uint32_t *)(obj + 4);
+    g_hop[5] = *(volatile uint32_t *)(p + 0x1c);
+    uint32_t be = g_hop[4] = *(volatile uint32_t *)(obj + 4);
     if (!dram_ptr(be)) return false;
     g_backend = be;
     g_backend_off = *(volatile uint32_t *)(be + 0x20);
@@ -342,6 +352,10 @@ static void write_report(const char *stage, bool final)
     o = put_kv(o, "reader_calls=", g_calls);
     o = put_kv(o, "bulk_failures=", g_bulk_fail);
     o = put_kv(o, "individual_reads=", g_indiv_reads);
+    for (int i = 0; i < 6; i++) {
+        o = put_s(o, "hop"); o = put_dec(o, (uint32_t)i); o = put_s(o, "=0x");
+        o = put_hex(o, g_hop[i]); *o++ = '\n';
+    }
     o = put_kvx(o, "reader_obj=", g_obj);
     o = put_kvx(o, "reader_dev=", g_dev);
     o = put_kvx(o, "reader_backend=", g_backend);
@@ -455,6 +469,7 @@ static bool gate_sig(const uint8_t *b) { return b[510] == 0x55 && b[511] == 0xaa
 static void stage_prep(void)
 {
     g_t_start = hb_time_uptime_ms();
+    g_wr_ok = true;
     hb_fs_mkdir(OUT_DIR);
 
     for (int i = 0; i < 16; i++)
@@ -463,6 +478,7 @@ static void stage_prep(void)
 
     if (!resolve_reader()) { fail("PTRS"); return; }
     if (g_backend_off != 0) { fail("OFFSET"); return; }   /* shifted LBAs: refuse */
+    if (g_hop[5] != SECTOR_BYTES) { fail("BLKSZ"); return; }
 
     /* chunk buffer: 1 MB if the heap allows it with headroom, else smaller */
     static const uint32_t sizes[] = { CHUNK_BIG, CHUNK_BIG / 4, CHUNK_BIG / 16 };
@@ -488,6 +504,7 @@ static void stage_prep(void)
     g_gate_rc_a = (uint32_t)os_read(GATE_LBA_A, 1, g_buf);
     if (g_gate_rc_a != 0 || sector_untouched((const uint32_t *)g_buf)) { fail("GATE"); return; }
     g_gate_sig_a = gate_sig(g_buf);
+    if (!g_gate_sig_a) { fail("GATESIG"); return; }   /* not the MBR: wrong ABI/LBA */
     for (int i = 0; i < 16; i++) g_gate_head[i] = g_buf[i];
     g_gate_rc_b = (uint32_t)os_read(GATE_LBA_B, 1, g_buf);
     g_gate_sig_b = g_gate_rc_b == 0 && gate_sig(g_buf);
