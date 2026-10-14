@@ -24,3 +24,4 @@ emulator/*.log
 emulator/retailos-patched.bin
 workers/
 CLAUDE.md
+games/
