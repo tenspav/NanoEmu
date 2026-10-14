@@ -78,11 +78,13 @@ Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 | Display (blitter + LCD, 60 Hz) | ✅ OS-rendered frames |
 | Live window (VNC) + touch + keys | ✅ Working |
 | PMU (battery, charger, RTC) | ✅ Working |
-| Audio (I2S + codec) | 📍 Reverse-engineered, not implemented |
-| GPU (PowerVR MBX Lite) | 📍 Reverse-engineered, not implemented |
-| H.264 decoder (Apple M2) | 📍 Reverse-engineered, not implemented |
-| Bluetooth (classic + BLE) | 📍 Stack mapped, not implemented |
-| Cold boot from IPSW | ⬜ Planned (needs one-time on-device decryption) |
+| Audio (ADSP + I2S + codec) | ✅ **Working: real MP3 decode (minimp3), live playback via `--audio-play`** |
+| Real disk content | ✅ Cloned disk image boots; homebrew apps and real music library work |
+| Save states + controls | ✅ Save/load, reset, rotate, pause, fast-forward, zoom, screenshots |
+| GPU (PowerVR MBX Lite) | 🟡 Draft model wired in (completion only); real rendering in progress |
+| Video decoders (M2) | 🟡 MPEG-4/H.263 block modeled; real H.264 block identified (0x38f00000/IRQ35) |
+| Bluetooth (classic + BLE) | 📍 Stack fully mapped + channel plan ready, not implemented |
+| Cold boot from IPSW | ⬜ Planned (payloads are GID-key encrypted; needs one-time on-device decryption) |
 | macOS build | ⬜ Planned |
 
 Full hardware specs live in [`docs/HARDWARE.md`](docs/HARDWARE.md); reverse-engineering notes live in [`docs/research/`](docs/research/). The session-by-session development journal is [`emulator/boot-progress.md`](emulator/boot-progress.md).
