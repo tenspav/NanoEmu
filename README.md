@@ -45,6 +45,17 @@ Boots the **real RetailOS** from a live device snapshot into a **clickable windo
 
 Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 
+## Key discoveries so far
+
+- ⚡ **The CPU is capped:** PLL1 runs at 684 MHz but the CPU divider holds it at 342 MHz. A single CLKCON register write doubles the clock. Risk analysis in [`docs/research/oc.md`](docs/research/oc.md) and [`docs/research/overclock-codex.md`](docs/research/overclock-codex.md)
+- 🧠 **No 8 MB app heap quota:** homebrew apps share a 40 MB OS heap; memory pressure comes from fragmentation, not a hard cap ([`docs/research/ram-map.md`](docs/research/ram-map.md))
+- 📻 **FM radio lives inside the Bluetooth chip** (Broadcom, HCI vendor command 0xFC15) ([`docs/research/radio.md`](docs/research/radio.md))
+- 📡 **Full classic Bluetooth stack present** (HCI/L2CAP/RFCOMM/A2DP/SSP), enabling fast host channels and HID gamepads ([`docs/research/bluetooth-stack.md`](docs/research/bluetooth-stack.md))
+- 🎬 **Hardware H.264 decoder** (Apple M2) mapped, making video playback and low-res streaming viable ([`docs/research/h264-decoder.md`](docs/research/h264-decoder.md))
+- 🏃 **Accelerometer API mapped** (I2C slave 0x18, 100 Hz, 8-slot subscriber callbacks) ([`docs/research/accel.md`](docs/research/accel.md))
+- 💾 NAND streaming measured at ~25-35 MB/s reads, viable for open-world-style asset streaming ([`docs/research/swap.md`](docs/research/swap.md))
+- 🔒 The GID AES key is unreadable by software (confirmed), so IPSW decryption needs a one-time on-device oracle pass ([`docs/research/efuse.md`](docs/research/efuse.md))
+
 ## Feature status
 
 | Subsystem | Status |
