@@ -5,5 +5,7 @@
 APP_NAME   := gltest
 SRCS       := gltest.c
 GL_SURFACE := 1
+VARIANT    ?= 0
+EXTRA_CFLAGS += -DVARIANT=$(VARIANT)
 NANOAPPS   ?= ../../../nanobtfix-untether/nanoapps
 include $(NANOAPPS)/sdk/hb_app.mk

@@ -38,6 +38,12 @@ Boots the **real RetailOS** from a live device snapshot into a **clickable windo
 
 <p align="center"><i>A GBA emulator homebrew (Lines) running Pokemon FireRed at 62 FPS inside NanoEmu. An emulator inside an emulator.</i></p>
 
+<p align="center">
+  <img src="docs/images/blocks-3d-render.png" width="240" alt="Blocks 3D world rendered by the emulated MBX GPU">
+</p>
+
+<p align="center"><i>The emulated PowerVR MBX GPU rendering a real 3D game world with textures and depth (homebrew Blocks).</i></p>
+
 ## The hardware inside
 
 | | |
@@ -81,7 +87,7 @@ Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 | Audio (ADSP + I2S + codec) | ✅ **Working: real MP3 decode (minimp3), live playback via `--audio-play`** |
 | Real disk content | ✅ Cloned disk image boots; homebrew apps and real music library work |
 | Save states + controls | ✅ Save/load, reset, rotate, pause, fast-forward, zoom, screenshots |
-| GPU (PowerVR MBX Lite) | 🟡 Draft model wired in (completion only); real rendering in progress |
+| GPU (PowerVR MBX Lite) | ✅ **Renders real 3D** (Blocks world with textures + depth; geometry validated IoU 1.000) |
 | Video decoders (M2) | 🟡 MPEG-4/H.263 block modeled; real H.264 block identified (0x38f00000/IRQ35) |
 | Bluetooth (classic + BLE) | 📍 Stack fully mapped + channel plan ready, not implemented |
 | Cold boot from IPSW | ⬜ Planned (payloads are GID-key encrypted; needs one-time on-device decryption) |

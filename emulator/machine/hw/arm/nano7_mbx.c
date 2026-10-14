@@ -16,6 +16,7 @@
 #include "target/arm/cpu.h"
 #include "qemu/timer.h"
 #include "nano7_clock.h"
+#include "nano7_mbxr.h"
 
 #define MBX_CORE_WORDS (0x4000 / 4)
 #define MBX_PLANE_WORDS (0x1000 / 4)
@@ -46,6 +47,7 @@ struct Nano7MbxState {
     bool ta_armed;              /* +0x800 seen, end of list pending */
     bool ta_end, render_pending;  /* end-of-list seen / render running */
     uint64_t scenes, renders, jobs;
+    MbxR *r;                    /* software renderer (nano7_mbxr.c) */
     bool trace;                 /* NANO7_MBX_TRACE: log writes */
     uint64_t trace_n;
 };
@@ -118,6 +120,13 @@ static void mbx_core_reset(Nano7MbxState *s)
      * snapshot resumes after that init, and the IRQ 53 handler 0x08191de4
      * only saves/restores +0x130 around its acks */
     s->core[MBX_ENABLE] = 0x8775;
+    /* MMU: the driver init 0x084850e4 wrote the physical addresses of its
+     * eight page tables (object 0x099655f4: 0x0995c000 + n * 4 KB, snap6)
+     * to +0x1000.. before T0; the renderer translates GPU addresses with
+     * them (Session 32). A cold boot rewrites them. */
+    for (unsigned i = 0; i < 8; i++) {
+        s->core[(0x1000 >> 2) + i] = 0x0995c000 + 0x1000 * i;
+    }
     mbx_update_irq(s);
 }
 
@@ -185,6 +194,11 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
          * frame, render done (bit 4: the handler 0x08191e64 marks the slot
          * rendered = state 3 and wakes ctx+0x2c). The fence 0x08192194
          * writes the same word with no scene armed and waits for bit 4. */
+        if (fifo == 0) {
+            mbxr_fifo_word(s->r, v);
+        } else if (fifo == 2) {
+            mbxr_doorbell(s->r);
+        }
         if (fifo == 0 && v == 0xf0000000) {
             s->ta_end = true;
             nano7_timer_mod(s->ta_timer, nano7_now_ns() + MBX_TA_NS);
@@ -222,6 +236,7 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
          * size, stride) via 0x083f1a88, then +0x6ec. Completion = bits 2|3
          * and 6 together (0x08148c48 frees the render slot, sets ctx+0x30) */
         s->core[n] = v;
+        mbxr_render(s->r, s->core);
         nano7_timer_mod(s->job_timer, nano7_now_ns() + MBX_JOB_NS);
         break;
     case 0x800:
@@ -229,6 +244,7 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
         s->core[n] = v & ~1u;
         if (v & 1) {
             s->ta_armed = true;
+            mbxr_scene_begin(s->r);
             s->scenes++;
         }
         break;
@@ -296,6 +312,7 @@ static const MemoryRegionOps mbx_ops = {
 
 static int mbx_post_load(void *opaque, int version_id)
 {
+    mbxr_reset(((Nano7MbxState *)opaque)->r);
     mbx_update_irq(opaque);
     return 0;
 }
@@ -326,6 +343,7 @@ static void mbx_init(Object *obj)
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->irq);
     s->trace = getenv("NANO7_MBX_TRACE") != NULL;
     mbx_singleton = s;
+    s->r = mbxr_new();
     atexit(mbx_summary);
     s->ta_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, mbx_ta_done, s);
     nano7_clock_track(s->ta_timer, true);
