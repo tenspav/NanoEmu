@@ -95,6 +95,7 @@ struct Nano7MachineState {
     char *nand_store;       /* NAND page store file (default: temp file) */
     char *nand_miss;        /* never-programmed sector reads: blank|oracle */
     char *nand_disk;        /* 4 KB-LBA disk image for oracle misses */
+    char *nand_disk_off;    /* FTL LBA of the image's first sector */
     char *disp_dump;        /* directory for display-pipe frame dumps */
     char *buttons;          /* timed button script "SEC:BTN[:MS]/..." */
     char *rtc;              /* PMU RTC start: snapshot, host or Unix secs */
@@ -513,7 +514,8 @@ static void nano7_init(MachineState *machine)
      * two PPN 1.0 CEs + FMSS command sequencer (IRQ 54), see nano7_fmc.c */
     nano7_fmc_attach(get_system_memory(), 0x38a00000,
                      s->vic_in[NANO7_IRQ_FMSS]);
-    nano7_fmc_nand_config(s->nand_store, s->nand_miss, s->nand_disk);
+    nano7_fmc_nand_config(s->nand_store, s->nand_miss, s->nand_disk,
+                          s->nand_disk_off);
     /* 0x39000000: display pipe = 2D blitter, done = IRQ 37 */
     nano7_disp_attach(get_system_memory(), 0x39000000,
                       s->vic_in[NANO7_IRQ_DISP]);
@@ -902,6 +904,7 @@ static void nano7_set_##field(Object *obj, const char *value, Error **errp) \
 NANO7_STR_PROP(nand_store)
 NANO7_STR_PROP(nand_miss)
 NANO7_STR_PROP(nand_disk)
+NANO7_STR_PROP(nand_disk_off)
 NANO7_STR_PROP(disp_dump)
 NANO7_STR_PROP(buttons)
 NANO7_STR_PROP(rtc)
@@ -1059,6 +1062,7 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->nand_store);
     g_free(s->nand_miss);
     g_free(s->nand_disk);
+    g_free(s->nand_disk_off);
     g_free(s->disp_dump);
     g_free(s->buttons);
     g_free(s->rtc);
@@ -1155,6 +1159,12 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
                                           "reads of never-programmed sectors: "
                                           "blank (0xff) or oracle (meta the "
                                           "sftl expects, data from nand-disk)");
+    object_class_property_add_str(oc, "nand-disk-offset",
+                                  nano7_get_nand_disk_off,
+                                  nano7_set_nand_disk_off);
+    object_class_property_set_description(oc, "nand-disk-offset",
+                                          "FTL LBA of the disk image's first "
+                                          "sector (snap6 device: 8661)");
     object_class_property_add_str(oc, "nand-disk", nano7_get_nand_disk,
                                   nano7_set_nand_disk);
     object_class_property_set_description(oc, "nand-disk",

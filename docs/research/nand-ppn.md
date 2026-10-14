@@ -1,38 +1,101 @@
-The 0x90 loop isn't PPN detection, and the NAND init failure doesn't call the shutdown routine directly. Everything below is from static disassembly only; none of it has been checked in the emulator.
+# Apple Pure-Path NAND (PPN) Protocol and Driver Reference
 
-**a) What the code actually does**
-- **0x0812aa5c is SET FEATURES, not READID.** It sends cmd 0xEF, then address bytes 0x90,0x00, then 4 data-out bytes {01,00,00,00}, then cmds E7/77/7D. It waits for ready and saves the status byte to `*arg4`, but no caller checks that byte. It returns 0 only if the ready-wait times out, and the 0x84ce3c4 caller then panics.
-- **Real detection** is `0x84cce2c`, called from NAND init `0x80fb6e0`:
-  1. `0x812a760` sends 0xFF reset to CE0–7, then reads READID (cmd 0x90, addr 0x00, 8 bytes) per CE in `0x84d1264`. A CE returning all 0x00 or all 0xFF is skipped; each CE whose first 6 bytes match CE0 increments the CE count.
-  2. CE count is stored at `0x08d0d3e0`. 0 → "No CE detected!"; more than 2 → error.
-  3. `0x84cd280` requires id[0..2] == "PPN" and version id[3]<<16|id[4]<<8|id[5] in 0x010000–0x01FFFF. Otherwise "No PPN Device Detected" (0x84cd2a0) or "Unsupported FW Ver". Version is stored at `0x08d0d434`.
-  4. `0x84cd148` reads the controller version: cmd 0xEE, addr 0x80,0x90, cmds E7/77/7D, wait, cmd 7A, 16 ASCII bytes. It must be identical on every CE.
-  5. `0x84cd1d4` reads the Mfg ID (READID addr 0x30, 8 bytes), also identical per CE. Otherwise "Reading Mfg ID failed!".
-  6. `0x812a214` reads the device parameters page: cmd 0x92, addr 0x00, cmds 97/77/7D, wait, cmd 7A, 512 bytes. `0x812ad5c` range-checks it: +0x10 caus_per_channel 1–64, +0x14 cau_bits 1–7, +0x18 blocks_per_cau 0x400–0x2134, +0x1c block_bits 10–15, +0x20 pages_per_block 64–512, +0x24 pages_per_block_slc 64–256, +0x28 page_address_bits 5–9, +0x2c 1–2, +0x30 1–4, +0x34 page_size (lower bound 0x2020), then timings tRC…tWP each 1–255, and more fields up to +0xf0 (see 0x812ae14–0x812afbe).
-  7. Final check at 0x84ccee8: version ≥ 0x010500 requires a dies-count check (0x84ccf0c); a lower version with only 1 CE fails ("PPN 1.0 parts should have multiple CEs").
+The Apple Pure-Path NAND (PPN) subsystem bypasses standard ONFI commands in favor of an Apple-proprietary command set and geometry parameter structure. The driver initializes through the Flexible Memory Controller (FMC) at `0x38a00000`, probes attached chip selects, validates PPN firmware revisions, and transitions into Virtual Flash Layer (VFL) operation.
 
-**d) Bytes to return.** Simplest path is **2 CEs, version 1.0.0**, which skips the dies check:
-- READID addr 0x00 on CE0 and CE1: `50 50 4E 01 00 00 00 00` ("PPN" + 01 00 00). CE2–7: `FF`×8.
-- READID addr 0x30 on CE0/CE1: any matching 8 bytes, e.g. `45 00 00 00 00 00 00 00` (SanDisk's maker ID).
-- Controller version: any 16 ASCII bytes, the same on both CEs.
-- Parameters page: 512 bytes that pass the ranges in step 6.
+## Initialization and Detection Pipeline
 
-**b) Next step on success** (in 0x80fb6e0): three `0x840ba7a` calls, `0x84cd090`, then FMC timing words built from params into `[0x0896e8e0+0x24/+0x28]` (the +0x24 word is OR'd into CTRL on every CE select). Then `0x812abc0` runs SET FEATURES via 0x812aa5c, then buffers are allocated and it returns 0. On failure the wrapper `0x80da050` returns 0x80000001. VFL/FTL page reads come after this.
+NAND initialization starts at `0x80fb6e0` and invokes the device detection procedure `0x84cce2c`.
 
-**c) Shutdown branch.** No path from NAND failure reaches 0x8417c9c directly. Every shutdown call is preceded by `0x840b86c(reason)`:
-- 3 = chip gate (0x8000d10)
-- **4 = 0x8255080/0x825508e: "iPod_Control\Device" lookup `0x80df498` fails and `0x83fbf40(0)` != 18.** This is the most likely result of the filesystem being missing after NAND init fails.
-- 5 = 0x819a186 (flag `[r4+0x84]`)
-- unknown = 0x81ca62e (after 10 retries of 1 s)
+```
++-------------------------------------------------------------------------+
+| NAND Init Entry (0x80fb6e0)                                             |
++-------------------------------------------------------------------------+
+                               |
+                               v
++-------------------------------------------------------------------------+
+| Detection State Machine (0x84cce2c)                                     |
+|  1. Reset & READID (0x812a760, 0x84d1264): Probes CE0-7 (Cmd 0x90, 0x00)|
+|  2. Signature Check (0x84cd280): Matches "PPN" and Version 0x01xxxx     |
+|  3. Controller Version (0x84cd148): Reads 16 ASCII bytes (Cmd 0xEE)     |
+|  4. Manufacturer ID (0x84cd1d4): Reads 8 bytes (Cmd 0x90, Addr 0x30)    |
+|  5. Parameter Page (0x812a214): Reads 512 bytes (Cmd 0x92, 0x00)        |
+|  6. Geometry Bounds Check (0x812ad5c): Validates CAU and block ranges   |
++-------------------------------------------------------------------------+
+                               |
+                               v
++-------------------------------------------------------------------------+
+| FMC Timing Setup & SET FEATURES                                         |
+|  - FMC timing registers programmed from parameters (0x84cd090)         |
+|  - SET FEATURES executed per active CE (0x812abc0 -> 0x812aa5c)        |
+|  - Transition to VFL/FTL runtime storage layer                          |
++-------------------------------------------------------------------------+
+```
 
-Breakpoint 0x840b86c and read r0 to see which one fires.
+### Detection Steps
 
-**Data-phase registers to emulate** (FMC base 0x38a00000; +0x48 is write-1-to-clear):
-- **CE select, +0x00:** `base | (1<<ce)<<1 | 1` selects a CE; writing `1` deselects.
-- **Command:** byte to +0x08, then +0x04 = 2; set +0x48 bit1 when done.
-- **Address:** bytes to +0x0c, count−1 to +0x2c, then +0x04 = 1; set bit2.
-- **Data-in arm:** +0x30 = len−1, +0x14 = 1, +0x24 = 0, +0x04 = 0x22; set bit3.
-- **Data-in read (PIO):** firmware writes +0x30 = 3, +0x14 = 0x100, clears CTRL bits 8 and 26, +0x28 = 0, +0x04 = 0x1E0. It then reads words from the **data-in register, +0x80**. After each pop, the low byte of +0x28 must equal the total bytes popped (4, 8, …), or the firmware re-reads. It finishes by writing +0x48 = 0x100000 (clears bit20) and +0x04 = 0x20.
-- **Ready-wait:** +0x04 = 0xEA; set +0x48 bit23. Status byte comes from +0x4c (return 0x40, which nothing here checks), then +0x48 = 0x1000000 (clears bit24).
+1. Bus Reset and CE Probing (`0x812a760`, `0x84d1264`):
+   - Sends reset command `0xFF` to CE0 through CE7.
+   - Issues `READID` (command `0x90`, address `0x00`, 8 bytes) to each chip select.
+   - Any chip select returning all `0x00` or all `0xFF` is skipped.
+   - Each chip select whose first 6 bytes match CE0 increments the active CE count.
+   - Total CE count is stored at `0x08d0d3e0`. Count must be 1 or 2 (0 raises `"No CE detected!"`; > 2 triggers failure).
+2. Protocol Signature and Version Validation (`0x084cd280`):
+   - Bytes `id[0..2]` must match ASCII `"PPN"` (`0x50 0x50 0x4E`).
+   - Version word `(id[3] << 16) | (id[4] << 8) | id[5]` must fall between `0x010000` and `0x01FFFF` (PPN version 1.x.x). Stored at `0x08d0d434`.
+   - Versions below `0x010500` require multiple chip enables; a single CE triggers `"PPN 1.0 parts should have multiple CEs"`. Versions `>= 0x010500` execute an alternate die count check at `0x84ccf0c`.
+3. Controller Version Read (`0x084cd148`):
+   - Sequence: Command `0xEE`, address `0x80, 0x90`, sub-commands `0xE7, 0x77, 0x7D`, status wait, command `0x7A`.
+   - Reads 16 ASCII bytes (`"PPN Controller Version: %16.16s"`). The string must be identical across all detected chip selects.
+4. Manufacturer ID Read (`0x084cd1d4`):
+   - Sequence: `READID` command `0x90`, address `0x30`, 8 bytes.
+   - Returned data must be identical across all chip selects.
+5. Device Parameter Page Read (`0x0812a214`):
+   - Sequence: Command `0x92`, address `0x00`, sub-commands `0x97, 0x77, 0x7D`, status wait, command `0x7A`.
+   - Reads 512 bytes of packed device geometry parameters.
 
-Bits 1/2/3/23 can be set as soon as the matching +0x04 write happens. The cmd 0x00/0x30 page reads with 0x000100e4 on +0x04 belong to the later VFL stage; I did not trace them.
+## Parameter Page Geometry Limits (`0x0812ad5c`)
+
+The 512-byte parameter page is strictly validated against the following hardware bounds:
+
+| Offset | Parameter | Accepted Range | Description |
+|---|---|---|---|
+| `+0x10` | caus_per_channel | 1 to 64 | Number of Contiguous Addressable Units per channel |
+| `+0x14` | cau_bits | 1 to 7 | Address bit width for CAU indexing |
+| `+0x18` | blocks_per_cau | `0x0400` to `0x2134` | Physical blocks contained in one CAU |
+| `+0x1c` | block_bits | 10 to 15 | Address bit width for block indexing |
+| `+0x20` | pages_per_block | 64 to 512 | Number of physical pages per block |
+| `+0x24` | pages_per_block_slc | 64 to 256 | Number of SLC-mode pages per block |
+| `+0x28` | page_address_bits | 5 to 9 | Bit width of page address within block |
+| `+0x2c` | channels | 1 to 2 | Number of independent flash channels |
+| `+0x30` | bus_width | 1 to 4 | Bus width and interleave factor |
+| `+0x34` | page_size | >= `0x2020` | Page data size in bytes (minimum 8224 bytes) |
+| `+0x38` to `+0xf0` | Timing parameters | 1 to 255 | Bus timings (`tRC`, `tWP`, etc.); all must be non-zero |
+
+## Minimal Emulation Identity Profile
+
+The simplest valid hardware configuration is a 2-CE setup using PPN version 1.0.0, avoiding the extended die-count check:
+
+- CE0 and CE1 `READID` (address `0x00`): `50 50 4E 01 00 00 00 00` (`"PPN"` + version 1.0.0). CE2 through CE7 return all `0xFF`.
+- CE0 and CE1 Manufacturer ID (address `0x30`): Identical 8 bytes (e.g., `45 00 00 00 00 00 00 00` for SanDisk).
+- Controller Version (command `0xEE` / `0x7A`): Identical 16 ASCII bytes on both chip selects.
+- Parameter Page (command `0x92` / `0x7A`): 512 bytes populating the validated fields above.
+
+## Post-Detection Setup and VFL Transition
+
+On successful detection:
+1. `0x84cd090` calculates FMC bus timing words from the parameter page and writes them to `[0x0896e8e0 + 0x24]` and `[0x0896e8e0 + 0x28]`. The word at `+0x24` is OR-ed into FMC control register `+0x00` during every chip select assertion.
+2. `0x812abc0` executes `SET FEATURES` via `0x812aa5c`:
+   - Command `0xEF`, address `0x90, 0x00`, 4 data bytes `{01, 00, 00, 00}`, sub-commands `0xE7, 0x77, 0x7D`.
+3. Memory buffers are allocated and `0x80fb6e0` returns 0. If initialization fails, wrapper `0x80da050` returns `0x80000001`.
+4. Subsequent operations initiate Virtual Flash Layer (VFL) and Flash Translation Layer (FTL) page transfers using FMC command `0x000100e4` with commands `0x00` and `0x30`.
+
+## System Shutdown Reason Codes
+
+Any abort condition invokes `0x840b86c(reason)` prior to system shutdown:
+
+| Reason Code | Caller | Cause |
+|---|---|---|
+| 3 | `0x08000d10` | Chip ID check failed in PMGR block (`0x3d100000`) |
+| 4 | `0x08255080`, `0x0825508e` | Filesystem lookup for `"iPod_Control\Device"` (`0x080df498`) failed and `0x83fbf40(0) != 18` |
+| 5 | `0x0819a186` | Hardware status assertion (`[r4 + 0x84]`) |
+| Unknown | `0x081ca62e` | Timeout reached after ten 1-second retry cycles |

@@ -6,7 +6,8 @@
 #   ./run.sh --os-entry [file]   # preload OS and jump straight to 0x08000000
 #   ./run.sh --stub              # ignore bootrom file, use infinite-loop stub
 #   --nand-store FILE / --nand-miss blank|oracle / --nand-disk IMG: NAND page
-#                                store (see nano7_fmc.c)
+#                                store (see nano7_fmc.c); --nand-disk-offset LBA:
+#                                FTL LBA of the image's sector 0 (snap6: 8661)
 #   --disp-dump DIR              write display-pipe frames as PPMs
 #   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play|volup|voldown);
 #                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
@@ -65,6 +66,8 @@ while [ $# -gt 0 ]; do
             MARGS="$MARGS,nand-store=${2:?--nand-store needs a file}"; shift 2 ;;
         --nand-miss)
             MARGS="$MARGS,nand-miss=${2:?--nand-miss needs blank|oracle}"; shift 2 ;;
+        --nand-disk-offset)
+            MARGS="$MARGS,nand-disk-offset=${2:?--nand-disk-offset needs an LBA}"; shift 2 ;;
         --nand-disk)
             MARGS="$MARGS,nand-disk=${2:?--nand-disk needs a file}"; shift 2 ;;
         --disp-dump)

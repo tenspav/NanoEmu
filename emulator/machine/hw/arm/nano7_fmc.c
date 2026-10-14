@@ -117,6 +117,7 @@ typedef struct NandStore {
     unsigned rdq_head[FMC_NUM_CE], rdq_n[FMC_NUM_CE];
     int miss_policy;            /* NAND_MISS_* */
     int disk_fd;                /* nand-disk=: 4 KB-LBA image for misses */
+    int64_t disk_off;           /* FTL LBA of the image's sector 0 */
     NandMiss miss[NAND_MISS_MAX];
     unsigned nmiss;
     bool cur_miss, want_meta_dst;
@@ -821,8 +822,9 @@ static void nand_oracle(Nano7FmcState *s)
         address_space_write(&address_space_memory, m->meta_dst,
                             MEMTXATTRS_UNSPECIFIED, meta, sizeof(meta));
         memset(data, 0, sizeof(data));
-        if (n->disk_fd >= 0 && pread(n->disk_fd, data, NAND_SECT,
-                                     (off_t)lba * NAND_SECT) < 0) {
+        if (n->disk_fd >= 0 && (int64_t)lba >= n->disk_off &&
+            pread(n->disk_fd, data, NAND_SECT,
+                  (off_t)(lba - n->disk_off) * NAND_SECT) < 0) {
             memset(data, 0, sizeof(data));
         }
         address_space_write(&address_space_memory, m->data_dst,
@@ -830,15 +832,16 @@ static void nand_oracle(Nano7FmcState *s)
         if (n->oracle_fixed++ < 32 || !(n->oracle_fixed & 0x3ff) ||
             getenv("NANO7_NAND_TRACE")) {
             fprintf(stderr, "[nano7-nand] miss ce%u page 0x%x s%u -> oracle "
-                    "lba 0x%" PRIx64 " (sftl slot %u, data 0x%08x, #%" PRIu64
-                    ")\n", m->ce, m->addr, m->sect, lba, i, m->data_dst,
+                    "lba 0x%" PRIx64 " (sftl slot %u, data 0x%08x = %02x%02x"
+                    "%02x%02x.., #%" PRIu64 ")\n", m->ce, m->addr, m->sect, lba,
+                    i, m->data_dst, data[0], data[1], data[2], data[3],
                     n->oracle_fixed);
         }
     }
 }
 
 void nano7_fmc_nand_config(const char *store, const char *miss,
-                           const char *disk)
+                           const char *disk, const char *disk_off)
 {
     Nano7FmcState *s = fmc_singleton;
 
@@ -861,6 +864,9 @@ void nano7_fmc_nand_config(const char *store, const char *miss,
                     strerror(errno));
             exit(1);
         }
+        s->nand.disk_off = disk_off ? g_ascii_strtoll(disk_off, NULL, 0) : 0;
+        fprintf(stderr, "[nano7-fmc] nand-disk %s: image sector 0 = FTL LBA "
+                "%" PRId64 "\n", disk, s->nand.disk_off);
     }
 }
 

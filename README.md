@@ -101,6 +101,16 @@ Then point any VNC viewer at `HOST:5905`. Mouse clicks are touch input; `h`, `p`
 
 See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
+## Related work
+
+NanoEmu is, to our knowledge, the first emulator for the iPod nano 7G (S5L8747-class SoC). These projects inspired us and prove the community keeps iPods alive:
+
+- [devos50: iPod Touch 1G in QEMU](https://devos50.github.io/blog/2022/ipod-touch-qemu/) - the pioneer, iPhoneOS 1.0 rehosting
+- [lemonjesus/qemu-ipod-nano](https://github.com/lemonjesus/qemu-ipod-nano) - iPod nano 3G in QEMU, boots RetailOS with USB enumeration
+- [iPod Classic 6G in QEMU](https://news.ycombinator.com/item?id=49611240) - S5L8702, boots retailOS with working navigation
+- [wInd3x](https://github.com/freemyipod/wInd3x) and [S5Late](https://github.com/m-gsch/s5late) - nano 7G code execution research
+- [freemyipod](https://github.com/freemyipod) - the classic iPod reverse-engineering community
+
 ## Credits
 
 - The jailbreak and homebrew ecosystem this builds on: **wInd3x** and the **NanoApps** SDK community

@@ -75,7 +75,7 @@ The DFU dispatcher parses USB SETUP packet byte 1. The DFU interface class is `0
 
 | Request Byte | Command | Parameter Requirements | Action |
 |---|---|---|---|
-| `0x00` | `DETACH` | - | Detaches USB session |
+| `0x00` | `DETACH` | - | Detaches USB connection |
 | `0x01` | `DNLOAD` | Bytes [2:4] block number, [6:8] LE length (<= `0x800`) | Streams boot image chunks |
 | `0x02` | `UPLOAD` | - | Uploads status/data |
 | `0x03` | `GETSTATUS` | Length must be 6 | Completes manifestation |
