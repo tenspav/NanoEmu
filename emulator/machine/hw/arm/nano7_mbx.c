@@ -143,6 +143,16 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
             s->core[MBX_STATUS] |= 0x10;
         }
         break;
+    case 0x838:
+        /* Transfer job (+0x824 source, +0x828/+0x82c size, +0x83c target,
+         * written by the pair worker 0x083f1a88): the caller 0x080b7eb4
+         * polls status bit 6 with that interrupt masked (Session 27).
+         * Completes at once; no pixels are moved. */
+        s->core[n] = v & ~1u;
+        if (v & 1) {
+            s->core[MBX_STATUS] |= 0x40;
+        }
+        break;
     case 0x1020:
         /* Draft handshake: status mirrors translation enable; invalidation
          * completes immediately and bit8 self-clears. No DMA translation yet. */

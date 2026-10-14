@@ -8,6 +8,8 @@
 #   --nand-store FILE / --nand-miss blank|oracle / --nand-disk IMG: NAND page
 #                                store (see nano7_fmc.c); --nand-disk-offset LBA:
 #                                FTL LBA of the image's sector 0 (snap6 device: 49216)
+#   --nand-rsrc FILE[@LBA]       resource partition image for NAND misses (OS UI
+#                                images; make it with tools/extract_rsrc.py IPSW)
 #   --disp-dump DIR              write display-pipe frames as PPMs
 #   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play|volup|voldown);
 #                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
@@ -81,6 +83,8 @@ while [ $# -gt 0 ]; do
         --vnc)
             v=$(optval 0 "${2:-}") && shift 2 || shift
             EXTRA+=(-vnc ":$v") ;;
+        --nand-rsrc)
+            MARGS="$MARGS,nand-rsrc=${2:?--nand-rsrc needs a file}"; shift 2 ;;
         --audio-out)
             MARGS="$MARGS,audio-out=${2:?--audio-out needs a file or FIFO}"; shift 2 ;;
         --rtc)

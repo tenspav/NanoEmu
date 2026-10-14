@@ -80,6 +80,11 @@
  * appended on first program; the index is rebuilt from the headers on open.
  */
 #define NAND_SECT       4096
+/* FTL LBA of the resource partition ("iPodResources" FAT16): the rsrc
+ * image of the firmware MSE (dev_offset 0x3b1000, img1 blob incl. its
+ * 0x400-byte header) starts here on the snap6 device: firmware area at
+ * LBA 64 + 0x3b2 blocks (Session 27, checked against loaded resources) */
+#define NAND_RSRC_LBA   0x3f2
 #define NAND_SECTS      4
 #define NAND_HDR        0x80
 #define NAND_REC        (NAND_HDR + NAND_SECTS * NAND_SECT)
@@ -119,6 +124,8 @@ typedef struct NandStore {
     int miss_policy;            /* NAND_MISS_* */
     int disk_fd;                /* nand-disk=: 4 KB-LBA image for misses */
     int64_t disk_off;           /* FTL LBA of the image's sector 0 */
+    int rsrc_fd;                /* nand-rsrc=: resource partition image */
+    int64_t rsrc_lba, rsrc_blocks;
     NandMiss miss[NAND_MISS_MAX];
     unsigned nmiss;
     bool cur_miss, want_meta_dst;
@@ -829,7 +836,13 @@ static void nand_oracle(Nano7FmcState *s)
         address_space_write(&address_space_memory, m->meta_dst,
                             MEMTXATTRS_UNSPECIFIED, meta, sizeof(meta));
         memset(data, 0, sizeof(data));
-        if (n->disk_fd >= 0 && (int64_t)lba >= n->disk_off &&
+        if (n->rsrc_fd >= 0 && (int64_t)lba >= n->rsrc_lba &&
+            (int64_t)lba < n->rsrc_lba + n->rsrc_blocks) {
+            if (pread(n->rsrc_fd, data, NAND_SECT,
+                      (off_t)(lba - n->rsrc_lba) * NAND_SECT) < 0) {
+                memset(data, 0, sizeof(data));
+            }
+        } else if (n->disk_fd >= 0 && (int64_t)lba >= n->disk_off &&
             pread(n->disk_fd, data, NAND_SECT,
                   (off_t)(lba - n->disk_off) * NAND_SECT) < 0) {
             memset(data, 0, sizeof(data));
@@ -949,7 +962,8 @@ bool nano7_fmc_store_load(const char *path)
 }
 
 void nano7_fmc_nand_config(const char *store, const char *miss,
-                           const char *disk, const char *disk_off)
+                           const char *disk, const char *disk_off,
+                           const char *rsrc)
 {
     Nano7FmcState *s = fmc_singleton;
 
@@ -975,6 +989,27 @@ void nano7_fmc_nand_config(const char *store, const char *miss,
         s->nand.disk_off = disk_off ? g_ascii_strtoll(disk_off, NULL, 0) : 0;
         fprintf(stderr, "[nano7-fmc] nand-disk %s: image sector 0 = FTL LBA "
                 "%" PRId64 "\n", disk, s->nand.disk_off);
+    }
+    if (rsrc) {
+        g_autofree char *path = g_strdup(rsrc);
+        char *at = strrchr(path, '@');
+        struct stat st;
+
+        s->nand.rsrc_lba = NAND_RSRC_LBA;
+        if (at) {
+            *at = 0;
+            s->nand.rsrc_lba = g_ascii_strtoll(at + 1, NULL, 0);
+        }
+        s->nand.rsrc_fd = open(path, O_RDONLY);
+        if (s->nand.rsrc_fd < 0 || fstat(s->nand.rsrc_fd, &st) < 0) {
+            fprintf(stderr, "[nano7-fmc] nand-rsrc %s: %s\n", path,
+                    strerror(errno));
+            exit(1);
+        }
+        s->nand.rsrc_blocks = (st.st_size + NAND_SECT - 1) / NAND_SECT;
+        fprintf(stderr, "[nano7-fmc] nand-rsrc %s: FTL LBA 0x%" PRIx64
+                "..0x%" PRIx64 "\n", path, s->nand.rsrc_lba,
+                s->nand.rsrc_lba + s->nand.rsrc_blocks - 1);
     }
 }
 
@@ -1167,6 +1202,7 @@ void nano7_fmc_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     s->ce = -1;
     s->nand.fd = -1;
     s->nand.disk_fd = -1;
+    s->nand.rsrc_fd = -1;
     vmstate_register_any(NULL, &vmstate_fmc, s);
     nand_open(&s->nand, NULL);
     memory_region_init_io(&s->mr, NULL, &fmc_ops, s, "nano7.fmc", FMC_SIZE);

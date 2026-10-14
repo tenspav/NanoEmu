@@ -20,10 +20,20 @@
  * Mailbox in IRAM: commands 0x2203ff00, status halfwords 0x2203ff28, input
  * 0x22038000, PCM output 0x22038100 (pointer struct 0x08811308).
  *
- * Model: every job write (+0x984, or +0x98c = 1) completes after 20 us of
- * guest time and raises pending bit 2. Nothing is decoded: the PCM buffer
- * is left as is, so playback runs but is silent. Real sound needs a
- * host-side decoder behind the mailbox protocol (not decoded yet).
+ * Result protocol (parser 0x082ad500, after the 500 ms semaphore wait in
+ * DecodeFrame 0x082acca0): status halfwords at 0x2203ff28: h0 bit0 = 1 and
+ * h1 = 0 = frame decoded (h1 = 2: MP3 needs more input); 7 empty results
+ * in a row end playback. PCM descriptor at 0x22038000: h[1] mode (1 =
+ * single buffer), h[2] capacity in halfwords, entry 0 ready flag at +0xa,
+ * length (halfwords) at +0xc; samples at 0x22038100. Nothing on the ARM
+ * side writes the descriptor. Config jobs (+0x984 = 0) only wait for bit 2;
+ * each frame is an input job (type 4, compressed bytes pulled from DRAM by
+ * the block's own DMA, regs +0x100..) plus the +0x98c = 1 doorbell.
+ *
+ * Model: every job write completes after 20 us of guest time and raises
+ * pending bit 2. A +0x98c doorbell also returns one decoded frame: 1152
+ * stereo frames of SILENCE (MP3 frame size). The compressed input is not
+ * read; real sound needs a host-side decoder fed from the input job.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -31,6 +41,7 @@
 #include "nano7_adsp.h"
 #include "nano7_clock.h"
 #include "qemu/timer.h"
+#include "exec/address-spaces.h"
 #include "migration/vmstate.h"
 
 #define ADSP_SIZE       0x1000
@@ -39,13 +50,18 @@
 #define PEND_DONE       (1u << 2)
 #define PEND_MASK       0x07ffffffu
 
+#define MBOX_STATUS     0x2203ff28      /* result halfwords */
+#define MBOX_PCM_DESC   0x22038000
+#define MBOX_PCM        0x22038100
+#define FRAME_HALFWORDS (1152 * 2)      /* one MP3 frame, s16 stereo */
+
 typedef struct Nano7AdspState {
     MemoryRegion mr;
     uint32_t regs[ADSP_SIZE / 4];
     uint32_t mask[2], pending[2];
     qemu_irq irq;
     QEMUTimer *job_timer;
-    uint64_t jobs;
+    uint64_t jobs, frames;
     unsigned log_lines;
 } Nano7AdspState;
 
@@ -63,6 +79,30 @@ static void adsp_job_done(void *opaque)
 
     s->pending[0] |= PEND_DONE;
     adsp_update(s);
+}
+
+static void adsp_iram_w16(hwaddr a, uint16_t v)
+{
+    uint16_t le = cpu_to_le16(v);
+
+    address_space_write(&address_space_memory, a, MEMTXATTRS_UNSPECIFIED,
+                        &le, 2);
+}
+
+/* frame doorbell: hand back one frame of silence and a success status */
+static void adsp_frame(Nano7AdspState *s)
+{
+    static const uint8_t zeros[FRAME_HALFWORDS * 2];
+
+    address_space_write(&address_space_memory, MBOX_PCM,
+                        MEMTXATTRS_UNSPECIFIED, zeros, sizeof(zeros));
+    adsp_iram_w16(MBOX_PCM_DESC + 2, 1);                /* single buffer */
+    adsp_iram_w16(MBOX_PCM_DESC + 4, FRAME_HALFWORDS);  /* capacity */
+    adsp_iram_w16(MBOX_PCM_DESC + 0xa, 1);              /* entry 0 ready */
+    adsp_iram_w16(MBOX_PCM_DESC + 0xc, FRAME_HALFWORDS);
+    adsp_iram_w16(MBOX_STATUS, 1);                      /* valid */
+    adsp_iram_w16(MBOX_STATUS + 2, 0);                  /* no error */
+    s->frames++;
 }
 
 static void adsp_job(Nano7AdspState *s, hwaddr off, uint32_t v)
@@ -125,6 +165,7 @@ static void adsp_write(void *opaque, hwaddr off, uint64_t value,
         break;
     case 0x98c:
         if (v & 1) {
+            adsp_frame(s);
             adsp_job(s, off, v);
         }
         break;
@@ -144,8 +185,9 @@ static const MemoryRegionOps adsp_ops = {
 static void adsp_summary(void)
 {
     if (adsp_singleton && adsp_singleton->jobs) {
-        fprintf(stderr, "[nano7-adsp] summary: %" PRIu64 " decode jobs "
-                "(completed without decoding)\n", adsp_singleton->jobs);
+        fprintf(stderr, "[nano7-adsp] summary: %" PRIu64 " jobs, %" PRIu64
+                " frames returned (silence, nothing decoded)\n",
+                adsp_singleton->jobs, adsp_singleton->frames);
     }
 }
 
@@ -166,6 +208,7 @@ static const VMStateDescription vmstate_adsp = {
         VMSTATE_UINT32_ARRAY(pending, Nano7AdspState, 2),
         VMSTATE_TIMER_PTR(job_timer, Nano7AdspState),
         VMSTATE_UINT64(jobs, Nano7AdspState),
+        VMSTATE_UINT64(frames, Nano7AdspState),
         VMSTATE_END_OF_LIST()
     }
 };

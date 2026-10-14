@@ -49,6 +49,7 @@
 #include "nano7_codec.h"
 #include "nano7_i2s.h"
 #include "nano7_adsp.h"
+#include "nano7_mbx.h"
 #include "nano7_gpio.h"
 #include "nano7_i2c.h"
 #include "nano7_pmu.h"
@@ -101,6 +102,7 @@ struct Nano7MachineState {
     char *nand_miss;        /* never-programmed sector reads: blank|oracle */
     char *nand_disk;        /* 4 KB-LBA disk image for oracle misses */
     char *nand_disk_off;    /* FTL LBA of the image's first sector */
+    char *nand_rsrc;        /* resource partition image [@LBA] */
     char *disp_dump;        /* directory for display-pipe frame dumps */
     char *buttons;          /* timed button script "SEC:BTN[:MS]/..." */
     char *rtc;              /* PMU RTC start: snapshot, host or Unix secs */
@@ -174,6 +176,30 @@ static void nano7_resume_hw(void)
     address_space_stl_le(as, 0x38900030, 240u << 16 | 432,
                          MEMTXATTRS_UNSPECIFIED, NULL);
     address_space_stl_le(as, 0x38900034, 0, MEMTXATTRS_UNSPECIFIED, NULL);
+    /* audio output: at T0 MeCCAOutputTask had DMA engine 1 channel 2
+     * running a self-linked descriptor (0x0b3539c0: 4 KB passes from the
+     * IRAM ring 0x22002638 to the I2S0 TX FIFO) and waits for its
+     * completion; it never restarts the channel itself (Session 27).
+     * Reload the channel from that descriptor and run it. */
+    {
+        uint32_t d[5], i;
+
+        for (i = 0; i < 5; i++) {
+            d[i] = address_space_ldl_le(as, 0x0b3539c0 + 4 * i,
+                                        MEMTXATTRS_UNSPECIFIED, NULL);
+        }
+        if (d[1] == 0x3ca00010) {
+            static const hwaddr reg[5] = { 0x00, 0x04, 0x08, 0x0c, 0x14 };
+
+            for (i = 0; i < 5; i++) {
+                address_space_stl_le(as, 0x38200140 + reg[i], d[i],
+                                     MEMTXATTRS_UNSPECIFIED, NULL);
+            }
+            /* mem -> periph, destination request 0xc (I2S0 TX), run */
+            address_space_stl_le(as, 0x38200150, 0x8b01,
+                                 MEMTXATTRS_UNSPECIFIED, NULL);
+        }
+    }
     /* timer ch1 (B): 3 MHz / 6000 = 500 Hz scheduler tick on IRQ 8 */
     address_space_stl_le(as, 0x3c700030, 0, MEMTXATTRS_UNSPECIFIED, NULL);
     address_space_stl_le(as, 0x3c700028, 6000, MEMTXATTRS_UNSPECIFIED, NULL);
@@ -537,7 +563,7 @@ static void nano7_init(MachineState *machine)
     nano7_fmc_attach(get_system_memory(), 0x38a00000,
                      s->vic_in[NANO7_IRQ_FMSS]);
     nano7_fmc_nand_config(s->nand_store, s->nand_miss, s->nand_disk,
-                          s->nand_disk_off);
+                          s->nand_disk_off, s->nand_rsrc);
     /* 0x39000000: display pipe = 2D blitter, done = IRQ 37 */
     nano7_disp_attach(get_system_memory(), 0x39000000,
                       s->vic_in[NANO7_IRQ_DISP]);
@@ -564,6 +590,9 @@ static void nano7_init(MachineState *machine)
     nano7_adsp_attach(get_system_memory(), 0x38500000,
                       s->vic_in[NANO7_IRQ_ADSP]);
     nano7_regfile_attach(get_system_memory(), "b3851", 0x38501000, 0x1000);
+    /* PowerVR MBX GPU (0x3b000000 core, FIFO apertures, planes 0x391-3,
+     * IRQ 53): job completion only, nothing is rendered (nano7_mbx.c) */
+    nano7_mbx_attach(get_system_memory(), s->vic_in[NANO7_IRQ_MBX]);
     /* I2C buses: bus 0 slave 0x08; bus 1 PMU 0x73 (buttons) + 0x1a, 0x18 */
     {
         Nano7I2CBus *i2c0 = nano7_i2c_attach(get_system_memory(), 0x3c600000,
@@ -941,6 +970,7 @@ NANO7_STR_PROP(nand_store)
 NANO7_STR_PROP(nand_miss)
 NANO7_STR_PROP(nand_disk)
 NANO7_STR_PROP(nand_disk_off)
+NANO7_STR_PROP(nand_rsrc)
 NANO7_STR_PROP(disp_dump)
 NANO7_STR_PROP(buttons)
 NANO7_STR_PROP(rtc)
@@ -1102,6 +1132,7 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->nand_miss);
     g_free(s->nand_disk);
     g_free(s->nand_disk_off);
+    g_free(s->nand_rsrc);
     g_free(s->disp_dump);
     g_free(s->buttons);
     g_free(s->rtc);
@@ -1226,6 +1257,12 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
                                   nano7_set_screens_dir);
     object_class_property_set_description(oc, "screens-dir",
                                           "directory for F12 screenshots");
+    object_class_property_add_str(oc, "nand-rsrc", nano7_get_nand_rsrc,
+                                  nano7_set_nand_rsrc);
+    object_class_property_set_description(oc, "nand-rsrc",
+                                          "resource partition image (MSE "
+                                          "rsrc img1) for NAND misses, "
+                                          "FILE[@LBA], default LBA 0x3f2");
     object_class_property_add_str(oc, "audio-out", nano7_get_audio_out,
                                   nano7_set_audio_out);
     object_class_property_set_description(oc, "audio-out",

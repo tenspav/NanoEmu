@@ -1003,3 +1003,44 @@ VERIFY (VNC, keys via vnc_probe.py; new `hold KEYSYM SECONDS`): F6 2x -> F2 -> F
 KEYS (all over VNC / display / sendkey): h p space, Up/=/+ Down/-, F1 reset, F2 save, F4 load, F5/Pause
   pause, F6 speed, Tab hold 4x, F7 rotate, F9 zoom, F12 screenshot. Headless works (keys only matter with
   a display or the monitor's sendkey; save states also work from -monitor via sendkey f2/f4).
+
+## Session 27 (2026-10-14): audio output - DMA, codec, I2S, decode co-processor, resource partition, MBX stub
+NEW DEVICES: nano7_dma.[ch] (two 8-ch engines; ch regs base+0x100+0x20n SRC/DST/NEXT/CFG/CTRL/COUNT,
+  COUNT in elements of 1<<CFG[23:21] bytes, bit26/27 src/dst increment, CTRL bit0 run, +0x04 status /
+  +0x08 ack; NEXT reload, self-linked rings; passes to a paced FIFO take bytes/rate of guest time).
+  IRQ MAP CORRECTED: engine 1 0x38200000 = IRQ 16, engine 2 0x38700000 = IRQ 17 (IRAM thunks 0x22001168 /
+  0x2200116c pass id 1/2 to ISR 0x220010ee). The spec, HARDWARE.md and the Session 8 note had it reversed;
+  docs fixed. I2S0 TX may only use engine 1 (endpoint mask table 0x890c1f4).
+  nano7_codec.[ch]: SPI0 0x3c300000 IRQ 9, same SSP as touch; codec [0x6c,msb,lsb,0,d] write, lsb|0x80
+  multi, [0x6d,..] read -> rx[4]; status 0x002f reads bit7 set (stop sequence spins on it).
+  nano7_i2s.[ch]: I2S0 0x3ca00000; +0x00 bit1 reads 1, +0x3c reads 0, +0x40 divisor -> rate (12 MHz/div,
+  snapped) -> DMA pacing; TX FIFO bytes -> PCM sink: run.sh --audio-out FILE (raw s16le / *.wav) or FIFO.
+  nano7_adsp.[ch]: decode co-processor 0x38500000 IRQ 18 (was a regfile stub): ID +0xc80 = 0x004e7309
+  (else panic -> power-off), +0x114 reads 7, irq group +0xa8c set / +0xa90 clear / +0xa94 mask / +0xa98
+  pending / +0xc48 ack. Every job (+0x984, +0x98c=1) sets pending bit 2 after 20 us. Result protocol (parser
+  0x082ad500): status 0x2203ff28 h0 bit0 = valid, h1 0 = ok (2 = need input); PCM descriptor 0x22038000
+  (h[1] mode, h[2] capacity, entry0 ready +0xa / len +0xc), samples 0x22038100; 7 empty results stop the
+  track. The model returns one MP3 frame of SILENCE (1152 x 2 x s16) per +0x98c doorbell.
+BLOCKERS FOUND ON THE WAY (play = Music > Songs > Maladie, or space on Home):
+  1. Now Playing asserted (0x083dc9a8 AnisotropicBitmapGeneratorTask, rect of UI image 0x0dad06ab = 0):
+     UI images live in Resources/UI/SilverImagesDB.LE.bin on the RESOURCE partition, not in ipod-disk.dd
+     (data volume only) -> the oracle served zeros. Stock 1.1.2 (39A10023) IPSW Firmware.MSE rsrc image
+     (plaintext FAT16 "iPodResources") matches the snapshot byte for byte. New tools/extract_rsrc.py IPSW
+     OUT.img1 + run.sh --nand-rsrc FILE[@LBA] (nano7_fmc oracle). Base FTL LBA 0x3f2 = firmware area at
+     LBA 64 + MSE dev_offset 0x3b1000/4K + 1 (calibrated: 9/9 resource loads byte-identical; the first
+     guess 0x3d7 from miss-range fitting was 27 blocks off -> garbage IDs -> data abort). emulator/rsrc/
+     is gitignored (copyrighted firmware, 179 MB).
+  2. Then a spin on MBX GPU 0x3b00012c bit 6: integrated the draft nano7_mbx.c (IRQ 53, completion only,
+     nothing rendered) + +0x838 transfer job -> status bit 6. Album art area is black (no GPU render).
+  3. Then idle with no output: MeCCAOutputTask had engine 1 ch 2 running at T0 (self-linked descriptor
+     0x0b3539c0, IRAM ring 0x22002638 -> 0x3ca00010) and only waits for completions; it never restarts
+     the channel. resume_hw now reloads the channel from that descriptor (guarded on dst = I2S0 FIFO).
+RESULT (snap6 CMD + --nand-disk ... 49216 --nand-rsrc rsrc/rsrc-1.1.2.img1 --audio-out x.wav --vnc 5):
+  Now Playing "Maladie" (Mauvais djo), status-bar play icon, pause button, no panic, Home still works.
+  DMA engine 1 ch 2: one 4 KB pass per 23.2 ms (44.1 kHz); decoder 1205 frames (31 s of track) in the
+  run; WAV 105 s 44.1 kHz stereo, peak 0 (silence, nothing decoded). FIFO sink: 24.0 s streamed in a
+  25 s run. Codec saw no register traffic (already configured at T0). Screens: screens/session27/.
+NEXT (real sound): host-side MP3 decode in nano7_adsp - compressed bytes come from the type-4 input job
+  (block-internal DMA, port regs 0x38500100.., layout to trace), chunks up to 0x8020 bytes, not frame
+  aligned -> buffer + minimp3 (no decoder lib installed here), h1 = 2 until a full frame is ready.
+TOOLS: rsp_trace.py RSP_REGMEM=reg:len dumps memory at registers, importable (main guarded).

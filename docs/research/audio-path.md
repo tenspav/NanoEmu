@@ -66,8 +66,8 @@ Audio buffer transmission uses multichannel DMA engines configured via allocator
 
 | Engine ID | MMIO Base | VIC IRQ | Channels |
 |---|---|---|---|
-| 1 | `0x38200000` | IRQ 17 | 8 |
-| 2 | `0x38700000` | IRQ 16 | 8 |
+| 1 | `0x38200000` | IRQ 16 | 8 |
+| 2 | `0x38700000` | IRQ 17 | 8 |
 
 ### Channel Registers (`base + 0x100 + 0x20 * n`)
 Peripheral request index 12 routes transfers to the primary I2S TX FIFO (`0x3ca00010`).
