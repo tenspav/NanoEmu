@@ -45,6 +45,9 @@
 #include "nano7_lcd.h"
 #include "nano7_touch.h"
 #include "nano7_ui.h"
+#include "nano7_dma.h"
+#include "nano7_codec.h"
+#include "nano7_i2s.h"
 #include "nano7_gpio.h"
 #include "nano7_i2c.h"
 #include "nano7_pmu.h"
@@ -102,6 +105,7 @@ struct Nano7MachineState {
     char *rtc;              /* PMU RTC start: snapshot, host or Unix secs */
     char *state_dir;        /* save-state slots (F2 / F4, F1 reset) */
     char *screens_dir;      /* F12 screenshots */
+    char *audio_out;        /* PCM sink for I2S0 (raw / .wav / FIFO) */
     uint32_t ctx_regs[16];
     bool ctx_loaded;
     bool ctx_has_cpsr;        /* DumpRAM format: word16 CPSR, word17 'DRAM' */
@@ -545,6 +549,15 @@ static void nano7_init(MachineState *machine)
      * line GPIO 0x26), fed by the host mouse */
     nano7_touch_attach(get_system_memory(), 0x3d200000,
                        s->vic_in[NANO7_IRQ_TOUCH_SPI]);
+    /* audio: DMA engines (engine 1 0x38200000 = IRQ 16, engine 2
+     * 0x38700000 = IRQ 17), codec on SPI0 (IRQ 9), I2S0 TX -> PCM sink */
+    nano7_dma_attach(get_system_memory(), 0x38200000, 1,
+                     s->vic_in[NANO7_IRQ_DMA1]);
+    nano7_dma_attach(get_system_memory(), 0x38700000, 2,
+                     s->vic_in[NANO7_IRQ_DMA2]);
+    nano7_codec_attach(get_system_memory(), 0x3c300000,
+                       s->vic_in[NANO7_IRQ_SPI0]);
+    nano7_i2s_attach(get_system_memory(), 0x3ca00000, s->audio_out);
     /* I2C buses: bus 0 slave 0x08; bus 1 PMU 0x73 (buttons) + 0x1a, 0x18 */
     {
         Nano7I2CBus *i2c0 = nano7_i2c_attach(get_system_memory(), 0x3c600000,
@@ -927,6 +940,7 @@ NANO7_STR_PROP(buttons)
 NANO7_STR_PROP(rtc)
 NANO7_STR_PROP(state_dir)
 NANO7_STR_PROP(screens_dir)
+NANO7_STR_PROP(audio_out)
 
 static char *nano7_get_torn_map(Object *obj, Error **errp)
 {
@@ -1087,6 +1101,7 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->rtc);
     g_free(s->state_dir);
     g_free(s->screens_dir);
+    g_free(s->audio_out);
 }
 
 static void nano7_machine_class_init(ObjectClass *oc, void *data)
@@ -1205,6 +1220,11 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
                                   nano7_set_screens_dir);
     object_class_property_set_description(oc, "screens-dir",
                                           "directory for F12 screenshots");
+    object_class_property_add_str(oc, "audio-out", nano7_get_audio_out,
+                                  nano7_set_audio_out);
+    object_class_property_set_description(oc, "audio-out",
+                                          "PCM sink for the audio output: raw "
+                                          "s16le stereo, *.wav, or a FIFO");
     object_class_property_add_str(oc, "rtc", nano7_get_rtc, nano7_set_rtc);
     object_class_property_set_description(oc, "rtc",
                                           "PMU real-time clock at start: "

@@ -9,6 +9,7 @@
 #include "qemu/osdep.h"
 #include "nano7_mbx.h"
 #include "hw/sysbus.h"
+#include "qapi/error.h"
 #include "qemu/module.h"
 #include "migration/vmstate.h"
 

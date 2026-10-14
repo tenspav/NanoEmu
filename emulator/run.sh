@@ -12,6 +12,8 @@
 #   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play|volup|voldown);
 #                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
 #   --rtc snapshot|host|SECONDS  PMU real-time clock at start (default snapshot)
+#   --audio-out FILE|FIFO        audio PCM sink: raw s16le stereo, *.wav adds a
+#                                header, a FIFO streams (e.g. into aplay/ffplay)
 #   keys (VNC/display/sendkey): F1 reset (reload the boot state), F2 save
 #                                state, F4 load state (emulator/state/), F5/Pause
 #                                pause, F6 speed 1x/2x/4x, Tab hold 4x, F7 rotate,
@@ -79,6 +81,8 @@ while [ $# -gt 0 ]; do
         --vnc)
             v=$(optval 0 "${2:-}") && shift 2 || shift
             EXTRA+=(-vnc ":$v") ;;
+        --audio-out)
+            MARGS="$MARGS,audio-out=${2:?--audio-out needs a file or FIFO}"; shift 2 ;;
         --rtc)
             MARGS="$MARGS,rtc=${2:?--rtc needs snapshot, host or Unix seconds}"; shift 2 ;;
         --buttons)

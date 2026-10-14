@@ -35,7 +35,7 @@ typedef struct Nano7Clock {
 
 static Nano7Clock clk = { .speed = 1 };
 
-#define CLK_MAX_TIMERS  32
+#define CLK_MAX_TIMERS  64
 
 typedef struct ClkTimer {
     QEMUTimer *t;

@@ -13,6 +13,7 @@
 #include "qemu/osdep.h"
 #include "nano7_h264.h"
 #include "hw/sysbus.h"
+#include "qapi/error.h"
 #include "qemu/module.h"
 #include "migration/vmstate.h"
 
