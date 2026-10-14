@@ -9,7 +9,6 @@ workers/*.sh
 emulator/vendor/
 emulator/build/
 emulator/sysroot/
-emulator/tools/
 probe/dumpram/build/
 probe/install/AllApps-B.pack.new
 probe/install/*dryrun*

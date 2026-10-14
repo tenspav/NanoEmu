@@ -974,3 +974,32 @@ VERIFY (snap6 + disk + --vnc 5, home page 1): F7 -> VNC frame 432x240, rotated h
   rotated Music position (345,64) -> mapped to panel (63,87) -> Music opens (rotated); F9 -> 864x480,
   crisp; F12 -> valid 240x432 PNG of the Music menu. PNGs: screens/session25/. (Only 90 deg and 2x
   exercised; 180/270 and 3x use the same code paths.)
+
+## Session 26 (2026-10-14): pause (F5 / Pause), fast-forward (F6, Tab), save-state hardening
+GUEST CLOCK: new nano7_clock.[ch]. Guest time = QEMU_CLOCK_VIRTUAL x speed, piecewise linear
+  (re-anchored on every change, continuous). The time-giving devices use it: timer block (500 Hz tick,
+  1 MHz counters), LCD TE pulse, PMU RTC + button script (nano7_now_ns, nano7_timer_mod). Every device
+  timer is registered (nano7_clock_track); guest-time timers are re-armed on each speed change.
+  Short completion delays (I2C, blitter, touch, spicmd) stay on virtual time. Saved in save states.
+FAST-FORWARD: F6 cycles 1x/2x/4x, Tab held = 4x. Measured with the guest-clocked TE pulse over 20 s of
+  real time: 4x requested -> ~3.1x achieved (host-CPU bound; 183 TE/s vs 60); the OS's work scales
+  along (blits 1770 -> 4391). The RTC/clock runs fast while fast-forwarding (as accepted).
+PAUSE: F5 / Pause = soft pause: pause_all_vcpus() + guest clock speed 0, run state stays "running".
+  Pitfalls found: (1) QEMU drops all input while the VM is stopped (vm_stop -> no key could resume);
+  (2) VNC delivers keys through a QEMU_CLOCK_VIRTUAL key-delay queue and pause_all_vcpus() disables
+  virtual-clock timers -> re-enabled right after pausing (guest time is frozen instead); (3) periodic
+  guest timers re-armed during the freeze got an infinite deadline -> the clock re-arms all of them on
+  resume. Verified in the GBA game: 0 frame updates while paused, game continues after resume (FPS 61;
+  low update counts afterwards = the game waiting at a dialogue box, not a slowdown).
+SAVE-STATE FIX: QEMU's device stream restores the saved QEMU_CLOCK_VIRTUAL; loading an older state left
+  QEMU's own virtual timers (VNC key queue) stranded up to minutes in the future (keys ignored after
+  F1). Now ui_load_state keeps the virtual clock monotonic: after the load it moves
+  timers_state.cpu_clock_offset forward by delta = (virtual before load) - (restored), and
+  nano7_clock_after_load(delta) shifts every registered device timer and the guest clock anchor.
+  Save/load also keep a soft pause active.
+VERIFY (VNC, keys via vnc_probe.py; new `hold KEYSYM SECONDS`): F6 2x -> F2 -> F1 (reset, 40 s back) ->
+  F4 -> frame identical pixel-for-pixel to the saved one -> F5 -> F2 while paused -> F4 while paused ->
+  F5: all keys handled, no asserts. Sheets: screens/session26/.
+KEYS (all over VNC / display / sendkey): h p space, Up/=/+ Down/-, F1 reset, F2 save, F4 load, F5/Pause
+  pause, F6 speed, Tab hold 4x, F7 rotate, F9 zoom, F12 screenshot. Headless works (keys only matter with
+  a display or the monitor's sendkey; save states also work from -monitor via sendkey f2/f4).
