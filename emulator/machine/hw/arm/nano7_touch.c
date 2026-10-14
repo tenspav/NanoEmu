@@ -37,6 +37,7 @@
 #include "nano7_gpio.h"
 #include "qemu/timer.h"
 #include "ui/input.h"
+#include "nano7_ui.h"
 #include "migration/vmstate.h"
 
 #define TP_SIZE         0x1000
@@ -73,6 +74,7 @@ typedef struct Nano7TouchState {
     TouchReport q[TP_QUEUE];
     unsigned q_head, q_n;
     int px, py;                         /* pointer position, display px */
+    int64_t abs_u, abs_v;               /* raw absolute pointer position */
     int last_px, last_py;               /* position of the last report */
     bool down;
     bool moved;
@@ -285,10 +287,12 @@ static void tp_input_event(DeviceState *dev, QemuConsole *src,
         int64_t range = INPUT_EVENT_ABS_MAX - INPUT_EVENT_ABS_MIN + 1;
 
         if (m->axis == INPUT_AXIS_X) {
-            s->px = v * TP_W / range;
+            s->abs_u = v;
         } else if (m->axis == INPUT_AXIS_Y) {
-            s->py = v * TP_H / range;
+            s->abs_v = v;
         }
+        /* the console may be rotated / zoomed (nano7_ui.c) */
+        nano7_ui_map_touch(s->abs_u, s->abs_v, range, &s->px, &s->py);
         s->moved = true;
         break;
     }

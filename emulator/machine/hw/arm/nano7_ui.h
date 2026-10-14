@@ -14,5 +14,11 @@
 void nano7_ui_init(const char *state_dir, const char *screens_dir);
 /* a RAM region to include in save states (name = file name) */
 void nano7_ui_add_ram(MemoryRegion *mr, const char *name);
+/* the panel frame changed (240x432 XRGB, stays valid) */
+void nano7_ui_frame(const uint32_t *frame);
+/* absolute pointer coordinates (0..range-1 over the displayed console) ->
+ * panel pixel, undoing rotation and zoom */
+void nano7_ui_map_touch(int64_t u, int64_t v, int64_t range, int *px,
+                        int *py);
 
 #endif

@@ -33,9 +33,8 @@
  * goes low for 1 ms (falling edge -> pending). At each TE the enabled
  * windows are composited (window 0 opaque, window 1 over it with its
  * alpha); a changed composite is copied into the panel memory (GRAM), so
- * direct DSI drawing survives until the OS flips a new frame. GRAM is the
- * surface of a QEMU graphic console (any -display / -vnc shows it;
- * refreshed at the TE after a change). The DSI FIFOs always read empty;
+ * direct DSI drawing survives until the OS flips a new frame. GRAM goes to
+ * nano7_ui.c (the QEMU console, rotation / zoom) at the TE after a change. The DSI FIFOs always read empty;
  * packets complete at once. With disp-dump=DIR a changed frame is also
  * written as DIR/screen-NNNNN.ppm.
  *
@@ -48,7 +47,7 @@
 #include "hw/core/cpu.h"
 #include "target/arm/cpu.h"
 #include "exec/address-spaces.h"
-#include "ui/console.h"
+#include "nano7_ui.h"
 #include "migration/vmstate.h"
 
 #define LCD_SIZE        0x1000
@@ -75,7 +74,6 @@ typedef struct Nano7LcdState {
     uint64_t tes, dumps, base_changes;
     bool warned_fmt;
     bool written[LCD_SIZE / 4];
-    QemuConsole *con;
     uint64_t updates;           /* frames pushed to the console */
 } Nano7LcdState;
 
@@ -218,10 +216,8 @@ static void lcd_scanout(Nano7LcdState *s)
         return;
     }
     s->dirty = false;
-    if (s->con) {
-        dpy_gfx_update_full(s->con);
-        s->updates++;
-    }
+    nano7_ui_frame(s->fb);
+    s->updates++;
     if (s->dump_dir) {
         lcd_dump(s);
     }
@@ -380,23 +376,6 @@ static const MemoryRegionOps dsim_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
-static void lcd_invalidate(void *opaque)
-{
-    Nano7LcdState *s = opaque;
-
-    dpy_gfx_update_full(s->con);
-}
-
-static void lcd_gfx_update(void *opaque)
-{
-    /* frames are pushed from the TE pulse (lcd_scanout) */
-}
-
-static const GraphicHwOps lcd_gfx_ops = {
-    .invalidate = lcd_invalidate,
-    .gfx_update = lcd_gfx_update,
-};
-
 static int lcd_post_load(void *opaque, int version_id)
 {
     Nano7LcdState *s = opaque;
@@ -443,10 +422,6 @@ void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
     lcd_singleton = s;
     atexit(lcd_summary);
     vmstate_register_any(NULL, &vmstate_lcd, s);
-    s->con = graphic_console_init(NULL, 0, &lcd_gfx_ops, s);
-    dpy_gfx_replace_surface(s->con, qemu_create_displaysurface_from(
-                                NANO7_LCD_W, NANO7_LCD_H, PIXMAN_x8r8g8b8,
-                                NANO7_LCD_W * 4, (uint8_t *)s->fb));
     nano7_gpio_model_pin(NANO7_GPIO_LCD_TE, 1);
     s->te_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, lcd_te, s);
     timer_mod_ns(s->te_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +

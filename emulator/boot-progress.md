@@ -935,3 +935,42 @@ CMD: ./run.sh --ramfull ../dumps/snap6/ram-full.bin --iram ../dumps/snap6/iram.b
   --overlay ../dumps/snap6/overlay.bin --os-poke-file fixups/snap6-resume.poke --torn-map
   ../dumps/snap6/torn-map.bin --nand-miss oracle --nand-disk ../dumps/ipod-disk.dd --nand-disk-offset
   49216 --vnc 5 [--buttons "60:home:100"] -M nano7,mmu=0x08b28000,torn-ignore-pc=0x093d2a80:0x093d4100
+
+## Session 24 (2026-10-14): save state (F2 / F4) and reset (F1)
+UI: new nano7_ui.[ch] owns the single QEMU keyboard handler (QEMU delivers keys to one active handler):
+  button keys go to nano7_pmu_key() (the PMU's own handler is gone), hot keys run from a main-loop BH.
+SAVE STATE: slot directory under state-dir (machine prop; run.sh passes emulator/state): ram-<region>.bin
+  (DRAM, IRAM, VROM raw, from memory_region_get_ram_ptr), devices.vmstate (every non-RAM vmstate section
+  via qmp_xen_save_devices_state(live=false): CPU, virtual clock, all nano7 devices), nand.bin (copy of
+  the NAND page store). Load: VM stopped, RAM copied back, store copied back + page index rebuilt,
+  device state through qemu_loadvm_state() directly (the Xen load helper's migration teardown asserts
+  in yank outside a real migration), then qemu_loadvm_state_cleanup() (else the 2nd load asserts on
+  the RAM receive bitmap), migration "send-configuration" set false (the device-only stream has no
+  configuration section), tb_flush, vm_start. ~40-180 ms per save/load.
+  New vmstate descriptions + post_load IRQ re-drive for every device: VIC (banks, glue), timer (4
+  channels incl. QEMUTimers), spicmd, regfile (written-bytes table converted from GHashTable to a byte
+  array), FMC + NAND store cursor (store file copied separately; nano7_fmc_store_save/load), disp
+  (blitter), LCD + DSI (incl. GRAM, TE timer), GPIO (groups, bank levels), I2C buses (active slave as
+  an index) + regfile slaves, PMU (regs, RTC base, script/release timers), touch (FIFOs, queue).
+  Not saved: torn-map watcher state (debug aid), pcsample timer, log dedup tables.
+RESET: the "boot" slot is saved automatically when the VM first runs (after resume set-up / at the
+  bootrom); F1 reloads it - same path for snapshot resume and bootrom boots.
+VERIFY (snap6 + disk image + --vnc 5): F2 on the home screen -> Lines (GBA game) -> F4 back to the saved
+  home screen -> tap Lines again starts the game (restored FS/NAND/touch all live) -> F1 back to the
+  boot state (DumpRAM "OK - REBOOT ME"). F1, F4, F1 in a row in a fresh process also fine; F4 there
+  loaded slot0 written by the previous process (cross-run loading works with the same command line).
+  Sheet: screens/session24/.
+
+## Session 25 (2026-10-14): rotate (F7), integer zoom (F9), screenshot (F12)
+DISPLAY PATH: nano7_lcd.c no longer owns the QEMU console; at a TE after a GRAM change it calls
+  nano7_ui_frame(GRAM). nano7_ui.c owns the graphic console and renders the 240x432 frame rotated
+  (F7 cycles 0/90/180/270 clockwise) and integer-zoomed (F9 cycles 1x/2x/3x, nearest neighbour) into a
+  surface it resizes when the output size changes (VNC clients get the new size).
+TOUCH: nano7_touch.c keeps the raw absolute pointer position and maps it through
+  nano7_ui_map_touch() (undo zoom, then the inverse rotation) to panel pixels.
+SCREENSHOT: F12 writes the panel frame (unrotated, 240x432 RGB) as PNG (zlib, own minimal encoder)
+  to screens-dir (run.sh: emulator/screens) as nano7-YYYYmmdd-HHMMSS.png.
+VERIFY (snap6 + disk + --vnc 5, home page 1): F7 -> VNC frame 432x240, rotated home screen; tap at the
+  rotated Music position (345,64) -> mapped to panel (63,87) -> Music opens (rotated); F9 -> 864x480,
+  crisp; F12 -> valid 240x432 PNG of the Music menu. PNGs: screens/session25/. (Only 90 deg and 2x
+  exercised; 180/270 and 3x use the same code paths.)

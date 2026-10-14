@@ -6,8 +6,17 @@
  *   h / p / space            Home / Power / Play-Pause   (nano7_pmu.c)
  *   Up = + / Down -          volume up / down
  *   F1  reset                F2  save state      F4  load state
+ *   F7  rotate the display 90 degrees clockwise (0 / 90 / 180 / 270; touch
+ *       coordinates follow)
+ *   F9  integer zoom 1x / 2x / 3x (nearest neighbour, no blur)
+ *   F12 screenshot: the panel frame as PNG into screens-dir
  * Actions run from a bottom half in the main loop, not inside the input
  * dispatch.
+ *
+ * Display: the LCD model hands over its 240x432 panel frame whenever it
+ * changes (nano7_ui_frame); this module owns the QEMU graphic console and
+ * renders the frame rotated and zoomed into the console surface (resized
+ * when rotation / zoom change the output size).
  *
  * Save state (slot directory under state-dir, default "state"):
  *   ram-<region>.bin   raw contents of each RAM region (DRAM, IRAM, VROM)
@@ -38,11 +47,14 @@
 #include "hw/core/cpu.h"
 #include "sysemu/runstate.h"
 #include "ui/input.h"
+#include "ui/console.h"
+#include "nano7_lcd.h"
+#include <zlib.h>
 
 #define UI_MAX_RAM      8
 
 typedef enum UiAction {
-    UI_NONE, UI_SAVE, UI_LOAD, UI_RESET, UI_BOOT_SAVE,
+    UI_NONE, UI_SAVE, UI_LOAD, UI_RESET, UI_BOOT_SAVE, UI_SHOT,
 } UiAction;
 
 typedef struct UiRam {
@@ -58,6 +70,13 @@ typedef struct Nano7UiState {
     UiAction pending;
     bool boot_saved;
     VMChangeStateEntry *vmse;
+    /* display */
+    QemuConsole *con;
+    const uint32_t *frame;      /* the LCD's panel frame (240x432 XRGB) */
+    uint32_t *out;              /* rendered console surface */
+    int rot;                    /* clockwise degrees: 0, 90, 180, 270 */
+    int zoom;                   /* 1..3 */
+    int out_w, out_h;
 } Nano7UiState;
 
 static Nano7UiState *ui;
@@ -186,6 +205,146 @@ static bool ui_load_state(const char *slot)
     return ok;
 }
 
+/* ----------------------------------------------------------------- display --- */
+static void ui_render(void)
+{
+    int lw = (ui->rot % 180) ? NANO7_LCD_H : NANO7_LCD_W;   /* rotated */
+    int lh = (ui->rot % 180) ? NANO7_LCD_W : NANO7_LCD_H;
+    int w = lw * ui->zoom, h = lh * ui->zoom, x, y;
+
+    if (w != ui->out_w || h != ui->out_h || !ui->out) {
+        uint32_t *old = ui->out;
+
+        ui->out = g_new0(uint32_t, w * h);
+        ui->out_w = w;
+        ui->out_h = h;
+        dpy_gfx_replace_surface(ui->con, qemu_create_displaysurface_from(
+                                    w, h, PIXMAN_x8r8g8b8, w * 4,
+                                    (uint8_t *)ui->out));
+        g_free(old);
+    }
+    for (y = 0; y < h; y++) {
+        uint32_t *row = ui->out + y * w;
+        int ly = y / ui->zoom;
+
+        for (x = 0; x < w; x++) {
+            int lx = x / ui->zoom, sx, sy;
+
+            switch (ui->rot) {      /* rotated pixel -> panel pixel */
+            case 90:  sx = ly;                 sy = NANO7_LCD_H - 1 - lx; break;
+            case 180: sx = NANO7_LCD_W - 1 - lx; sy = NANO7_LCD_H - 1 - ly; break;
+            case 270: sx = NANO7_LCD_W - 1 - ly; sy = lx;                 break;
+            default:  sx = lx;                 sy = ly;                 break;
+            }
+            row[x] = ui->frame ? ui->frame[sy * NANO7_LCD_W + sx] : 0;
+        }
+    }
+    dpy_gfx_update_full(ui->con);
+}
+
+void nano7_ui_frame(const uint32_t *frame)
+{
+    if (ui) {
+        ui->frame = frame;
+        ui_render();
+    }
+}
+
+/* absolute pointer (0..range-1 over the console) -> panel pixel */
+void nano7_ui_map_touch(int64_t u, int64_t v, int64_t range, int *px, int *py)
+{
+    int lw = ui && (ui->rot % 180) ? NANO7_LCD_H : NANO7_LCD_W;
+    int lh = ui && (ui->rot % 180) ? NANO7_LCD_W : NANO7_LCD_H;
+    int lx = u * lw / range, ly = v * lh / range;
+
+    switch (ui ? ui->rot : 0) {
+    case 90:  *px = ly;                   *py = NANO7_LCD_H - 1 - lx; break;
+    case 180: *px = NANO7_LCD_W - 1 - lx; *py = NANO7_LCD_H - 1 - ly; break;
+    case 270: *px = NANO7_LCD_W - 1 - ly; *py = lx;                   break;
+    default:  *px = lx;                   *py = ly;                   break;
+    }
+}
+
+static void ui_gfx_invalidate(void *opaque)
+{
+    ui_render();
+}
+
+static void ui_gfx_update(void *opaque)
+{
+    /* frames are pushed by the LCD model (nano7_ui_frame) */
+}
+
+static const GraphicHwOps ui_gfx_ops = {
+    .invalidate = ui_gfx_invalidate,
+    .gfx_update = ui_gfx_update,
+};
+
+/* F12: the panel frame (unrotated, 240x432) as an RGB PNG */
+static void ui_png_chunk(FILE *f, const char *type, const uint8_t *d,
+                         uint32_t n)
+{
+    uint8_t hdr[8];
+    uint32_t crc = crc32(0, (const Bytef *)type, 4);
+
+    stl_be_p(hdr, n);
+    memcpy(hdr + 4, type, 4);
+    fwrite(hdr, 1, 8, f);
+    fwrite(d, 1, n, f);
+    crc = crc32(crc, d, n);
+    stl_be_p(hdr, crc);
+    fwrite(hdr, 1, 4, f);
+}
+
+static void ui_screenshot(void)
+{
+    const int w = NANO7_LCD_W, h = NANO7_LCD_H;
+    g_autofree uint8_t *raw = g_malloc(h * (w * 3 + 1));
+    uLongf zlen = compressBound(h * (w * 3 + 1));
+    g_autofree uint8_t *z = g_malloc(zlen);
+    g_autoptr(GDateTime) now = g_date_time_new_now_local();
+    g_autofree char *stamp = g_date_time_format(now, "%Y%m%d-%H%M%S");
+    g_autofree char *path = NULL;
+    uint8_t ihdr[13] = { 0 };
+    FILE *f;
+    int x, y;
+
+    if (!ui->frame) {
+        fprintf(stderr, "[nano7-ui] screenshot: no frame yet\n");
+        return;
+    }
+    for (y = 0; y < h; y++) {
+        uint8_t *o = raw + y * (w * 3 + 1);
+
+        *o++ = 0;                               /* filter: none */
+        for (x = 0; x < w; x++) {
+            uint32_t p = ui->frame[y * w + x];
+
+            *o++ = p >> 16;
+            *o++ = p >> 8;
+            *o++ = p;
+        }
+    }
+    compress2(z, &zlen, raw, h * (w * 3 + 1), 6);
+    g_mkdir_with_parents(ui->screens_dir, 0755);
+    path = g_strdup_printf("%s/nano7-%s.png", ui->screens_dir, stamp);
+    f = fopen(path, "wb");
+    if (!f) {
+        fprintf(stderr, "[nano7-ui] screenshot: cannot write %s\n", path);
+        return;
+    }
+    fwrite("\x89PNG\r\n\x1a\n", 1, 8, f);
+    stl_be_p(ihdr, w);
+    stl_be_p(ihdr + 4, h);
+    ihdr[8] = 8;                                /* 8-bit RGB */
+    ihdr[9] = 2;
+    ui_png_chunk(f, "IHDR", ihdr, 13);
+    ui_png_chunk(f, "IDAT", z, zlen);
+    ui_png_chunk(f, "IEND", NULL, 0);
+    fclose(f);
+    fprintf(stderr, "[nano7-ui] screenshot -> %s\n", path);
+}
+
 /* ----------------------------------------------------------------- actions --- */
 static void ui_bh(void *opaque)
 {
@@ -205,6 +364,9 @@ static void ui_bh(void *opaque)
         break;
     case UI_BOOT_SAVE:
         ui->boot_saved = ui_save_state("boot");
+        break;
+    case UI_SHOT:
+        ui_screenshot();
         break;
     default:
         break;
@@ -247,6 +409,19 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
     case Q_KEY_CODE_F4:
         ui_request(UI_LOAD);
         break;
+    case Q_KEY_CODE_F7:
+        ui->rot = (ui->rot + 90) % 360;
+        fprintf(stderr, "[nano7-ui] rotation %d\n", ui->rot);
+        ui_render();
+        break;
+    case Q_KEY_CODE_F9:
+        ui->zoom = ui->zoom % 3 + 1;
+        fprintf(stderr, "[nano7-ui] zoom %dx\n", ui->zoom);
+        ui_render();
+        break;
+    case Q_KEY_CODE_F12:
+        ui_request(UI_SHOT);
+        break;
     default:
         break;
     }
@@ -266,6 +441,9 @@ void nano7_ui_init(const char *state_dir, const char *screens_dir)
     ui->state_dir = g_strdup(state_dir ? state_dir : "state");
     ui->screens_dir = g_strdup(screens_dir ? screens_dir : "screens");
     ui->bh = qemu_bh_new(ui_bh, NULL);
+    ui->zoom = 1;
+    ui->con = graphic_console_init(NULL, 0, &ui_gfx_ops, ui);
+    ui_render();                /* black 240x432 until the first frame */
     ui->vmse = qemu_add_vm_change_state_handler(ui_vm_state, NULL);
     hs = qemu_input_handler_register(NULL, &ui_key_handler);
     qemu_input_handler_activate(hs);
