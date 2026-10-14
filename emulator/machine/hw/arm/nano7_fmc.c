@@ -30,6 +30,7 @@
 #include "target/arm/cpu.h"
 #include "hw/irq.h"
 #include "exec/address-spaces.h"
+#include "qemu/timer.h"
 
 #define FMC_SIZE        0x1000
 #define FMC_NUM_CE      2
@@ -436,6 +437,11 @@ static void nand_meta_in(Nano7FmcState *s)
     if (nand_hit(n)) {
         memcpy(&s->regs[0x60 / 4], n->cur.meta[n->sect], NAND_META_BYTES);
         n->sect_hit++;
+        if (getenv("NANO7_NAND_TRACE")) {
+            fprintf(stderr, "[nano7-nand] t=%.3f s hit ce%d page 0x%x s%d lba "
+                    "0x%x\n", qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9,
+                    s->ce, n->cur.addr, n->sect, n->cur.meta[n->sect][2]);
+        }
     } else {
         memset(&s->regs[0x60 / 4], 0xff, NAND_META_BYTES);
         n->sect_miss++;
@@ -821,7 +827,8 @@ static void nand_oracle(Nano7FmcState *s)
         }
         address_space_write(&address_space_memory, m->data_dst,
                             MEMTXATTRS_UNSPECIFIED, data, NAND_SECT);
-        if (n->oracle_fixed++ < 32 || !(n->oracle_fixed & 0x3ff)) {
+        if (n->oracle_fixed++ < 32 || !(n->oracle_fixed & 0x3ff) ||
+            getenv("NANO7_NAND_TRACE")) {
             fprintf(stderr, "[nano7-nand] miss ce%u page 0x%x s%u -> oracle "
                     "lba 0x%" PRIx64 " (sftl slot %u, data 0x%08x, #%" PRIu64
                     ")\n", m->ce, m->addr, m->sect, lba, i, m->data_dst,
