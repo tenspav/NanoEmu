@@ -63,7 +63,8 @@ cp "$HERE/machine/hw/arm/nano7.c" "$HERE/machine/hw/arm/nano7_unimpl.c" \
    "$HERE/machine/hw/arm/nano7_clock.h" "$HERE/machine/hw/arm/nano7_dma.c" \
    "$HERE/machine/hw/arm/nano7_dma.h" "$HERE/machine/hw/arm/nano7_codec.c" \
    "$HERE/machine/hw/arm/nano7_codec.h" "$HERE/machine/hw/arm/nano7_i2s.c" \
-   "$HERE/machine/hw/arm/nano7_i2s.h" "$QEMU_DIR/hw/arm/"
+   "$HERE/machine/hw/arm/nano7_i2s.h" "$HERE/machine/hw/arm/nano7_adsp.c" \
+   "$HERE/machine/hw/arm/nano7_adsp.h" "$QEMU_DIR/hw/arm/"
 
 grep -q "^config NANO7" "$QEMU_DIR/hw/arm/Kconfig" || \
     cat "$HERE/machine/kconfig.snippet" >> "$QEMU_DIR/hw/arm/Kconfig"

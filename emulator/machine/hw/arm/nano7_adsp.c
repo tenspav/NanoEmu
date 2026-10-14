@@ -1,0 +1,186 @@
+/*
+ * nano7_adsp.c -- the media decode co-processor at 0x38500000 (VIC IRQ 18)
+ * of the iPod nano 7G (S5L8747). The MeCCADecode thread hands it compressed
+ * frames through an IRAM mailbox and reads PCM back.
+ *
+ * RE (Session 27, snap6):
+ *   +0xc80  ID, must read 0x004e7309 or the decoder panics (-> power-off)
+ *   +0x110  port state command (4, 0x10, 0x60); +0x114 is polled until it
+ *           reads 7
+ *   +0x400  status (bits 1:0), +0x420 16-word command window
+ *   +0x938..+0x97c  18 queue descriptors (stored)
+ *   +0x984 / +0x988 / +0x99c job parameters, +0x98c = 1 start doorbell
+ *   interrupt group 0: +0xa8c set-enable, +0xa90 clear-enable, +0xa94
+ *           mask readback, +0xa98 pending (27 bits), +0xc48 ack (W1C);
+ *           group 1 at +0xb0c..+0xb18, same layout
+ *   pending bit 2 = command / frame done (callers 0x082ad07c, 0x082ad8d8
+ *           poll it with the IRQ masked; the ISR 0x0815971d acks it and
+ *           posts the decoder event, which has a 500 ms timeout);
+ *   bit 12 = data request (ISR re-arms with +0x804 / +0x858) - never raised
+ * Mailbox in IRAM: commands 0x2203ff00, status halfwords 0x2203ff28, input
+ * 0x22038000, PCM output 0x22038100 (pointer struct 0x08811308).
+ *
+ * Model: every job write (+0x984, or +0x98c = 1) completes after 20 us of
+ * guest time and raises pending bit 2. Nothing is decoded: the PCM buffer
+ * is left as is, so playback runs but is silent. Real sound needs a
+ * host-side decoder behind the mailbox protocol (not decoded yet).
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+#include "qemu/osdep.h"
+#include "nano7_adsp.h"
+#include "nano7_clock.h"
+#include "qemu/timer.h"
+#include "migration/vmstate.h"
+
+#define ADSP_SIZE       0x1000
+#define ADSP_ID         0x004e7309
+#define ADSP_JOB_NS     20000
+#define PEND_DONE       (1u << 2)
+#define PEND_MASK       0x07ffffffu
+
+typedef struct Nano7AdspState {
+    MemoryRegion mr;
+    uint32_t regs[ADSP_SIZE / 4];
+    uint32_t mask[2], pending[2];
+    qemu_irq irq;
+    QEMUTimer *job_timer;
+    uint64_t jobs;
+    unsigned log_lines;
+} Nano7AdspState;
+
+static Nano7AdspState *adsp_singleton;
+
+static void adsp_update(Nano7AdspState *s)
+{
+    qemu_set_irq(s->irq, ((s->pending[0] & s->mask[0]) |
+                          (s->pending[1] & s->mask[1])) != 0);
+}
+
+static void adsp_job_done(void *opaque)
+{
+    Nano7AdspState *s = opaque;
+
+    s->pending[0] |= PEND_DONE;
+    adsp_update(s);
+}
+
+static void adsp_job(Nano7AdspState *s, hwaddr off, uint32_t v)
+{
+    s->jobs++;
+    if (s->log_lines < 16) {
+        s->log_lines++;
+        fprintf(stderr, "[nano7-adsp] t=%.3f s job #%" PRIu64 " (+0x%03x = "
+                "0x%x)\n", nano7_now_ns() / 1e9, s->jobs, (unsigned)off, v);
+    }
+    nano7_timer_mod(s->job_timer, nano7_now_ns() + ADSP_JOB_NS);
+}
+
+static uint64_t adsp_read(void *opaque, hwaddr off, unsigned size)
+{
+    Nano7AdspState *s = opaque;
+
+    switch (off) {
+    case 0xc80:
+        return ADSP_ID;
+    case 0x114:
+        return 7;                       /* port state reached */
+    case 0xa94:
+        return s->mask[0];
+    case 0xa98:
+        return s->pending[0];
+    case 0xb14:
+        return s->mask[1];
+    case 0xb18:
+        return s->pending[1];
+    default:
+        return s->regs[off / 4];
+    }
+}
+
+static void adsp_write(void *opaque, hwaddr off, uint64_t value,
+                       unsigned size)
+{
+    Nano7AdspState *s = opaque;
+    uint32_t v = value;
+
+    switch (off) {
+    case 0xa8c:
+        s->mask[0] |= v & PEND_MASK;
+        break;
+    case 0xa90:
+        s->mask[0] &= ~v;
+        break;
+    case 0xb0c:
+        s->mask[1] |= v & PEND_MASK;
+        break;
+    case 0xb10:
+        s->mask[1] &= ~v;
+        break;
+    case 0xc48:
+        s->pending[0] &= ~v;
+        break;
+    case 0x984:
+        adsp_job(s, off, v);
+        break;
+    case 0x98c:
+        if (v & 1) {
+            adsp_job(s, off, v);
+        }
+        break;
+    }
+    s->regs[off / 4] = v;
+    adsp_update(s);
+}
+
+static const MemoryRegionOps adsp_ops = {
+    .read = adsp_read,
+    .write = adsp_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = { .min_access_size = 4, .max_access_size = 4 },
+    .impl = { .min_access_size = 4, .max_access_size = 4 },
+};
+
+static void adsp_summary(void)
+{
+    if (adsp_singleton && adsp_singleton->jobs) {
+        fprintf(stderr, "[nano7-adsp] summary: %" PRIu64 " decode jobs "
+                "(completed without decoding)\n", adsp_singleton->jobs);
+    }
+}
+
+static int adsp_post_load(void *opaque, int version_id)
+{
+    adsp_update(opaque);
+    return 0;
+}
+
+static const VMStateDescription vmstate_adsp = {
+    .name = "nano7-adsp",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = adsp_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, Nano7AdspState, ADSP_SIZE / 4),
+        VMSTATE_UINT32_ARRAY(mask, Nano7AdspState, 2),
+        VMSTATE_UINT32_ARRAY(pending, Nano7AdspState, 2),
+        VMSTATE_TIMER_PTR(job_timer, Nano7AdspState),
+        VMSTATE_UINT64(jobs, Nano7AdspState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+void nano7_adsp_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
+{
+    Nano7AdspState *s = g_new0(Nano7AdspState, 1);
+
+    s->irq = irq;
+    s->job_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, adsp_job_done, s);
+    nano7_clock_track(s->job_timer, true);
+    adsp_singleton = s;
+    atexit(adsp_summary);
+    vmstate_register_any(NULL, &vmstate_adsp, s);
+    memory_region_init_io(&s->mr, NULL, &adsp_ops, s, "nano7.adsp",
+                          ADSP_SIZE);
+    memory_region_add_subregion_overlap(parent, base, &s->mr, 0);
+}

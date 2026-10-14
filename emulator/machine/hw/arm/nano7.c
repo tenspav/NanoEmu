@@ -48,6 +48,7 @@
 #include "nano7_dma.h"
 #include "nano7_codec.h"
 #include "nano7_i2s.h"
+#include "nano7_adsp.h"
 #include "nano7_gpio.h"
 #include "nano7_i2c.h"
 #include "nano7_pmu.h"
@@ -558,6 +559,11 @@ static void nano7_init(MachineState *machine)
     nano7_codec_attach(get_system_memory(), 0x3c300000,
                        s->vic_in[NANO7_IRQ_SPI0]);
     nano7_i2s_attach(get_system_memory(), 0x3ca00000, s->audio_out);
+    /* 0x38500000: media decode co-processor (IRQ 18, ID 0x004e7309, job
+     * completion), see nano7_adsp.c; 0x38501000: separate block, stored */
+    nano7_adsp_attach(get_system_memory(), 0x38500000,
+                      s->vic_in[NANO7_IRQ_ADSP]);
+    nano7_regfile_attach(get_system_memory(), "b3851", 0x38501000, 0x1000);
     /* I2C buses: bus 0 slave 0x08; bus 1 PMU 0x73 (buttons) + 0x1a, 0x18 */
     {
         Nano7I2CBus *i2c0 = nano7_i2c_attach(get_system_memory(), 0x3c600000,

@@ -2,6 +2,10 @@
   <img src="docs/images/home-page1.png" width="240" alt="NanoEmu home screen">
 </p>
 
+<p align="center">
+  <img src="docs/images/icon-256.png" width="128" alt="NanoEmu icon">
+</p>
+
 <h1 align="center">NanoEmu</h1>
 
 <p align="center">

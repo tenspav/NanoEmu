@@ -11,6 +11,9 @@ import os, socket, sys, time
 # that memory range (another thread's stack, e.g. a blocked requester)
 STACK = [int(x, 0) for x in os.environ['RSP_STACK'].split(':')] \
     if os.environ.get('RSP_STACK') else None
+# RSP_SPSTACK=N -> on every hit also list Thumb return addresses in the N
+# bytes above the stopped thread's sp
+SPSTACK = int(os.environ.get('RSP_SPSTACK', '0'), 0)
 
 
 class RSP:
@@ -99,8 +102,8 @@ def main():
                   (pc, g[0], g[1], g[2], g[3], g[13], g[14]))
             if 0x08000000 <= g[0] < 0x0c000000:     # 16 bytes at r0
                 print('    [r0 0x%08x] %s' % (g[0], r.cmd('m%x,10' % g[0])))
-            if STACK:
-                lo, hi = STACK
+            if STACK or SPSTACK:
+                lo, hi = STACK if STACK else (g[13], g[13] + SPSTACK)
                 mem = bytes.fromhex(r.cmd('m%x,%x' % (lo, hi - lo)))
                 rets = []
                 for i in range(0, len(mem) - 3, 4):
