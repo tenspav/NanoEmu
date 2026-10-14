@@ -10,6 +10,10 @@ Homebrew QEMU emulator for a legacy ARM media-player SoC (Samsung S5L8747-class,
 ## On-device apps (probe/)
 - Any long operation MUST show live progress on screen: a "BUSY..." state the instant the button is tapped, plus progress (percent or MB counter) during dumps, and a clear "OK - REBOOT ME" only at the end. Never leave the screen static during work — the user can't tell if it's alive.
 
+## Mission (user's goals, in order)
+1. Preservation: a working emulator that boots the original RetailOS to the Home screen, visible window, mouse = touch, keyboard = buttons.
+2. Use the emulator as a safe testbed for the real prize: giving homebrew games access to the FULL 64MB RAM (apps are confined to a small ~8MB heap today). Experiments go to the emulator first, real iPod only after proven safe.
+
 ## Emulator feature checklist (user requirements — do not drop)
 - Visible screen window (QEMU display), mouse = touchscreen (touch spec: workers/codex-touch.txt)
 - Physical buttons mapped to keyboard: volume up/down, play/pause, sleep/wake, home (button spec: workers/codex-touch.txt — Home/Power via I2C1 slave 0x73 reg 0x07, wheel GPIO)

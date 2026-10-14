@@ -15,6 +15,16 @@
  *   loops status read + dispatch 0x080fb270 until the line is high.
  *   Events: 0x08408570(id, 1/0), id 1 home, 9 powerkey, 6 playpause.
  *   A Power hold > ~150 ms may run PressAndHold (shutdown): keep it short.
+ * Battery / charger (Session 19 RE):
+ *   0x30  ADC control: bits 3:0 channel, bit4 start/busy (the OS aborts if
+ *         it is set before a start, polls it clear ~1 ms after); result is
+ *         10 bits (0x32 << 2) | 0x31. Channel 4 = battery, mV = 2500 +
+ *         raw * 2000 / 1023 (level 0..15 from table 0x0890c490; below
+ *         level 2, ~3666 mV, the OS shows "Low Battery"); channel 1 =
+ *         charger load %, must stay < 3. Conversions complete instantly.
+ *   0x3c..0x3f temperature fields (0x0818a4e8): ~24 C
+ *   0x05  bit6 external power, bit3 charger good (both = on USB power)
+ *   0x29  bit2 + current-limit code bits 1:0 (2 = 500 mA)   0x0d bit3 = 0
  * Other registers are a plain register file (0 at reset). Every register
  * touched is logged once.
  *
@@ -29,6 +39,7 @@
 #define PMU_ADDR        0x73
 #define PMU_HOLD_MS     100
 #define PMU_SCRIPT_MAX  32
+#define PMU_BATT_MV     4100        /* battery level 14, as in snap6 */
 
 typedef struct PmuBtn {
     const char *name;
@@ -53,6 +64,7 @@ typedef struct Nano7PmuState {
     bool have_ptr;
     bool seen[256][2];          /* register logged (read / write) */
     unsigned trace_left;        /* log every access for a while after a button */
+    bool trace;                 /* NANO7_PMU_TRACE: log every access */
     PmuEvent script[PMU_SCRIPT_MAX];
     unsigned nscript, next;
     QEMUTimer *script_timer;
@@ -70,8 +82,10 @@ static void pmu_line(Nano7PmuState *s)
 
 static void pmu_log(Nano7PmuState *s, uint8_t reg, bool wr, uint8_t v)
 {
-    if (s->trace_left) {
-        s->trace_left--;
+    if (s->trace || s->trace_left) {
+        if (s->trace_left) {
+            s->trace_left--;
+        }
         fprintf(stderr, "[nano7-pmu] t=%.3f s %s reg 0x%02x %s 0x%02x\n",
                 qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9, wr ? "W" : "R",
                 reg, wr ? "=" : "->", v);
@@ -93,6 +107,21 @@ static void pmu_start(void *opaque, bool rx)
     }
 }
 
+/* ADC start: latch the channel, complete at once (bit4 reads clear) */
+static void pmu_adc(Nano7PmuState *s, uint8_t v)
+{
+    unsigned raw = 0;
+
+    s->regs[0x30] = v & ~0x10;
+    if ((v & 0x10) && (v & 0xf) == 4) {
+        raw = (PMU_BATT_MV - 2500) * 1023 / 2000;
+    }
+    if (v & 0x10) {
+        s->regs[0x32] = raw >> 2;
+        s->regs[0x31] = raw & 3;
+    }
+}
+
 static bool pmu_write(void *opaque, uint8_t v)
 {
     Nano7PmuState *s = opaque;
@@ -110,6 +139,12 @@ static bool pmu_write(void *opaque, uint8_t v)
         pmu_line(s);
     } else if (r >= 5 && r <= 8) {
         /* levels are inputs */
+    } else if (r >= 0x31 && r <= 0x32) {
+        /* ADC result: read-only */
+    } else if (r >= 0x3c && r <= 0x3f) {
+        /* temperature measurement: read-only */
+    } else if (r == 0x30) {
+        pmu_adc(s, v);
     } else {
         s->regs[r] = v;
     }
@@ -243,8 +278,15 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script)
     QemuInputHandlerState *hs;
 
     nano7_gpio_model_pin(NANO7_GPIO_PMU_IRQ, 1);   /* event line idle high */
+    s->trace = getenv("NANO7_PMU_TRACE") != NULL;
     s->regs[7] = 0x30;      /* home, power released */
     s->regs[8] = 0x02;      /* play/pause released */
+    s->regs[0x05] = 0x48;   /* external power present, charger good */
+    s->regs[0x29] = 0x06;   /* charger enabled, 500 mA input limit */
+    s->regs[0x3c] = 0x08;   /* temperature fields: A 500, r5 530, r6 500 */
+    s->regs[0x3d] = 0x84;
+    s->regs[0x3e] = 0x7d;
+    s->regs[0x3f] = 0x7d;
     pmu_singleton = s;
     s->script_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_script_tick, s);
     s->release_timer[NANO7_BTN_HOME] =
