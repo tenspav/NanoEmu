@@ -61,6 +61,7 @@ Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 - 🎬 **Hardware H.264 decoder** (Apple M2) mapped, making video playback and low-res streaming viable ([`docs/research/h264-decoder.md`](docs/research/h264-decoder.md))
 - 🏃 **Accelerometer API mapped** (I2C slave 0x18, 100 Hz, 8-slot subscriber callbacks) ([`docs/research/accel.md`](docs/research/accel.md))
 - 💾 NAND streaming measured at ~25-35 MB/s reads, viable for open-world-style asset streaming ([`docs/research/swap.md`](docs/research/swap.md))
+- 📶 **A dormant Wi-Fi chip exists:** a Broadcom BCM4330 (802.11n) sits inside the nano 7G but is unrouted and disabled by Apple, plus the USB port's host stack exists but only speaks the accessory protocol ([`docs/research/usb-otg-verdict.md`](docs/research/usb-otg-verdict.md))
 - 🔒 The GID AES key is unreadable by software (confirmed), so IPSW decryption needs a one-time on-device oracle pass ([`docs/research/efuse.md`](docs/research/efuse.md))
 
 ## Feature status

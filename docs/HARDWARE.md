@@ -64,7 +64,7 @@ Everything the NanoEmu project has learned about the nano 7G hardware, from our 
 | Bluetooth | Classic BR/EDR + BLE: HCI, L2CAP, RFCOMM, A2DP, pairing manager with SSP auto-accept, persistent keys in btdevices.plist **[confirmed in OS]** |
 | Chip interface | UART-attached (BT Uart RxLoop thread 0x081920ac) **[confirmed]** |
 | Chip model | **[unconfirmed]** (Broadcom/Cypress-class, typical for Apple of that era) |
-| Wi-Fi | None (nano 7G has no Wi-Fi) **[confirmed]** |
+| Wi-Fi | A Broadcom BCM4330 die is present in the package but unrouted/disabled; unusable **[confirmed present, disabled]** |
 | Research | docs/research/bluetooth-stack.md |
 
 ## Storage
