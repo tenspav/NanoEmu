@@ -28,6 +28,23 @@ Boots the **real RetailOS** from a live device snapshot into a **clickable windo
 
 <p align="center"><i>The Music app, opened by a mouse tap in the live window.</i></p>
 
+## The hardware inside
+
+| | |
+|---|---|
+| 🧠 **SoC** | Samsung S5L8747-class ("N31"), ARM Cortex-A5 single core |
+| 💾 **Memory** | 64 MB DRAM + 256 KB SRAM (unified, no separate VRAM) |
+| 🖥️ **Display** | 240x432 @ 60 Hz, 32-bit color |
+| 🎮 **GPU** | PowerVR MBX Lite (2D + 3D, OpenGL ES 1.1) |
+| 🎬 **Video** | Apple M2 H.264 hardware decoder |
+| 🔊 **Audio** | I2S + SPI codec + DMA engine |
+| 📡 **Wireless** | Bluetooth classic BR/EDR + BLE (HCI, L2CAP, A2DP) |
+| 💽 **Storage** | 16 GB NAND flash, PPN controller, 16 KB pages |
+| 🔌 **Ports** | USB 2.0 OTG (DWC2), 30-pin dock |
+| 🔒 **Crypto** | AES + SHA-1 + RSA hardware engines |
+
+Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
+
 ## Feature status
 
 | Subsystem | Status |
