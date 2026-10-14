@@ -34,6 +34,8 @@ struct Nano7MbxState {
     uint32_t core[MBX_CORE_WORDS];
     uint32_t plane[3][MBX_PLANE_WORDS];
     uint32_t sync_left[3];
+    bool trace;                 /* NANO7_MBX_TRACE: log writes */
+    uint64_t trace_n;
 };
 
 OBJECT_DECLARE_SIMPLE_TYPE(Nano7MbxState, NANO7_MBX)
@@ -90,6 +92,11 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
     Nano7MbxState *s = w->s;
     uint32_t v = value;
     unsigned n = off / 4;
+
+    if (s->trace && s->trace_n++ < 200000) {
+        fprintf(stderr, "[nano7-mbx] W%u +0x%05x = 0x%08x\n", w->index,
+                (unsigned)off, v);
+    }
 
     if (w->index < 3) {
         s->plane[w->index][n] = v;
@@ -200,6 +207,7 @@ static void mbx_init(Object *obj)
     unsigned i;
 
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->irq);
+    s->trace = getenv("NANO7_MBX_TRACE") != NULL;
     for (i = 0; i < 7; i++) {
         Nano7MbxWindow *w = &s->window[i];
         g_autofree char *name = g_strdup_printf("nano7.mbx.%u", i);
