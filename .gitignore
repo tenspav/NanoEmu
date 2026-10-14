@@ -25,3 +25,4 @@ emulator/retailos-patched.bin
 workers/
 CLAUDE.md
 games/
+emulator/state/
