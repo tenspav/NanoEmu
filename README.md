@@ -40,7 +40,7 @@ Boots the **real RetailOS** from a live device snapshot into a **clickable windo
 | 🔊 **Audio** | I2S + SPI codec + DMA engine |
 | 📡 **Wireless** | Bluetooth classic BR/EDR + BLE (HCI, L2CAP, A2DP) |
 | 💽 **Storage** | 16 GB NAND flash, PPN controller, 16 KB pages |
-| 🔌 **Ports** | USB 2.0 OTG (DWC2), 30-pin dock |
+| 🔌 **Ports** | USB 2.0 OTG (DWC2), Lightning connector |
 | 🔒 **Crypto** | AES + SHA-1 + RSA hardware engines |
 
 Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)

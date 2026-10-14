@@ -1164,7 +1164,7 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
                                   nano7_set_nand_disk_off);
     object_class_property_set_description(oc, "nand-disk-offset",
                                           "FTL LBA of the disk image's first "
-                                          "sector (snap6 device: 8661)");
+                                          "sector (snap6 device: 49216)");
     object_class_property_add_str(oc, "nand-disk", nano7_get_nand_disk,
                                   nano7_set_nand_disk);
     object_class_property_set_description(oc, "nand-disk",

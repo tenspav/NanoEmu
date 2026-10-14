@@ -20,7 +20,8 @@ void nano7_fmc_fmss_resume_kick(void);
 /* NAND page store: store = backing file (NULL: temp file), miss =
  * "blank"|"oracle", disk = 4 KB-sector disk image for oracle misses,
  * disk_off = FTL LBA of its sector 0 (a disk-mode dd of the iPod is the
- * data volume only; it starts at FTL LBA 8661 on the snap6 device) */
+ * data volume only: MBR + FAT32 partition; the image starts at FTL LBA
+ * 49216 (0xc040) on the snap6 device) */
 void nano7_fmc_nand_config(const char *store, const char *miss,
                            const char *disk, const char *disk_off);
 

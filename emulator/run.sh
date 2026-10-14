@@ -7,7 +7,7 @@
 #   ./run.sh --stub              # ignore bootrom file, use infinite-loop stub
 #   --nand-store FILE / --nand-miss blank|oracle / --nand-disk IMG: NAND page
 #                                store (see nano7_fmc.c); --nand-disk-offset LBA:
-#                                FTL LBA of the image's sector 0 (snap6: 8661)
+#                                FTL LBA of the image's sector 0 (snap6 device: 49216)
 #   --disp-dump DIR              write display-pipe frames as PPMs
 #   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play|volup|voldown);
 #                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
