@@ -58,6 +58,8 @@
 #include "nano7_vic.h"
 #include "nano7_timer.h"
 #include "nano7_spicmd.h"
+#include "nano7_aes.h"
+#include "nano7_btuart.h"
 
 #define NANO7_DRAM_BASE  0x08000000
 #define NANO7_DRAM_SIZE  (64 * MiB)
@@ -112,6 +114,9 @@ struct Nano7MachineState {
     char *state_dir;        /* save-state slots (F2 / F4, F1 reset) */
     char *screens_dir;      /* F12 screenshots */
     char *audio_out;        /* PCM sink for I2S0 (raw / .wav / FIFO) */
+    char *aes_gid_key;      /* AES engine hardware keys (32 hex digits) */
+    char *aes_uid_key;
+    char *bt_hci;           /* BT UART: host socket for the raw H4 stream */
     uint32_t ctx_regs[16];
     bool ctx_loaded;
     bool ctx_has_cpsr;        /* DumpRAM format: word16 CPSR, word17 'DRAM' */
@@ -619,6 +624,13 @@ static void nano7_init(MachineState *machine)
     nano7_codec_attach(get_system_memory(), 0x3c300000,
                        s->vic_in[NANO7_IRQ_SPI0]);
     nano7_i2s_attach(get_system_memory(), 0x3ca00000, s->audio_out);
+    /* 0x38c00000: AES engine (polled; hardware keys unknown unless given) */
+    nano7_aes_attach(get_system_memory(), 0x38c00000, s->aes_gid_key,
+                     s->aes_uid_key);
+    /* 0x3db00000: UART port 1 = Bluetooth HCI H4 (IRQ 25, TX DMA request
+     * 4), with a fake Broadcom controller or a host socket behind it */
+    nano7_btuart_attach(get_system_memory(), 0x3db00000,
+                        s->vic_in[NANO7_IRQ_BTUART], s->bt_hci);
     /* 0x38500000: media decode co-processor (IRQ 18, ID 0x004e7309, job
      * completion), see nano7_adsp.c */
     nano7_adsp_attach(get_system_memory(), 0x38500000,
@@ -1027,6 +1039,9 @@ NANO7_STR_PROP(rtc)
 NANO7_STR_PROP(state_dir)
 NANO7_STR_PROP(screens_dir)
 NANO7_STR_PROP(audio_out)
+NANO7_STR_PROP(aes_gid_key)
+NANO7_STR_PROP(aes_uid_key)
+NANO7_STR_PROP(bt_hci)
 
 static char *nano7_get_torn_map(Object *obj, Error **errp)
 {
@@ -1190,6 +1205,9 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->state_dir);
     g_free(s->screens_dir);
     g_free(s->audio_out);
+    g_free(s->aes_gid_key);
+    g_free(s->aes_uid_key);
+    g_free(s->bt_hci);
 }
 
 static void nano7_machine_class_init(ObjectClass *oc, void *data)
@@ -1330,6 +1348,23 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
     object_class_property_set_description(oc, "audio-out",
                                           "PCM sink for the audio output: raw "
                                           "s16le stereo, *.wav, or a FIFO");
+    object_class_property_add_str(oc, "aes-gid-key", nano7_get_aes_gid_key,
+                                  nano7_set_aes_gid_key);
+    object_class_property_set_description(oc, "aes-gid-key",
+                                          "AES engine key type 1 (32 hex "
+                                          "digits); unknown = jobs copy");
+    object_class_property_add_str(oc, "aes-uid-key", nano7_get_aes_uid_key,
+                                  nano7_set_aes_uid_key);
+    object_class_property_set_description(oc, "aes-uid-key",
+                                          "AES engine key type 2 (32 hex "
+                                          "digits); unknown = jobs copy");
+    object_class_property_add_str(oc, "bt-hci", nano7_get_bt_hci,
+                                  nano7_set_bt_hci);
+    object_class_property_set_description(oc, "bt-hci",
+                                          "Bluetooth UART: UNIX socket path "
+                                          "(or tcp:HOST:PORT) to connect for "
+                                          "the raw H4 stream instead of the "
+                                          "built-in fake controller");
     object_class_property_add_str(oc, "rtc", nano7_get_rtc, nano7_set_rtc);
     object_class_property_set_description(oc, "rtc",
                                           "PMU real-time clock at start: "

@@ -36,8 +36,9 @@
  *
  * Model: per segment the draws are transformed and set up into triangles;
  * the render job rasterizes them (perspective-correct colour and uv,
- * depth test, nearest texel, modulate) into a host frame and writes it to
- * the target. Not modeled yet: blending, culling, stencil, fog, lighting
+ * depth compare / write mask, nearest texel, texture combine (modulate /
+ * replace), blending (Session 33)) into a host frame and writes it to the
+ * target. Not modeled yet: culling, alpha test, stencil, fog, lighting
  * (programs other than the plain transform), mipmaps, filtering.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -71,6 +72,20 @@ typedef struct MbxTri {
     int16_t tex;                /* index into r->texs, -1 = untextured */
     bool depth_only, no_depth_test;
 } MbxTri;
+
+/* ISP/TSP word fields (gltest variants 9-13, docs/research/mbx-gltest-
+ * frame.txt): blend factors in the PowerVR2 TSP encoding (0 zero, 1 one,
+ * 2 other colour, 3 1 - other colour, 4 src alpha, 5 1 - src alpha, 6 dst
+ * alpha, 7 1 - dst alpha; "other" = dst for the source factor, src for the
+ * destination factor) - opaque draws carry ONE / ZERO; bit 13 is set with
+ * GL_BLEND; bits 11:9 depth compare (GL order: 0 never, 1 less, 2 equal,
+ * 3 lequal, 4 greater, 5 notequal, 6 gequal, 7 always; LESS is the GL
+ * default, glDisable(GL_DEPTH_TEST) gives 7); bit 7 no depth write (set with
+ * the depth test off); bit 17 textured */
+#define ISP_SRC(isp)        ((isp) >> 29)
+#define ISP_DST(isp)        (((isp) >> 26) & 7)
+#define ISP_ZCMP(isp)       (((isp) >> 9) & 7)
+#define ISP_NO_ZWRITE       (1u << 7)
 
 struct MbxR {
     /* persistent TA state */
@@ -256,6 +271,14 @@ static void draw(MbxR *r, uint32_t prim, const uint32_t *v, uint32_t nw)
 
             for (k = 0; k < 4; k++) {
                 o->c[k] = ((c >> (8 * k)) & 0xff) / 255.f * iw;
+            }
+        } else if (vgp) {
+            /* no colour array: the driver's program outputs constant c15 =
+             * glColor (ubyte / 255 scaled by 256 / 255, e.g. 1.0039) */
+            for (k = 0; k < 4; k++) {
+                float c = r->cst[15][k] * (255.f / 256.f);
+
+                o->c[k] = (c < 0 ? 0 : c > 1 ? 1 : c) * iw;
             }
         } else {
             for (k = 0; k < 4; k++) {
@@ -446,7 +469,8 @@ typedef struct HostTex {
 /* size (log2) and format of a texture layer, from layer word 0 (gltest
  * variants: 64x64 ARGB8888 0x03319600, 32x16 ARGB8888 0x02119600, 64x64
  * RGB565 0x03305600): bits 27:24 log2(width) - 3, 23:20 log2(height) - 3,
- * 16:12 format (0x19 ARGB8888, 0x05 RGB565) */
+ * 16:12 format - 0x19 ARGB8888, 0x05 RGB565, 0x09 ARGB4444, 0x01 ARGB1555,
+ * 0x11 AL88 (luminance-alpha), 0x15 8-bit (luminance or alpha) */
 static bool mbxr_tex_params(MbxR *r, const MbxTex *t, unsigned *lw,
                             unsigned *lh, unsigned *bpp)
 {
@@ -458,14 +482,50 @@ static bool mbxr_tex_params(MbxR *r, const MbxTex *t, unsigned *lw,
     case 0x19:
         *bpp = 32;
         break;
-    case 0x05:
+    case 0x05: case 0x09: case 0x01: case 0x11:
         *bpp = 16;
+        break;
+    case 0x15:
+        *bpp = 8;
         break;
     default:
         warn_once(r, 8, "texture format 0x%02x not modeled", fmt);
         return false;
     }
     return *lw <= 11 && *lh <= 11;
+}
+
+static inline uint32_t x4(uint32_t v)
+{
+    return v << 4 | v;
+}
+
+static inline uint32_t x5(uint32_t v)
+{
+    return v << 3 | v >> 2;
+}
+
+/* one texel of a 16 / 8 bpp format -> ARGB8888 */
+static uint32_t texel16(unsigned fmt, uint32_t p)
+{
+    uint32_t a, l;
+
+    switch (fmt) {
+    case 0x09:                  /* ARGB4444 */
+        return x4(p >> 12) << 24 | x4((p >> 8) & 0xf) << 16 |
+               x4((p >> 4) & 0xf) << 8 | x4(p & 0xf);
+    case 0x01:                  /* ARGB1555 */
+        return (p & 0x8000 ? 0xff000000u : 0) | x5((p >> 10) & 0x1f) << 16 |
+               x5((p >> 5) & 0x1f) << 8 | x5(p & 0x1f);
+    case 0x11:                  /* AL88: alpha high, luminance low */
+        a = p >> 8;
+        l = p & 0xff;
+        return a << 24 | l << 16 | l << 8 | l;
+    default:                    /* RGB565 */
+        return 0xff000000u | x5((p >> 11) & 0x1f) << 16 |
+               (((p >> 5) & 0x3f) << 2 | ((p >> 5) & 0x3f) >> 4) << 8 |
+               x5(p & 0x1f);
+    }
 }
 
 static unsigned twiddle(unsigned x, unsigned y, unsigned lw, unsigned lh)
@@ -502,6 +562,23 @@ static bool load_tex(MbxR *r, const uint32_t *core, const MbxTex *t,
     if (!gpu_rw(core, va, raw, size, false)) {
         return false;
     }
+    if (r->stats && r->frames == 300) {
+        /* raw texels at (0,0) (1,1) (9,1): gltest's border, dark, light */
+        static const unsigned pt[3][2] = { { 0, 0 }, { 1, 1 }, { 9, 1 } };
+        unsigned k, j;
+
+        fprintf(stderr, "[nano7-mbxr] tex %08x %08x %08x raw:", t->w[0],
+                t->w[1], t->w[2]);
+        for (k = 0; k < 3; k++) {
+            unsigned i = twiddle(pt[k][0], pt[k][1], lw, lh) * bpp / 8;
+
+            fprintf(stderr, " (%u,%u)=", pt[k][0], pt[k][1]);
+            for (j = 0; j < MAX(bpp / 8, 1); j++) {
+                fprintf(stderr, "%02x", raw[i + j]);
+            }
+        }
+        fputc('\n', stderr);
+    }
     h->texel = g_new(uint32_t, h->w * h->h);
     for (y = 0; y < h->h; y++) {
         for (x = 0; x < h->w; x++) {
@@ -510,14 +587,10 @@ static bool load_tex(MbxR *r, const uint32_t *core, const MbxTex *t,
 
             if (bpp == 32) {
                 c = ldl_le_p(raw + i * 4);
+            } else if (bpp == 16) {
+                c = texel16((t->w[0] >> 12) & 0x1f, lduw_le_p(raw + i * 2));
             } else {
-                uint32_t p = lduw_le_p(raw + i * 2), r5, g6, b5;
-
-                r5 = (p >> 11) & 0x1f;
-                g6 = (p >> 5) & 0x3f;
-                b5 = p & 0x1f;
-                c = 0xff000000u | (r5 << 3 | r5 >> 2) << 16 |
-                    (g6 << 2 | g6 >> 4) << 8 | (b5 << 3 | b5 >> 2);
+                c = raw[i] * 0x01010101u;     /* 8-bit: every channel */
             }
             h->texel[y * h->w + x] = c;
         }
@@ -535,10 +608,78 @@ static inline float edge(float ax, float ay, float bx, float by, float px,
     return (bx - ax) * (py - ay) - (by - ay) * (px - ax);
 }
 
+static float blend_factor(unsigned f, bool src, const float *s,
+                          const float *d, int k)
+{
+    const float *o = src ? d : s;       /* "other" colour */
+
+    switch (f) {
+    case 0: return 0;
+    case 1: return 1;
+    case 2: return o[k];
+    case 3: return 1 - o[k];
+    case 4: return s[3];
+    case 5: return 1 - s[3];
+    case 6: return d[3];
+    default: return 1 - d[3];
+    }
+}
+
+static bool depth_pass(unsigned f, float z, float zb)
+{
+    switch (f) {
+    case 0: return false;
+    case 1: return z < zb;
+    case 2: return z == zb;
+    case 3: return z <= zb;
+    case 4: return z > zb;
+    case 5: return z != zb;
+    case 6: return z >= zb;
+    default: return true;
+    }
+}
+
+/*
+ * Texture combine, from layer word 2 (gltest variants 0/8/17/18):
+ * GL_MODULATE RGBA 0x86084610, GL_REPLACE 0xd6087610, MODULATE with an
+ * ALPHA texture 0xc6084610, with a LUMINANCE texture 0x86086610 (the last
+ * two share texture format 0x15). Model: bit 12 / bit 28 = colour / alpha
+ * taken from the texture alone (replace); otherwise vertex x texture, where
+ * an 8-bit texture feeds the colour only with bit 13 (luminance) and the
+ * alpha only with bit 30 (alpha).
+ */
+static void combine(const HostTex *tx, uint32_t s, float *col)
+{
+    uint32_t w2 = tx->key[2];
+    bool b8 = ((tx->key[0] >> 12) & 0x1f) == 0x15;
+    float t[4] = { ((s >> 16) & 0xff) / 255.f, ((s >> 8) & 0xff) / 255.f,
+                   (s & 0xff) / 255.f, (s >> 24) / 255.f };
+    int k;
+
+    if (w2 & (1u << 12)) {
+        col[0] = t[0];
+        col[1] = t[1];
+        col[2] = t[2];
+    } else if (!b8 || (w2 & (1u << 13))) {
+        for (k = 0; k < 3; k++) {
+            col[k] *= t[k];
+        }
+    }
+    if (w2 & (1u << 28)) {
+        col[3] = t[3];
+    } else if (!b8 || (w2 & (1u << 30))) {
+        col[3] *= t[3];
+    }
+}
+
 static void raster(MbxR *r, const MbxTri *t, const HostTex *tx, int W, int H)
 {
     const MbxVtx *a = &t->v[0], *b = &t->v[1], *c = &t->v[2];
     float area = edge(a->x, a->y, b->x, b->y, c->x, c->y), ia;
+    unsigned zcmp = t->no_depth_test ? 7 : ISP_ZCMP(t->isp);
+    unsigned sf = ISP_SRC(t->isp), df = ISP_DST(t->isp);
+    bool zwrite = t->no_depth_test || !(t->isp & ISP_NO_ZWRITE);
+    bool blend = !(sf == 1 && df == 0);
     int x0, x1, y0, y1, x, y, k;
 
     if (fabsf(area) < 1e-6f) {
@@ -564,10 +705,12 @@ static void raster(MbxR *r, const MbxTri *t, const HostTex *tx, int W, int H)
                 continue;
             }
             z = w0 * a->z + w1 * b->z + w2 * c->z;
-            if (!t->no_depth_test && !(z < r->zb[y * W + x])) {
+            if (!depth_pass(zcmp, z, r->zb[y * W + x])) {
                 continue;
             }
-            r->zb[y * W + x] = z;
+            if (zwrite) {
+                r->zb[y * W + x] = z;
+            }
             if (t->depth_only) {
                 continue;
             }
@@ -580,18 +723,28 @@ static void raster(MbxR *r, const MbxTri *t, const HostTex *tx, int W, int H)
                 float u = (w0 * a->u + w1 * b->u + w2 * c->u) * iw;
                 float v = (w0 * a->v + w1 * b->v + w2 * c->v) * iw;
                 int tu = (int)floorf(u * tx->w), tv = (int)floorf(v * tx->h);
-                uint32_t s;
 
                 tu &= tx->w - 1;        /* repeat */
                 tv &= tx->h - 1;
-                s = tx->texel[tv * tx->w + tu];
-                col[0] *= ((s >> 16) & 0xff) / 255.f;   /* modulate */
-                col[1] *= ((s >> 8) & 0xff) / 255.f;
-                col[2] *= (s & 0xff) / 255.f;
-                col[3] *= (s >> 24) / 255.f;
+                combine(tx, tx->texel[tv * tx->w + tu], col);
             }
             for (k = 0; k < 4; k++) {
                 col[k] = col[k] < 0 ? 0 : col[k] > 1 ? 1 : col[k];
+            }
+            if (blend) {
+                uint32_t d32 = r->fb[y * W + x];
+                float d[4] = { ((d32 >> 16) & 0xff) / 255.f,
+                               ((d32 >> 8) & 0xff) / 255.f,
+                               (d32 & 0xff) / 255.f, (d32 >> 24) / 255.f };
+                float o[4];
+
+                for (k = 0; k < 4; k++) {
+                    o[k] = col[k] * blend_factor(sf, true, col, d, k) +
+                           d[k] * blend_factor(df, false, col, d, k);
+                }
+                for (k = 0; k < 4; k++) {
+                    col[k] = o[k] < 0 ? 0 : o[k] > 1 ? 1 : o[k];
+                }
             }
             out = (uint32_t)(col[3] * 255.f + .5f) << 24 |
                   (uint32_t)(col[0] * 255.f + .5f) << 16 |

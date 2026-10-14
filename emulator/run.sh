@@ -24,6 +24,12 @@
 #                                state, F4 load state (emulator/state/), F5/Pause
 #                                pause, F6 speed 1x/2x/4x, Tab hold 4x, F7 rotate,
 #                                F9 zoom 1x/2x/3x, F12 screenshot (emulator/screens/)
+#   --bt-hci-socket PATH|tcp:[HOST]:PORT  Bluetooth UART: listen there and
+#                                carry the raw HCI H4 stream (a host bridge /
+#                                real adapter) instead of the built-in fake
+#                                controller; NANO7_BT_TRACE=1 logs all packets
+#   --aes-gid-key HEX32 / --aes-uid-key HEX32  AES engine hardware keys
+#                                (unknown by default: those jobs just copy)
 #   --vnc [N]                    serve the LCD on VNC display :N (port 5900+N,
 #                                default :0); mouse = touch, keys h/p/space
 #   extra qemu args are passed through
@@ -95,6 +101,12 @@ while [ $# -gt 0 ]; do
             AUDIO_PLAY=1; shift ;;
         --audio-out)
             MARGS="$MARGS,audio-out=${2:?--audio-out needs a file or FIFO}"; shift 2 ;;
+        --bt-hci-socket)
+            MARGS="$MARGS,bt-hci=${2:?--bt-hci-socket needs a path or tcp:HOST:PORT}"; shift 2 ;;
+        --aes-gid-key)
+            MARGS="$MARGS,aes-gid-key=${2:?--aes-gid-key needs 32 hex digits}"; shift 2 ;;
+        --aes-uid-key)
+            MARGS="$MARGS,aes-uid-key=${2:?--aes-uid-key needs 32 hex digits}"; shift 2 ;;
         --rtc)
             MARGS="$MARGS,rtc=${2:?--rtc needs snapshot, host or Unix seconds}"; shift 2 ;;
         --buttons)

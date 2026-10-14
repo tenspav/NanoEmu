@@ -1153,3 +1153,34 @@ NEXT (the renderer): decode the TA stream (control words 0x1/0x2/0x7/0x9/0xb/0xc
   formats; the driver sends screen-space floats), the texture words (GPU VA through the MBX MMU roots
   +0x1000..+0x101c) and rasterize into the render target named in the +0x6xx job, using gltest's known
   scene as ground truth.
+
+## Session 33 (2026-10-14): MBX renderer - alpha blending, depth func, texture combine, 16/8-bit textures
+(Session 32 = the renderer itself, nano7_mbxr.c, commit a00406a; it has no journal entry of its own.)
+METHOD: new gltest variants 8-19 (probe/gltest/gltest.c header; make VARIANT=n), each overlaid on Blocks
+  with tools/disk_patch.py (/Apps/Executables/Blocks.hbapp) and run 4 at a time with NANO7_MBXR_STATS=1
+  (distinct draw states + raw texels at frame 300) and NANO7_MBXR_DUMP=<isp> (one segment).
+RE RESULTS (ISP/TSP word = draw block 0):
+  - bits 31:29 / 28:26 = src / dst blend factor in the PowerVR2 TSP encoding (0 zero, 1 one, 2 other
+    colour, 3 1-other, 4 srcA, 5 1-srcA, 6 dstA, 7 1-dstA); opaque = ONE/ZERO (0x22......). Seen:
+    SRC_ALPHA/ONE_MINUS_SRC_ALPHA 0x966....., ONE/ONE 0x266.....; bit 13 set with GL_BLEND.
+  - bits 11:9 depth compare in GL order (LESS 1 = default 0x200, LEQUAL 3 = 0x600, test off -> 7 + bit 7
+    = no depth write); bit 17 = textured. Culling (glEnable(GL_CULL_FACE)) changes nothing here - not found.
+  - glColor without a colour array: the driver's program loads constant c15 = ubyte/255 * 256/255
+    (instruction 07c1000f); Blocks' HUD rects use it (fmt 0002).
+  - texture layer word 2 = texture combine: MODULATE 0x86084610, REPLACE 0xd6087610, ALPHA texture
+    0xc6084610, LUMINANCE texture 0x86086610. Model: bit 12/28 colour/alpha replace; else modulate, an
+    8-bit texture feeding colour only with bit 13 and alpha only with bit 30.
+  - formats (word 0 bits 16:12): 0x09 ARGB4444, 0x01 ARGB1555, 0x11 AL88 (alpha high byte), 0x15 8-bit
+    (GL_ALPHA and GL_LUMINANCE share it). Same twiddling as 32/16 bpp. Raw texels confirmed the layouts.
+RENDERER (nano7_mbxr.c): blend per pixel against the host frame (incl. dst alpha), depth compare + write
+  mask, c15 constant colour, combine(), texel decode for the new formats. Still missing: culling, alpha test,
+  stencil, fog, lighting programs, filtering/mipmaps.
+RESULT: Blocks landscape HUD (d-pad, jump, hotbar backing, rotate button) is now translucent over the 3D
+  world with visible white arrows (before: opaque white squares - no constant colour, no blend). gltest
+  variants 0/3/6/7/8-19 all render plausibly; 1555 dark cells (alpha 0) fully transparent, 4444/AL88 half.
+  Numeric check v19 (glColor 1,.5,.25,.5 over clear): MBX output 0xbf864a40 = exact expectation (134,74,64,
+  a 0.75). On screen it is x0.875 darker: the display pipe's layer blend (nano7_disp.c) uses that surface
+  alpha - a compositor question, not the GPU (worth checking against the real device some day).
+  Screens: screens/session33/ (blocks-hud-before-opaque.png vs blocks-hud-blended.png, variant montage).
+NOTE: commit 209f5bf (cold-boot plan) also picked up this session's in-progress gltest.c and a VARIANT=19
+  build of probe/gltest/build/*; the working tree holds the VARIANT=0 build again.
