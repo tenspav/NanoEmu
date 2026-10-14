@@ -11,7 +11,8 @@
 int64_t nano7_now_ns(void);
 /* QEMU_CLOCK_VIRTUAL deadline for a guest-time deadline (for timer_mod_ns) */
 int64_t nano7_deadline(int64_t guest_ns);
-/* 1, 2, 4...: guest time runs this many times faster than real time */
+/* 1, 2, 4...: guest time runs this many times faster than real time;
+ * 0 freezes guest time (pause) */
 void nano7_clock_set_speed(int speed);
 int nano7_clock_speed(void);
 

@@ -10,6 +10,9 @@
  * linear: a speed change re-anchors it so guest time stays continuous.
  * Timers armed before a change fire at their old real time once; periodic
  * ones re-arm on the new scale. The RTC runs fast too while fast-forwarding.
+ * Pause freezes guest time (speed 0): guest-time timers stop, while
+ * QEMU_CLOCK_VIRTUAL keeps running for QEMU's own timers (e.g. the keyboard
+ * queue that delivers the key that un-pauses).
  * Anchors and speed are part of save states.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -59,6 +62,9 @@ int64_t nano7_now_ns(void)
 int64_t nano7_deadline(int64_t guest_ns)
 {
     clock_register();
+    if (!clk.speed) {
+        return INT64_MAX / 2;   /* frozen: re-armed by the next change */
+    }
     return clk.anchor_virt + (guest_ns - clk.anchor_guest) / clk.speed;
 }
 
@@ -69,7 +75,7 @@ void nano7_clock_set_speed(int speed)
     clock_register();
     clk.anchor_virt = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     clk.anchor_guest = g;
-    clk.speed = MAX(speed, 1);
+    clk.speed = MAX(speed, 0);
 }
 
 int nano7_clock_speed(void)

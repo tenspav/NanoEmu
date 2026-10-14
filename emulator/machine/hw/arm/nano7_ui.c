@@ -11,9 +11,10 @@
  *   F9  integer zoom 1x / 2x / 3x (nearest neighbour, no blur)
  *   F12 screenshot: the panel frame as PNG into screens-dir
  *   F5 / Pause  pause / resume the guest (a "soft" pause: vCPUs paused and
- *       the virtual clock stopped, but the run state stays "running",
- *       because QEMU drops all input while the VM is stopped - a real
- *       vm_stop() could never be undone from the keyboard)
+ *       guest time frozen, nano7_clock.c; the run state stays "running"
+ *       and QEMU's virtual clock keeps going, because QEMU drops input
+ *       while the VM is stopped and VNC delivers keys through a
+ *       virtual-clock queue - either would make the pause unrecoverable)
  *   F6  fast-forward 1x / 2x / 4x (cycle)   Tab (held)  4x while held
  *       (guest time base, nano7_clock.c; the RTC runs fast too)
  * Actions run from a bottom half in the main loop, not inside the input
@@ -53,7 +54,6 @@
 #include "hw/core/cpu.h"
 #include "sysemu/runstate.h"
 #include "sysemu/cpus.h"
-#include "sysemu/cpu-timers.h"
 #include "ui/input.h"
 #include "ui/console.h"
 #include "nano7_lcd.h"
@@ -106,9 +106,9 @@ static void ui_set_paused(bool on)
 {
     if (on) {
         pause_all_vcpus();
-        cpu_disable_ticks();    /* no guest time passes while paused */
+        nano7_clock_set_speed(0);   /* no guest time passes while paused */
     } else {
-        cpu_enable_ticks();
+        nano7_clock_set_speed(ui->ff_speed);
         resume_all_vcpus();
     }
     ui->paused = on;
@@ -427,6 +427,9 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
         return;
     }
     if (qcode == Q_KEY_CODE_TAB) {      /* hold to fast-forward */
+        if (ui->paused) {
+            return;
+        }
         nano7_clock_set_speed(key->down ? 4 : ui->ff_speed);
         fprintf(stderr, "[nano7-ui] speed %dx%s\n", nano7_clock_speed(),
                 key->down ? " (Tab held)" : "");
@@ -468,7 +471,9 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
         break;
     case Q_KEY_CODE_F6:
         ui->ff_speed = ui->ff_speed >= 4 ? 1 : ui->ff_speed * 2;
-        nano7_clock_set_speed(ui->ff_speed);
+        if (!ui->paused) {
+            nano7_clock_set_speed(ui->ff_speed);
+        }
         fprintf(stderr, "[nano7-ui] speed %dx\n", ui->ff_speed);
         break;
     default:
