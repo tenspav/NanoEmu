@@ -800,3 +800,24 @@ NEW WALL: after the second press the OS shows "Low Battery / Connect to Power" (
   OS wrote it; 0x3c..0x3f, 0x05 = 0). Next: RE the battery gauge reads and give the PMU plausible
   values (charged, on USB power) before the OS decides to shut down.
 CMD: Session 17 CMD (fixups/snap6-resume.poke, --nand-miss oracle, --buttons ...) + --disp-dump DIR.
+
+## Session 19 (2026-10-14): PMU battery/charger -> no more "Low Battery"
+CAUSE: the battery check is a PMU ADC conversion. The model kept 0x30 bit4 (start/busy) set after the OS
+  wrote 0x14, so the OS aborted / read 0 -> 2500 mV -> level 0 -> "Low Battery / Connect to Power".
+RE (snap6 build): 0x30 = ADC control (bits 3:0 channel, bit4 start/busy; the OS aborts with 0x4d if busy
+  before a start, polls it clear ~1 ms after, 5 retries, averages 5 samples); result 10 bits =
+  (0x32 << 2) | 0x31. Channel 4 = battery: mV = 2500 + raw * 2000 / 1023; level 0..15 = count of a
+  15-entry mV table (0x0890c490, 4 temperature bands; room temp 3550..4110 mV); power task 0x0801969c
+  flags low battery below level 2 (~3666 mV). Channel 1 = charger load %, must stay < 3. 0x3c..0x3f =
+  temperature fields (0x0818a4e8). 0x05 bit6 external power + bit3 charger good; 0x29 bit2 + limit
+  code (2 = 500 mA); 0x0d bit3 must be 0. Snapshot values: 4024 mV, level 14 (0x0890c078/7c).
+MODEL (nano7_pmu.c): ADC completes at once (bit4 reads clear), channel 4 returns 4100 mV (raw 818:
+  0x32 = 0xcc, 0x31 = 2), others 0; temperature ~24 C (0x08 0x84 0x7d 0x7d, read-only); reg 0x05 =
+  0x48, 0x29 = 0x06. NANO7_PMU_TRACE=1 logs every PMU access.
+RUN (160 s, Home at 60/90/130 s, --disp-dump): OS battery state 4099 mV, level 14 (read from RAM at
+  ~145 s); no low-battery screen; second press shows home page 1 (Music, Videos, Fitness, Podcasts,
+  Photos, Radio), full battery icon; still fine after the third press. PNGs: screens/session19/.
+SEEN, NOT FIXED: (1) the status-bar clock jumps from 12:52 PM to 12:18 AM, later 12:17 AM - the PMU
+  RTC (not modeled, reads 0) is the likely source; (2) at start the OS polls PMU 0x10 (~700x, ~1.5 s)
+  and 0x40..0x43 (~90x) until it gives up - unknown status bits.
+CMD: Session 17 CMD + --disp-dump DIR (fixups/snap6-resume.poke, --nand-miss oracle, --buttons ...).

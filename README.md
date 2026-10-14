@@ -20,13 +20,18 @@ The goal: boot the original nano 7G firmware in a window on your computer, with 
 - ✅ Correct idle/auto-lock behavior (screen dims and powers off like real hardware)
 - ✅ Input path: I2C PMU (Home, Power, Play/Pause buttons) + GPIO interrupts
 - ✅ **Home button wakes the device and exits to the REAL home screen** (icons, page dots, live clock, battery indicator)
-- 🔜 Live QEMU display window, touch input, volume buttons
+- ✅ PMU: battery voltage, temperature, charger status (no more Low Battery screen)
+- 🔜 Real-time clock (PMU RTC), live QEMU display window, touch input, volume buttons
 - ⬜ Boot-to-Home-screen with real disk content
 - ⬜ macOS build
 
 ![First home screen, rendered by the emulated OS](docs/images/home-screen-clean.png)
 
 *Above: the actual nano 7G home screen rendered by RetailOS inside NanoEmu with its real homebrew apps, live clock and battery indicator.*
+
+![Stock home page](docs/images/home-page1.png)
+
+*And the stock Apple home page: Music, Videos, Fitness, Podcasts, Photos, Radio. The PMU emulation reports a full battery and USB power, so the OS runs happily.*
 
 ## Repository layout
 
