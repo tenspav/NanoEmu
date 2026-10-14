@@ -86,7 +86,7 @@ typedef struct Nano7PmuState {
     uint8_t ptr;
     bool have_ptr;
     bool seen[256][2];          /* register logged (read / write) */
-    unsigned trace_left;        /* log all accesses for a while after a button */
+    unsigned trace_left;        /* log all accesses for a while after a press */
     bool trace;                 /* NANO7_PMU_TRACE: log every access */
     int64_t rtc_base;           /* counter value at virtual time 0 */
     bool rtc_from_snapshot;     /* rtc_base still to be set from the cache */
@@ -269,9 +269,8 @@ static void pmu_release_voldown(void *o)
 static void pmu_tap(Nano7PmuState *s, int btn, uint32_t hold_ms)
 {
     nano7_pmu_button(btn, true);
-    timer_mod_ns(s->release_timer[btn],
-                 nano7_deadline(nano7_now_ns() +
-                 (int64_t)hold_ms * 1000000));
+    nano7_timer_mod(s->release_timer[btn], nano7_now_ns() +
+                 (int64_t)hold_ms * 1000000);
 }
 
 static void pmu_script_tick(void *opaque)
@@ -284,8 +283,7 @@ static void pmu_script_tick(void *opaque)
         s->next++;
     }
     if (s->next < s->nscript) {
-        timer_mod_ns(s->script_timer,
-                     nano7_deadline(s->script[s->next].at_ns));
+        nano7_timer_mod(s->script_timer, s->script[s->next].at_ns);
     }
 }
 
@@ -318,8 +316,7 @@ static void pmu_parse_script(Nano7PmuState *s, const char *script)
         s->nscript++;
     }
     if (s->nscript) {
-        timer_mod_ns(s->script_timer,
-                     nano7_deadline(s->script[0].at_ns));
+        nano7_timer_mod(s->script_timer, s->script[0].at_ns);
     }
 }
 
@@ -365,6 +362,7 @@ static const VMStateDescription vmstate_pmu = {
 
 void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
 {
+    int i;
     Nano7PmuState *s = g_new0(Nano7PmuState, 1);
     Nano7I2CSlave sl = {
         .addr = PMU_ADDR, .opaque = s,
@@ -409,6 +407,10 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
         timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_release_volup, s);
     s->release_timer[NANO7_BTN_VOLDOWN] =
         timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_release_voldown, s);
+    nano7_clock_track(s->script_timer, true);
+    for (i = 0; i < NANO7_BTN_COUNT; i++) {
+        nano7_clock_track(s->release_timer[i], true);
+    }
     nano7_gpio_model_pin_both_edges(NANO7_GPIO_VOL_UP, 1);     /* idle high */
     nano7_gpio_model_pin_both_edges(NANO7_GPIO_VOL_DOWN, 1);
     nano7_i2c_add_slave(bus, &sl);

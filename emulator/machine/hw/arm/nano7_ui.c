@@ -54,6 +54,9 @@
 #include "hw/core/cpu.h"
 #include "sysemu/runstate.h"
 #include "sysemu/cpus.h"
+#include "qemu/seqlock.h"
+#include "sysemu/cpu-timers-internal.h"
+#include "qemu/timer.h"
 #include "ui/input.h"
 #include "ui/console.h"
 #include "nano7_lcd.h"
@@ -101,11 +104,14 @@ void nano7_ui_add_ram(MemoryRegion *mr, const char *name)
     }
 }
 
-/* ------------------------------------------------------------ soft pause --- */
+/* ----------------------------------------------------------- soft pause --- */
 static void ui_set_paused(bool on)
 {
     if (on) {
         pause_all_vcpus();
+        /* pause_all_vcpus() also disables QEMU_CLOCK_VIRTUAL timers, which
+         * would freeze VNC's key queue; guest time is frozen instead */
+        qemu_clock_enable(QEMU_CLOCK_VIRTUAL, true);
         nano7_clock_set_speed(0);   /* no guest time passes while paused */
     } else {
         nano7_clock_set_speed(ui->ff_speed);
@@ -114,7 +120,7 @@ static void ui_set_paused(bool on)
     ui->paused = on;
 }
 
-/* ------------------------------------------------------------ save state --- */
+/* ----------------------------------------------------------- save state --- */
 static char *ui_slot_dir(const char *slot)
 {
     return g_build_filename(ui->state_dir, slot, NULL);
@@ -191,6 +197,7 @@ static bool ui_load_state(const char *slot)
     g_autofree char *dir = ui_slot_dir(slot);
     g_autofree char *dev = g_build_filename(dir, "devices.vmstate", NULL);
     g_autofree char *nand = g_build_filename(dir, "nand.bin", NULL);
+    int64_t v_before;
     bool ok = true;
     int64_t t0 = g_get_monotonic_time();
     unsigned i;
@@ -200,6 +207,7 @@ static bool ui_load_state(const char *slot)
         return false;
     }
     vm_stop(RUN_STATE_RESTORE_VM);
+    v_before = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     for (i = 0; i < ui->nram && ok; i++) {
         g_autofree char *f = g_strdup_printf("%s/ram-%s.bin", dir,
                                              ui->ram[i].name);
@@ -223,6 +231,19 @@ static bool ui_load_state(const char *slot)
         tb_flush(first_cpu);    /* RAM changed under translated code */
     }
     if (ok) {
+        /* QEMU restored the saved virtual time; move it forward again so
+         * it stays monotonic (QEMU's own timers, e.g. VNC's key queue,
+         * would otherwise sit in the future) and shift the device timers */
+        int64_t delta = v_before - qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+
+        seqlock_write_lock(&timers_state.vm_clock_seqlock,
+                           &timers_state.vm_clock_lock);
+        timers_state.cpu_clock_offset += delta;   /* ticks are disabled */
+        seqlock_write_unlock(&timers_state.vm_clock_seqlock,
+                             &timers_state.vm_clock_lock);
+        nano7_clock_after_load(delta);
+    }
+    if (ok) {
         vm_start();
         if (ui->paused) {
             ui_set_paused(true);
@@ -235,7 +256,7 @@ static bool ui_load_state(const char *slot)
     return ok;
 }
 
-/* ----------------------------------------------------------------- display --- */
+/* -------------------------------------------------------------- display --- */
 static void ui_render(void)
 {
     int lw = (ui->rot % 180) ? NANO7_LCD_H : NANO7_LCD_W;   /* rotated */
@@ -261,10 +282,22 @@ static void ui_render(void)
             int lx = x / ui->zoom, sx, sy;
 
             switch (ui->rot) {      /* rotated pixel -> panel pixel */
-            case 90:  sx = ly;                 sy = NANO7_LCD_H - 1 - lx; break;
-            case 180: sx = NANO7_LCD_W - 1 - lx; sy = NANO7_LCD_H - 1 - ly; break;
-            case 270: sx = NANO7_LCD_W - 1 - ly; sy = lx;                 break;
-            default:  sx = lx;                 sy = ly;                 break;
+            case 90:
+                sx = ly;
+                sy = NANO7_LCD_H - 1 - lx;
+                break;
+            case 180:
+                sx = NANO7_LCD_W - 1 - lx;
+                sy = NANO7_LCD_H - 1 - ly;
+                break;
+            case 270:
+                sx = NANO7_LCD_W - 1 - ly;
+                sy = lx;
+                break;
+            default:
+                sx = lx;
+                sy = ly;
+                break;
             }
             row[x] = ui->frame ? ui->frame[sy * NANO7_LCD_W + sx] : 0;
         }
@@ -375,7 +408,7 @@ static void ui_screenshot(void)
     fprintf(stderr, "[nano7-ui] screenshot -> %s\n", path);
 }
 
-/* ----------------------------------------------------------------- actions --- */
+/* -------------------------------------------------------------- actions --- */
 static void ui_bh(void *opaque)
 {
     UiAction a = ui->pending;

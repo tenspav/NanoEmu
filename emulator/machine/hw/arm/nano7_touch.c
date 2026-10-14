@@ -39,6 +39,7 @@
 #include "ui/input.h"
 #include "nano7_ui.h"
 #include "migration/vmstate.h"
+#include "nano7_clock.h"
 
 #define TP_SIZE         0x1000
 #define TP_MAX_XFER     0x200
@@ -375,6 +376,8 @@ void nano7_touch_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     s->irq = irq;
     s->xfer_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, tp_xfer_done, s);
     s->poll_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, tp_poll, s);
+    nano7_clock_track(s->xfer_timer, false);
+    nano7_clock_track(s->poll_timer, false);
     nano7_gpio_model_pin(NANO7_GPIO_TOUCH, 1);
     vmstate_register_any(NULL, &vmstate_touch, s);
     memory_region_init_io(&s->mr, NULL, &tp_ops, s, "nano7.touch", TP_SIZE);

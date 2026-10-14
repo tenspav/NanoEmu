@@ -40,6 +40,7 @@
 #include "target/arm/cpu.h"
 #include "exec/address-spaces.h"
 #include "migration/vmstate.h"
+#include "nano7_clock.h"
 
 #define DISP_SIZE       0x1000
 #define DISP_BLIT_NS    20000       /* per blit, plus 5 ns per pixel */
@@ -344,6 +345,7 @@ void nano7_disp_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     s->trace = getenv("NANO7_DISP_TRACE") != NULL;
     s->regs[0x260 / 4] = 0x60005;
     s->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, disp_frame_done, s);
+    nano7_clock_track(s->timer, false);
     disp_singleton = s;
     atexit(disp_summary);
     vmstate_register_any(NULL, &vmstate_disp, s);

@@ -34,9 +34,9 @@
  * windows are composited (window 0 opaque, window 1 over it with its
  * alpha); a changed composite is copied into the panel memory (GRAM), so
  * direct DSI drawing survives until the OS flips a new frame. GRAM goes to
- * nano7_ui.c (the QEMU console, rotation / zoom) at the TE after a change. The DSI FIFOs always read empty;
- * packets complete at once. With disp-dump=DIR a changed frame is also
- * written as DIR/screen-NNNNN.ppm.
+ * nano7_ui.c (the QEMU console, rotation / zoom) at the TE after a change.
+ * The DSI FIFOs always read empty; packets complete at once. With
+ * disp-dump=DIR a changed frame is also written as DIR/screen-NNNNN.ppm.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -234,12 +234,11 @@ static void lcd_te(void *opaque)
         s->tes++;
         nano7_gpio_set_level(NANO7_GPIO_LCD_TE, 0);
         lcd_scanout(s);
-        timer_mod_ns(s->te_timer, nano7_deadline(now + LCD_TE_LOW));
+        nano7_timer_mod(s->te_timer, now + LCD_TE_LOW);
     } else {
         s->te_low = false;
         nano7_gpio_set_level(NANO7_GPIO_LCD_TE, 1);
-        timer_mod_ns(s->te_timer,
-                     nano7_deadline(now + LCD_TE_PERIOD - LCD_TE_LOW));
+        nano7_timer_mod(s->te_timer, now + LCD_TE_PERIOD - LCD_TE_LOW);
     }
 }
 
@@ -426,8 +425,9 @@ void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
     vmstate_register_any(NULL, &vmstate_lcd, s);
     nano7_gpio_model_pin(NANO7_GPIO_LCD_TE, 1);
     s->te_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, lcd_te, s);
-    timer_mod_ns(s->te_timer, nano7_deadline(nano7_now_ns() +
-                 LCD_TE_PERIOD));
+    nano7_clock_track(s->te_timer, true);
+    nano7_timer_mod(s->te_timer, nano7_now_ns() +
+                 LCD_TE_PERIOD);
     memory_region_init_io(&s->mr, NULL, &lcd_ops, s, "nano7.lcd", LCD_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);
     s->win_x1 = NANO7_LCD_W - 1;

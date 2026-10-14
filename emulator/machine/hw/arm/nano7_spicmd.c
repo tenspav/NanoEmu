@@ -28,6 +28,7 @@
 #include "qemu/timer.h"
 #include "target/arm/cpu.h"
 #include "migration/vmstate.h"
+#include "nano7_clock.h"
 
 #define SPC_SIZE        0x1000
 #define SPC_XFER_NS     20000       /* 16 bits at ~1 MHz */
@@ -179,6 +180,8 @@ void nano7_spicmd_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     s->seen = g_hash_table_new(g_direct_hash, g_direct_equal);
     s->timer[0] = timer_new_ns(QEMU_CLOCK_VIRTUAL, spc_timer0, s);
     s->timer[1] = timer_new_ns(QEMU_CLOCK_VIRTUAL, spc_timer1, s);
+    nano7_clock_track(s->timer[0], false);
+    nano7_clock_track(s->timer[1], false);
     vmstate_register_any(NULL, &vmstate_spc, s);
     memory_region_init_io(&s->mr, NULL, &spc_ops, s, "nano7.spicmd",
                           SPC_SIZE);

@@ -26,6 +26,7 @@
 #include "nano7_i2c.h"
 #include "qemu/timer.h"
 #include "migration/vmstate.h"
+#include "nano7_clock.h"
 
 #define I2C_SIZE        0x1000
 #define I2C_BYTE_NS     20000
@@ -232,6 +233,7 @@ Nano7I2CBus *nano7_i2c_attach(MemoryRegion *parent, hwaddr base,
     b->name = g_strdup(name);
     b->irq = irq;
     b->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, i2c_byte_done, b);
+    nano7_clock_track(b->timer, false);
     vmstate_register_any(NULL, &vmstate_i2c, b);
     memory_region_init_io(&b->mr, NULL, &i2c_ops, b, mrname, I2C_SIZE);
     memory_region_add_subregion_overlap(parent, base, &b->mr, 0);

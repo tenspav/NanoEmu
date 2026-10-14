@@ -143,8 +143,7 @@ static void tmr_expire(void *opaque)
         nano7_now_ns()) {
         c->start_ns = nano7_now_ns();
     }
-    timer_mod_ns(c->timer,
-                 nano7_deadline(c->start_ns + tmr_period_ns(c)));
+    nano7_timer_mod(c->timer, c->start_ns + tmr_period_ns(c));
     tmr_update(s);
 }
 
@@ -243,8 +242,7 @@ static void tmr_write(void *opaque, hwaddr offset, uint64_t value,
         }
         c->cmd = v & ~2u;
         if (c->cmd & 1) {
-            timer_mod_ns(c->timer,
-                         nano7_deadline(c->start_ns + tmr_period_ns(c)));
+            nano7_timer_mod(c->timer, c->start_ns + tmr_period_ns(c));
         } else {
             timer_del(c->timer);
         }
@@ -318,6 +316,7 @@ void nano7_timer_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq,
         s->ch[n].n = n;
         s->ch[n].timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, tmr_expire,
                                       &s->ch[n]);
+        nano7_clock_track(s->ch[n].timer, true);
     }
     vmstate_register_any(NULL, &vmstate_tmr, s);
     memory_region_init_io(&s->mr, NULL, &tmr_ops, s, "nano7.tmr", TMR_SIZE);
