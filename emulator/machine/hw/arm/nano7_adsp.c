@@ -5,8 +5,14 @@
  *
  * RE (Session 27, snap6):
  *   +0xc80  ID, must read 0x004e7309 or the decoder panics (-> power-off)
- *   +0x110  port state command (4, 0x10, 0x60); +0x114 is polled until it
- *           reads 7
+ *   +0x110  port state command: 4 = stop -> +0x114 & 7 reads 7 (polled by
+ *           0x083f404a); 0x10 / 0x20 / 0x40 / 0x60 = run -> reads 0. The
+ *           frame feed 0x0814959c / 0x084d47a4 only queues input while it
+ *           reads 0 (a stuck 7 = no input at all, only doorbells)
+ *   +0x100  input queue head: the descriptor address | 1 (system memory),
+ *           24-byte descriptor {next, len << 16 | 0xf80, src, -, out, out}
+ *           built by 0x084d4680 at [codec obj + 0x40e8]; src = the frame in
+ *           DRAM (0x80000000 alias), one MP3 frame per feed
  *   +0x400  status (bits 1:0), +0x420 16-word command window
  *   +0x938..+0x97c  18 queue descriptors (stored)
  *   +0x984 / +0x988 / +0x99c job parameters, +0x98c = 1 start doorbell
@@ -27,13 +33,17 @@
  * single buffer), h[2] capacity in halfwords, entry 0 ready flag at +0xa,
  * length (halfwords) at +0xc; samples at 0x22038100. Nothing on the ARM
  * side writes the descriptor. Config jobs (+0x984 = 0) only wait for bit 2;
- * each frame is an input job (type 4, compressed bytes pulled from DRAM by
- * the block's own DMA, regs +0x100..) plus the +0x98c = 1 doorbell.
+ * each frame is the input descriptor at +0x100 plus the +0x98c = 1
+ * doorbell. +0x1000.. is the DRAM controller (periodic writes, stored).
  *
- * Model: every job write completes after 20 us of guest time and raises
- * pending bit 2. A +0x98c doorbell also returns one decoded frame: 1152
- * stereo frames of SILENCE (MP3 frame size). The compressed input is not
- * read; real sound needs a host-side decoder fed from the input job.
+ * Model (host-side decode, HLE): every job write completes after 20 us of
+ * guest time and raises pending bit 2. At a +0x98c doorbell the queued
+ * frame is read from guest RAM and decoded with minimp3 (minimp3.h, CC0,
+ * github.com/lieff/minimp3 @ ea99364f); the PCM goes to 0x22038100 with a
+ * success status, or h1 = 2 ("need more input") while the decoder syncs /
+ * fills its bit reservoir. Doorbells without input (or MP3 decoding off:
+ * NANO7_ADSP_SILENT=1) return one MP3 frame of silence. The decoder is
+ * reset on a config job and on a port stop.
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
@@ -43,6 +53,10 @@
 #include "qemu/timer.h"
 #include "exec/address-spaces.h"
 #include "migration/vmstate.h"
+
+#define MINIMP3_IMPLEMENTATION
+#define MINIMP3_ONLY_MP3
+#include "minimp3.h"
 
 #define ADSP_SIZE       0x2000
 #define ADSP_ID         0x004e7309
@@ -54,6 +68,8 @@
 #define MBOX_PCM_DESC   0x22038000
 #define MBOX_PCM        0x22038100
 #define FRAME_HALFWORDS (1152 * 2)      /* one MP3 frame, s16 stereo */
+#define IN_BUF          16384           /* compressed bytes awaiting decode */
+#define DESC_CTRL_TAG   0xf80
 
 typedef struct Nano7AdspState {
     MemoryRegion mr;
@@ -63,6 +79,14 @@ typedef struct Nano7AdspState {
     QEMUTimer *job_timer;
     uint64_t jobs, frames;
     unsigned log_lines;
+    uint32_t port_state;        /* +0x114 & 7 */
+    /* host-side MP3 decoder (not migrated: reset on load) */
+    mp3dec_t dec;
+    uint8_t in[IN_BUF];
+    unsigned in_len;
+    bool silent, trace;        /* NANO7_ADSP_SILENT / NANO7_ADSP_TRACE */
+    uint64_t decoded, starved, in_bytes;
+    unsigned rate, channels;
 } Nano7AdspState;
 
 static Nano7AdspState *adsp_singleton;
@@ -89,20 +113,92 @@ static void adsp_iram_w16(hwaddr a, uint16_t v)
                         &le, 2);
 }
 
-/* frame doorbell: hand back one frame of silence and a success status */
-static void adsp_frame(Nano7AdspState *s)
+static void adsp_dec_reset(Nano7AdspState *s)
 {
-    static const uint8_t zeros[FRAME_HALFWORDS * 2];
+    mp3dec_init(&s->dec);
+    s->in_len = 0;
+}
 
-    address_space_write(&address_space_memory, MBOX_PCM,
-                        MEMTXATTRS_UNSPECIFIED, zeros, sizeof(zeros));
+/* result: n halfwords of PCM at MBOX_PCM (0 with err 2 = need more input) */
+static void adsp_result(Nano7AdspState *s, const int16_t *pcm, unsigned n,
+                        uint16_t err)
+{
+    if (n) {
+        uint16_t le[MINIMP3_MAX_SAMPLES_PER_FRAME];
+        unsigned i;
+
+        for (i = 0; i < n; i++) {
+            le[i] = cpu_to_le16(pcm[i]);
+        }
+        address_space_write(&address_space_memory, MBOX_PCM,
+                            MEMTXATTRS_UNSPECIFIED, le, n * 2);
+    }
     adsp_iram_w16(MBOX_PCM_DESC + 2, 1);                /* single buffer */
     adsp_iram_w16(MBOX_PCM_DESC + 4, FRAME_HALFWORDS);  /* capacity */
-    adsp_iram_w16(MBOX_PCM_DESC + 0xa, 1);              /* entry 0 ready */
-    adsp_iram_w16(MBOX_PCM_DESC + 0xc, FRAME_HALFWORDS);
+    adsp_iram_w16(MBOX_PCM_DESC + 0xa, n != 0);         /* entry 0 ready */
+    adsp_iram_w16(MBOX_PCM_DESC + 0xc, n);
     adsp_iram_w16(MBOX_STATUS, 1);                      /* valid */
-    adsp_iram_w16(MBOX_STATUS + 2, 0);                  /* no error */
+    adsp_iram_w16(MBOX_STATUS + 2, err);
+}
+
+/* append the queued input descriptor's bytes to the decoder buffer */
+static bool adsp_take_input(Nano7AdspState *s)
+{
+    uint32_t head = s->regs[0x100 / 4], w[3], src, len;
+
+    if (!(head & 1)) {
+        return false;
+    }
+    s->regs[0x100 / 4] = 0;                     /* consumed */
+    address_space_read(&address_space_memory, head & 0x7ffffffc,
+                       MEMTXATTRS_UNSPECIFIED, w, sizeof(w));
+    if ((le32_to_cpu(w[1]) & 0xffff) != DESC_CTRL_TAG) {
+        return false;
+    }
+    len = le32_to_cpu(w[1]) >> 16;
+    src = le32_to_cpu(w[2]) & 0x7fffffff;
+    if (len > IN_BUF - s->in_len) {             /* resync on overflow */
+        s->in_len = 0;
+        len = MIN(len, IN_BUF);
+    }
+    address_space_read(&address_space_memory, src, MEMTXATTRS_UNSPECIFIED,
+                       s->in + s->in_len, len);
+    s->in_len += len;
+    s->in_bytes += len;
+    return true;
+}
+
+/* frame doorbell: decode the queued frame (or return silence) */
+static void adsp_frame(Nano7AdspState *s)
+{
+    static const int16_t zeros[FRAME_HALFWORDS];
+    int16_t pcm[MINIMP3_MAX_SAMPLES_PER_FRAME];
+    mp3dec_frame_info_t info;
+    int samples;
+
     s->frames++;
+    if (!adsp_take_input(s) || s->silent) {
+        adsp_result(s, zeros, FRAME_HALFWORDS, 0);
+        return;
+    }
+    samples = mp3dec_decode_frame(&s->dec, s->in, s->in_len, pcm, &info);
+    if (info.frame_bytes > 0) {
+        s->in_len -= MIN((unsigned)info.frame_bytes, s->in_len);
+        memmove(s->in, s->in + info.frame_bytes, s->in_len);
+    }
+    if (samples <= 0) {                 /* syncing / bit reservoir / ID3 */
+        s->starved++;
+        adsp_result(s, NULL, 0, 2);
+        return;
+    }
+    if (info.hz != (int)s->rate || info.channels != (int)s->channels) {
+        s->rate = info.hz;
+        s->channels = info.channels;
+        fprintf(stderr, "[nano7-adsp] MP3 %d Hz, %d ch, %d kbps\n",
+                info.hz, info.channels, info.bitrate_kbps);
+    }
+    s->decoded++;
+    adsp_result(s, pcm, samples * info.channels, 0);
 }
 
 static void adsp_job(Nano7AdspState *s, hwaddr off, uint32_t v)
@@ -124,7 +220,7 @@ static uint64_t adsp_read(void *opaque, hwaddr off, unsigned size)
     case 0xc80:
         return ADSP_ID;
     case 0x114:
-        return 7;                       /* port state reached */
+        return s->port_state;
     case 0xa94:
         return s->mask[0];
     case 0xa98:
@@ -144,7 +240,7 @@ static void adsp_write(void *opaque, hwaddr off, uint64_t value,
     Nano7AdspState *s = opaque;
     uint32_t v = value;
 
-    if (getenv("NANO7_ADSP_TRACE") && s->frames < 4) {
+    if (s->trace && s->frames < 4) {    /* first frames' register writes */
         fprintf(stderr, "[nano7-adsp] t=%.6f W +0x%03x = 0x%08x\n",
                 nano7_now_ns() / 1e9, (unsigned)off, v);
     }
@@ -164,7 +260,14 @@ static void adsp_write(void *opaque, hwaddr off, uint64_t value,
     case 0xc48:
         s->pending[0] &= ~v;
         break;
-    case 0x984:
+    case 0x110:                         /* port command: 4 = stop */
+        s->port_state = v == 4 ? 7 : 0;
+        if (v == 4) {
+            adsp_dec_reset(s);
+        }
+        break;
+    case 0x984:                         /* config job: new stream */
+        adsp_dec_reset(s);
         adsp_job(s, off, v);
         break;
     case 0x98c:
@@ -189,14 +292,19 @@ static const MemoryRegionOps adsp_ops = {
 static void adsp_summary(void)
 {
     if (adsp_singleton && adsp_singleton->jobs) {
+        Nano7AdspState *s = adsp_singleton;
+
         fprintf(stderr, "[nano7-adsp] summary: %" PRIu64 " jobs, %" PRIu64
-                " frames returned (silence, nothing decoded)\n",
-                adsp_singleton->jobs, adsp_singleton->frames);
+                " frame doorbells: %" PRIu64 " MP3 frames decoded from %"
+                PRIu64 " input bytes, %" PRIu64 " need-more-input%s\n",
+                s->jobs, s->frames, s->decoded, s->in_bytes, s->starved,
+                s->silent ? " (NANO7_ADSP_SILENT)" : "");
     }
 }
 
 static int adsp_post_load(void *opaque, int version_id)
 {
+    adsp_dec_reset(opaque);
     adsp_update(opaque);
     return 0;
 }
@@ -213,6 +321,7 @@ static const VMStateDescription vmstate_adsp = {
         VMSTATE_TIMER_PTR(job_timer, Nano7AdspState),
         VMSTATE_UINT64(jobs, Nano7AdspState),
         VMSTATE_UINT64(frames, Nano7AdspState),
+        VMSTATE_UINT32(port_state, Nano7AdspState),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -222,6 +331,9 @@ void nano7_adsp_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     Nano7AdspState *s = g_new0(Nano7AdspState, 1);
 
     s->irq = irq;
+    s->silent = getenv("NANO7_ADSP_SILENT") != NULL;
+    s->trace = getenv("NANO7_ADSP_TRACE") != NULL;
+    adsp_dec_reset(s);
     s->job_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, adsp_job_done, s);
     nano7_clock_track(s->job_timer, true);
     adsp_singleton = s;

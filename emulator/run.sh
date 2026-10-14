@@ -14,6 +14,8 @@
 #   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play|volup|voldown);
 #                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
 #   --rtc snapshot|host|SECONDS  PMU real-time clock at start (default snapshot)
+#   --audio-play                 play the audio live on the host (ffplay, else
+#                                aplay, reading a FIFO; 44.1 kHz s16 stereo)
 #   --audio-out FILE|FIFO        audio PCM sink: raw s16le stereo, *.wav adds a
 #                                header, a FIFO streams (e.g. into aplay/ffplay)
 #   keys (VNC/display/sendkey): F1 reset (reload the boot state), F2 save
@@ -85,6 +87,8 @@ while [ $# -gt 0 ]; do
             EXTRA+=(-vnc ":$v") ;;
         --nand-rsrc)
             MARGS="$MARGS,nand-rsrc=${2:?--nand-rsrc needs a file}"; shift 2 ;;
+        --audio-play)
+            AUDIO_PLAY=1; shift ;;
         --audio-out)
             MARGS="$MARGS,audio-out=${2:?--audio-out needs a file or FIFO}"; shift 2 ;;
         --rtc)
@@ -103,6 +107,24 @@ while [ $# -gt 0 ]; do
         *) EXTRA+=("$1"); shift ;;
     esac
 done
+
+if [ -n "${AUDIO_PLAY:-}" ]; then
+    # the guest's PCM goes into a FIFO that a host player drains; the
+    # emulator writes it non-blocking, so a missing player costs nothing
+    fifo="$HERE/state/audio.fifo"
+    mkdir -p "$HERE/state"
+    [ -p "$fifo" ] || { rm -f "$fifo"; mkfifo "$fifo"; }
+    if command -v ffplay >/dev/null; then
+        player=(ffplay -nodisp -autoexit -loglevel error -f s16le -ar 44100 -ac 2)
+    elif command -v aplay >/dev/null; then
+        player=(aplay -q -f S16_LE -r 44100 -c 2)
+    else
+        echo "run.sh: --audio-play needs ffplay or aplay" >&2; exit 1
+    fi
+    # the player ends when the emulator closes its end
+    "${player[@]}" "$fifo" &
+    MARGS="$MARGS,audio-out=$fifo"
+fi
 
 exec "$QEMU" -M "$MARGS" -nographic -serial none -monitor none \
      "${EXTRA[@]+"${EXTRA[@]}"}"
