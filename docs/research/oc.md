@@ -31,3 +31,9 @@
      SecureROM fallback reboot at stock 240 MHz. RAM corruption clears on power cycle.
    - Permanent Damage: PMU core rail (VDD_ARM) overvoltage (>1.25V) causes gate oxide breakdown.
      Sustained high thermals (>75°C) in sealed enclosure risk swelling the adjacent LiPo pouch.
+
+
+## Emulator-first test plan (user decision)
+1. In the emulator: apply the PLL divider change at resume; verify OS stability and timer/RTC calibration (a CPU-clock-derived timebase would speed up 2x; that must be caught here).
+2. On device: probe app applies boost, runs a stress loop, monitors PMU temperature (I2C1 slave 0x73), auto-reverts above 65C junction. SecureROM fallback (hold Sleep+VolDown) recovers from a hang at stock clocks.
+Note: the emulator validates mechanics and stability, NOT FPS gains or thermals.

@@ -29,6 +29,7 @@
 #include "hw/core/cpu.h"
 #include "qemu/timer.h"
 #include "target/arm/cpu.h"
+#include "migration/vmstate.h"
 
 #define TMR_SIZE        0x1000
 #define TMR_NCH         8
@@ -261,6 +262,45 @@ static const MemoryRegionOps tmr_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
+static const VMStateDescription vmstate_tmr_chan = {
+    .name = "nano7-timer-chan",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32(con, Nano7TimerChan),
+        VMSTATE_UINT32(cmd, Nano7TimerChan),
+        VMSTATE_UINT32(data0, Nano7TimerChan),
+        VMSTATE_UINT32(data1, Nano7TimerChan),
+        VMSTATE_UINT32(pre, Nano7TimerChan),
+        VMSTATE_INT64(start_ns, Nano7TimerChan),
+        VMSTATE_TIMER_PTR(timer, Nano7TimerChan),
+        VMSTATE_UINT64(expiries, Nano7TimerChan),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static int tmr_post_load(void *opaque, int version_id)
+{
+    tmr_update(opaque);
+    return 0;
+}
+
+static const VMStateDescription vmstate_tmr = {
+    .name = "nano7-timer",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = tmr_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_STRUCT_ARRAY(ch, Nano7TimerState, TMR_NCH, 1,
+                             vmstate_tmr_chan, Nano7TimerChan),
+        VMSTATE_UINT32(tstat, Nano7TimerState),
+        VMSTATE_UINT32_ARRAY(regs, Nano7TimerState, TMR_SIZE / 4),
+        VMSTATE_BOOL_ARRAY(written, Nano7TimerState, TMR_SIZE / 4),
+        VMSTATE_UINT64(usec_base, Nano7TimerState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 void nano7_timer_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq,
                         uint64_t usec_base)
 {
@@ -276,6 +316,7 @@ void nano7_timer_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq,
         s->ch[n].timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, tmr_expire,
                                       &s->ch[n]);
     }
+    vmstate_register_any(NULL, &vmstate_tmr, s);
     memory_region_init_io(&s->mr, NULL, &tmr_ops, s, "nano7.tmr", TMR_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);
 }

@@ -27,6 +27,7 @@
 #include "hw/core/cpu.h"
 #include "qemu/timer.h"
 #include "target/arm/cpu.h"
+#include "migration/vmstate.h"
 
 #define SPC_SIZE        0x1000
 #define SPC_XFER_NS     20000       /* 16 bits at ~1 MHz */
@@ -149,6 +150,26 @@ static const MemoryRegionOps spc_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
+static int spc_post_load(void *opaque, int version_id)
+{
+    spc_update(opaque);
+    return 0;
+}
+
+static const VMStateDescription vmstate_spc = {
+    .name = "nano7-spicmd",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = spc_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, Nano7SpicmdState, SPC_SIZE / 4),
+        VMSTATE_UINT32(status, Nano7SpicmdState),
+        VMSTATE_TIMER_PTR_ARRAY(timer, Nano7SpicmdState, 2),
+        VMSTATE_UINT64(xfers, Nano7SpicmdState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 void nano7_spicmd_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
 {
     Nano7SpicmdState *s = g_new0(Nano7SpicmdState, 1);
@@ -158,6 +179,7 @@ void nano7_spicmd_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     s->seen = g_hash_table_new(g_direct_hash, g_direct_equal);
     s->timer[0] = timer_new_ns(QEMU_CLOCK_VIRTUAL, spc_timer0, s);
     s->timer[1] = timer_new_ns(QEMU_CLOCK_VIRTUAL, spc_timer1, s);
+    vmstate_register_any(NULL, &vmstate_spc, s);
     memory_region_init_io(&s->mr, NULL, &spc_ops, s, "nano7.spicmd",
                           SPC_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);

@@ -32,6 +32,7 @@
 #include "nano7_vic.h"
 #include "hw/core/cpu.h"
 #include "target/arm/cpu.h"
+#include "migration/vmstate.h"
 
 #define VIC_SIZE      0x3000
 #define VIC_LOG_MAX   200
@@ -226,6 +227,43 @@ static const MemoryRegionOps vic_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
+static const VMStateDescription vmstate_vic_bank = {
+    .name = "nano7-vic-bank",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32(level, Nano7VicBank),
+        VMSTATE_UINT32(soft, Nano7VicBank),
+        VMSTATE_UINT32(select, Nano7VicBank),
+        VMSTATE_UINT32(enable, Nano7VicBank),
+        VMSTATE_UINT32(protection, Nano7VicBank),
+        VMSTATE_UINT32(swprio_mask, Nano7VicBank),
+        VMSTATE_UINT32(daisy, Nano7VicBank),
+        VMSTATE_UINT32_ARRAY(vect, Nano7VicBank, 32),
+        VMSTATE_UINT32_ARRAY(prio, Nano7VicBank, 32),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static int vic_post_load(void *opaque, int version_id)
+{
+    vic_update(opaque);         /* re-drive the CPU IRQ/FIQ lines */
+    return 0;
+}
+
+static const VMStateDescription vmstate_vic = {
+    .name = "nano7-vic",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = vic_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_STRUCT_ARRAY(bank, Nano7VicState, 2, 1, vmstate_vic_bank,
+                             Nano7VicBank),
+        VMSTATE_UINT32_ARRAY(glue, Nano7VicState, 0x1000 / 4),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 qemu_irq *nano7_vic_attach(MemoryRegion *parent, hwaddr base,
                            qemu_irq cpu_irq, qemu_irq cpu_fiq)
 {
@@ -242,6 +280,7 @@ qemu_irq *nano7_vic_attach(MemoryRegion *parent, hwaddr base,
             s->bank[bi].prio[i] = 0xf;
         }
     }
+    vmstate_register_any(NULL, &vmstate_vic, s);
     memory_region_init_io(&s->mr, NULL, &vic_ops, s, "nano7.vic", VIC_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);
     return qemu_allocate_irqs(vic_set_irq, s, NANO7_VIC_NUM_IRQS);

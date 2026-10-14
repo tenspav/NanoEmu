@@ -17,6 +17,7 @@
 #include "hw/core/cpu.h"
 #include "qemu/timer.h"
 #include "target/arm/cpu.h"
+#include "migration/vmstate.h"
 
 typedef struct Nano7RegfileState {
     MemoryRegion mr;
@@ -31,7 +32,8 @@ typedef struct Nano7RegfileState {
     bool pgate;             /* power-gate request/status semantics */
     uint8_t *regs;          /* flat store, accessed LE */
     GHashTable *seen;       /* dedup of (pc << 32) | offset */
-    GHashTable *written;    /* offsets ever written (read-back vs 0xff fill) */
+    uint8_t *written;       /* per byte: ever written (read-back vs fill) */
+    uint32_t size;
 } Nano7RegfileState;
 
 static uint32_t nano7_guest_pc(void)
@@ -88,7 +90,7 @@ static uint64_t nano7_regfile_read(void *opaque, hwaddr offset, unsigned size)
     }
     for (i = 0; i < size; i++) {
         uint8_t b;
-        if (g_hash_table_contains(s->written, GUINT_TO_POINTER(offset + i))) {
+        if (s->written[offset + i]) {
             b = s->regs[offset + i];
         } else {
             b = s->fill;/* never written: "enabled/ready" or 0 */
@@ -119,14 +121,14 @@ static void nano7_regfile_write(void *opaque, hwaddr offset, uint64_t value,
         stl_le_p(s->regs + 0x14, st);
         stl_le_p(s->regs + 0x08, sh);
         for (i = 0; i < 4; i++) {
-            g_hash_table_add(s->written, GUINT_TO_POINTER(0x14 + i));
-            g_hash_table_add(s->written, GUINT_TO_POINTER(0x08 + i));
+            s->written[0x14 + i] = 1;
+            s->written[0x08 + i] = 1;
         }
         return;
     }
     for (i = 0; i < size; i++) {
         s->regs[offset + i] = (value >> (8 * i)) & 0xff;
-        g_hash_table_add(s->written, GUINT_TO_POINTER(offset + i));
+        s->written[offset + i] = 1;
     }
 }
 
@@ -136,6 +138,18 @@ static const MemoryRegionOps nano7_regfile_ops = {
     .endianness = DEVICE_NATIVE_ENDIAN,
     .valid = { .min_access_size = 1, .max_access_size = 8 },
     .impl = { .min_access_size = 1, .max_access_size = 8 },
+};
+
+static const VMStateDescription vmstate_regfile = {
+    .name = "nano7-regfile",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32(size, Nano7RegfileState),
+        VMSTATE_VBUFFER_UINT32(regs, Nano7RegfileState, 1, NULL, size),
+        VMSTATE_VBUFFER_UINT32(written, Nano7RegfileState, 1, NULL, size),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 void nano7_regfile_attach2(MemoryRegion *parent, const char *name,
@@ -156,14 +170,16 @@ void nano7_regfile_attach2(MemoryRegion *parent, const char *name,
     s->pgate = opts->pgate;
     s->regs = g_malloc0(size);
     s->seen = g_hash_table_new(g_direct_hash, g_direct_equal);
-    s->written = g_hash_table_new(g_direct_hash, g_direct_equal);
+    s->written = g_malloc0(size);
+    s->size = size;
+    vmstate_register_any(NULL, &vmstate_regfile, s);
     if (opts->preset_off >= 0) {
         hwaddr off = opts->preset_off * 4;
         if (off + 4 <= size) {
             int i;
             for (i = 0; i < 4; i++) {
                 s->regs[off + i] = (opts->preset_val >> (8 * i)) & 0xff;
-                g_hash_table_add(s->written, GUINT_TO_POINTER(off + i));
+                s->written[off + i] = 1;
             }
         }
     }
@@ -175,7 +191,7 @@ void nano7_regfile_attach2(MemoryRegion *parent, const char *name,
             if (off + 4 <= size) {
                 for (int i = 0; i < 4; i++) {
                     s->regs[off + i] = (extra_vals[p] >> (8 * i)) & 0xff;
-                    g_hash_table_add(s->written, GUINT_TO_POINTER(off + i));
+                    s->written[off + i] = 1;
                 }
             }
         }
