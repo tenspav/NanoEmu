@@ -1079,3 +1079,77 @@ LIVE SOUND: run.sh --audio-play = FIFO emulator/state/audio.fifo + host player (
 LIMITS: MP3 only (AAC/ALAC tracks still get the old protocol: AAC would need a decoder, ALAC is decoded
   in software by the OS itself); the raw FIFO assumes 44.1 kHz (a 48 kHz track plays slightly slow via
   --audio-play; the WAV header follows the I2S rate); fast-forward overruns the player (drops counted).
+
+## Session 29 (2026-10-14): Now Playing album art - it is the 2D blitter, not the MBX GPU
+FINDING: with NANO7_MBX_TRACE=1 (new: logs MBX core / FIFO writes) Now Playing makes exactly ONE MBX job
+  (register pairs +0x824/+0x828/+0x82c/+0x838/+0x83c/+0x6d8, the transfer from Session 27) and no 3D
+  draws or FIFO streams. The art square is blitter work (NANO7_DISP_TRACE): a 240x240 layer at y = 87
+  copied from 0x0b66c780 / 0x0b634300, which are filled by a black fill + a copy from the decoded art
+  bitmap (e.g. 0x09487b10). That source is RGB565 = blitter L0 format 4, which nano7_disp.c rejected
+  ("format L0 4 / L1 6 not modeled") -> the copy never ran -> black square. A gdbstub write watch on the
+  art buffers saw no CPU writes (all device-side), confirming the path.
+FIX (nano7_disp.c): source format 4 = RGB565 (R in 15:11, expanded to opaque ARGB8888, stride in pixels
+  of 2 bytes) next to format 6; unmodeled formats are now reported once per format.
+RESULT: Now Playing shows the art: here the stock "no artwork" note, because the user's library has no
+  iPod_Control/Artwork at all (synced by iOpenPod without art) - the same picture the real device shows.
+  Real cover art goes through the same RGB565 bitmap -> blitter copy, but cannot be tested with this
+  disk. Screens: screens/session29/ (now-playing-art.png, art-source-rgb565.png = the dumped source).
+GPU: the MBX still renders nothing; no screen seen so far depends on it (Cover Flow / games would).
+
+## Session 30 (2026-10-14): Cover Flow on the MBX - not reachable on nano 7G 1.1.2 (investigation)
+RE (static, snap6): the Cover Flow strings are leftovers. Main-menu 'HandleCoverflowHilited' (0x0843ed90,
+  matched at 0x0843ea6c) pushes "EmptyMusicHilited"; the transition table maps controller.CoverFlowSelected
+  (0x0888b80b) to Touch_ComingSoon_Screen; nothing references the CoverFlow_Screen / _Default strings
+  (0x0888db34/48); Now Playing's 'HandleSwapToCoverflow' case (dispatcher 0x0829c704) is a no-op and its
+  real handler 0x0829c97c only navigates (mode 3). Orientation handlers (video/photo) never mention it;
+  the nano 7G has no accelerometer anyway. The GK log table still lists a CoverFlow domain next to TGL /
+  GK2D (so it was a GL ES on MBX feature on the predecessors).
+CHECKED LIVE (VNC): Music menu = Genius Mixes .. Composers, Compilations, Audiobooks, Podcasts, iTunes U -
+  no Cover Flow row; Compilations opens a normal (empty) list. NANO7_MBX_TRACE: 0 MBX writes in Music,
+  Compilations, Songs; Now Playing makes only the one +0x824..+0x83c transfer job. No stock screen seen so
+  far draws with the MBX.
+TOOLS: vnc_probe.py drag X0 Y0 X1 Y1 [SECONDS] (touch scroll). Screens: screens/session30/.
+NEXT: an MBX renderer needs a consumer to verify against: a homebrew GL ES 1.x test (or the reVC port,
+  docs/research/revc-gles1-*.md) driving the OS's GL stack, then RE of the TA/ISP command stream from
+  the FIFO apertures 0x3b800000/0x3ba00000/0x3bc00000 (writers 0x081805dc / 0x081806ac / 0x08198e5a).
+
+## Session 31 (2026-10-14): GL ES test app + MBX completion model - GL frames flow (nothing drawn yet)
+TEST APP: probe/gltest (gltest.c, GL_SURFACE kind, 3.4 KB .hbapp): every frame a pure function of the
+  frame counter - clear (0.05,0.08,0.25), one perspective quad, 64x64 RGBA checker texture (yellow
+  1-texel border) modulated by red/green/blue/white vertex colours, depth test, 2 deg/frame about Z,
+  -30 deg about X. Built against nanobtfix-untether/nanoapps: the device's installed Blocks.hbapp is
+  byte-identical to that tree's build, so its resident/SDK is the one on the snap6 disk.
+GETTING IT ONTO THE EMULATED DISK (dumps/ untouched): tools/disk_patch.py IMG /FAT/PATH=LOCAL -o PATCH
+  lays a file over an installed file's clusters (FAT32 walk incl. long names; self-test: patching
+  Blocks with itself reproduces its 6 blocks); run.sh --nand-patch PATCH (nand-patch=, N7PATCH1 records
+  {u64 FTL LBA, 4 KB}) is served before the rsrc/disk images. The resident's loader (hb_reloc_file.c)
+  demands file size == header + image + relocs, so HRL1 blobs are padded INSIDE the format (zeros
+  appended to the image, image_size grown; loader zero-fills to span anyway). Launch = Blocks icon
+  (home page 2, (64,215)); the resident re-reads the executable on every launch (hb_ensure_app_
+  executable after hb_unload_other_apps). Patch used: rsrc/gltest-as-blocks.patch (gitignored dir).
+MBX FRAME PROTOCOL (RE + traces; NANO7_MBX_TRACE=1 now logs every MBX write with the guest PC):
+  - IRQ 53 was never enabled at resume (VIC bank1 now 0x00700023) and the core's +0x130 enable reset
+    to 0; it is 0x8775 after the driver init that preceded T0 -> now the reset value.
+  - slot job (GL flush 0x0813175c): +0x810 = slot, +0x81c = 1 (pair-list variant +0x818) -> status bit
+    8 + slot (ISR sets the waited word; 0.5 s timeout -> the Blocks assert seen first).
+  - scene: +0x800 = 1 (TA start, after register pairs +0x840.. incl. 240x432), TA words into FIFO
+    0x3b800000 in batches, each committed by a doorbell 1 to 0x3bc00000, end-of-list word 0xf0000000.
+    The hardware then renders by itself and reports bit 4 (render done: slot state 3, wakes ctx+0x2c);
+    the same word is the fence of 0x08192194. NOT bit 5: that is the TA parameter-overflow / partial
+    render event - its handler leads to bridge call 0x1b (allocate a depth store, 0x080b14f8), which
+    1.1.2 never supports (unconditional assert -> power-off). Raising bit 5 caused exactly that.
+  - render job: the scheduler 0x0813645a then writes the job's register pairs (+0x60c..+0x6dc: param
+    base, target 0x00335180, 240/432, stride) and +0x6ec -> completion = bits 2 AND 6 (0x08148c48 frees
+    the render slot; tested: 0x40, 0x0c, 0x04, 0x08, 0x48 alone leave the allocator spinning).
+  - software events: writes to +0x12c OR into the status (the allocator pokes 1 as a wake-up).
+  Model (nano7_mbx.c): end-of-list -> +50 us -> +500 us bit 4; +0x6ec -> +100 us bits 2|6; +0x81c/0x818
+  -> bit 8+slot; +0x838 -> bit 6 (Session 27); IRQ 53 = status & enable; timers on the guest clock,
+  saved in save states; exit summary "N scenes, N renders done, N render jobs".
+RESULT: original Blocks: 562 scenes in ~25 s, no panic. gltest: 1080 scenes (one per frame), ~164 TA
+  words per frame, no panic; the GL view is presented but shows stale pixels (the old DumpRAM surface)
+  because nothing is rasterized yet. Regression: Music > Maladie plays (audio, art), Lines (GBA) 60 FPS.
+  Screens: screens/session31/. One full gltest frame (496 writes): docs/research/mbx-gltest-frame.txt.
+NEXT (the renderer): decode the TA stream (control words 0x1/0x2/0x7/0x9/0xb/0xc/0xe/0xf.., vertex
+  formats; the driver sends screen-space floats), the texture words (GPU VA through the MBX MMU roots
+  +0x1000..+0x101c) and rasterize into the render target named in the +0x6xx job, using gltest's known
+  scene as ground truth.

@@ -124,6 +124,7 @@ typedef struct NandStore {
     int miss_policy;            /* NAND_MISS_* */
     int disk_fd;                /* nand-disk=: 4 KB-LBA image for misses */
     int64_t disk_off;           /* FTL LBA of the image's sector 0 */
+    GHashTable *patch;          /* nand-patch=: FTL LBA -> 4 KB block */
     int rsrc_fd;                /* nand-rsrc=: resource partition image */
     int64_t rsrc_lba, rsrc_blocks;
     NandMiss miss[NAND_MISS_MAX];
@@ -836,7 +837,9 @@ static void nand_oracle(Nano7FmcState *s)
         address_space_write(&address_space_memory, m->meta_dst,
                             MEMTXATTRS_UNSPECIFIED, meta, sizeof(meta));
         memset(data, 0, sizeof(data));
-        if (n->rsrc_fd >= 0 && (int64_t)lba >= n->rsrc_lba &&
+        if (n->patch && g_hash_table_contains(n->patch, &lba)) {
+            memcpy(data, g_hash_table_lookup(n->patch, &lba), NAND_SECT);
+        } else if (n->rsrc_fd >= 0 && (int64_t)lba >= n->rsrc_lba &&
             (int64_t)lba < n->rsrc_lba + n->rsrc_blocks) {
             if (pread(n->rsrc_fd, data, NAND_SECT,
                       (off_t)(lba - n->rsrc_lba) * NAND_SECT) < 0) {
@@ -961,9 +964,35 @@ bool nano7_fmc_store_load(const char *path)
     return ok;
 }
 
+/* nand-patch=FILE: "N7PATCH1" + {u64 FTL LBA, 4096 bytes} records
+ * (tools/disk_patch.py); served before the rsrc / disk images */
+static void nand_load_patch(NandStore *n, const char *path)
+{
+    g_autofree char *buf = NULL;
+    gsize len, i;
+
+    if (!g_file_get_contents(path, &buf, &len, NULL) || len < 8 ||
+        memcmp(buf, "N7PATCH1", 8) || (len - 8) % (8 + NAND_SECT)) {
+        fprintf(stderr, "[nano7-fmc] nand-patch %s: not a N7PATCH1 file\n",
+                path);
+        exit(1);
+    }
+    n->patch = g_hash_table_new_full(g_int64_hash, g_int64_equal, g_free,
+                                     g_free);
+    for (i = 8; i < len; i += 8 + NAND_SECT) {
+        uint64_t *key = g_new(uint64_t, 1);
+
+        *key = ldq_le_p(buf + i);
+        g_hash_table_replace(n->patch, key,
+                             g_memdup2(buf + i + 8, NAND_SECT));
+    }
+    fprintf(stderr, "[nano7-fmc] nand-patch %s: %u blocks\n", path,
+            g_hash_table_size(n->patch));
+}
+
 void nano7_fmc_nand_config(const char *store, const char *miss,
                            const char *disk, const char *disk_off,
-                           const char *rsrc)
+                           const char *rsrc, const char *patch)
 {
     Nano7FmcState *s = fmc_singleton;
 
@@ -989,6 +1018,9 @@ void nano7_fmc_nand_config(const char *store, const char *miss,
         s->nand.disk_off = disk_off ? g_ascii_strtoll(disk_off, NULL, 0) : 0;
         fprintf(stderr, "[nano7-fmc] nand-disk %s: image sector 0 = FTL LBA "
                 "%" PRId64 "\n", disk, s->nand.disk_off);
+    }
+    if (patch) {
+        nand_load_patch(&s->nand, patch);
     }
     if (rsrc) {
         g_autofree char *path = g_strdup(rsrc);

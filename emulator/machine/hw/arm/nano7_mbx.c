@@ -12,6 +12,10 @@
 #include "qapi/error.h"
 #include "qemu/module.h"
 #include "migration/vmstate.h"
+#include "hw/core/cpu.h"
+#include "target/arm/cpu.h"
+#include "qemu/timer.h"
+#include "nano7_clock.h"
 
 #define MBX_CORE_WORDS (0x4000 / 4)
 #define MBX_PLANE_WORDS (0x1000 / 4)
@@ -19,6 +23,9 @@
 #define MBX_ENABLE  (0x130 / 4)
 #define MBX_CLEAR   (0x134 / 4)
 #define MBX_MMU     (0x1020 / 4)
+#define MBX_TA_NS       50000           /* end of TA list -> TA done */
+#define MBX_RENDER_NS   500000          /* TA done -> render done */
+#define MBX_JOB_NS      100000          /* +0x6ec render job -> done */
 
 typedef struct Nano7MbxState Nano7MbxState;
 typedef struct Nano7MbxWindow {
@@ -34,6 +41,11 @@ struct Nano7MbxState {
     uint32_t core[MBX_CORE_WORDS];
     uint32_t plane[3][MBX_PLANE_WORDS];
     uint32_t sync_left[3];
+    QEMUTimer *ta_timer;        /* TA done / render done sequence */
+    QEMUTimer *job_timer;       /* +0x6ec render job done */
+    bool ta_armed;              /* +0x800 seen, end of list pending */
+    bool ta_end, render_pending;  /* end-of-list seen / render running */
+    uint64_t scenes, renders, jobs;
     bool trace;                 /* NANO7_MBX_TRACE: log writes */
     uint64_t trace_n;
 };
@@ -46,6 +58,53 @@ static void mbx_update_irq(Nano7MbxState *s)
                          s->core[MBX_ENABLE] & 0xffff) != 0);
 }
 
+/* end of list consumed: TA done (if a scene was started), then render
+ * done MBX_RENDER_NS later */
+static void mbx_ta_done(void *opaque)
+{
+    Nano7MbxState *s = opaque;
+
+    if (s->ta_end) {
+        s->ta_end = false;
+        /* NOT bit 5: that is the TA parameter-buffer overflow (partial
+         * render) event - its handler 0x0814fb10 flags ctx+0x98, and the
+         * next FIFO space wait then asks for a depth store (bridge call
+         * 0x1b -> 0x080b14f8), which 1.1.2 never supports (asserts). A
+         * scene that fits renders by itself and only reports bit 4. */
+        s->ta_armed = false;
+        s->render_pending = true;
+        nano7_timer_mod(s->ta_timer, nano7_now_ns() + MBX_RENDER_NS);
+    } else if (s->render_pending) {
+        s->render_pending = false;
+        s->core[MBX_STATUS] |= 0x10;
+        s->renders++;
+        mbx_update_irq(s);
+    }
+}
+
+static void mbx_job_done(void *opaque)
+{
+    Nano7MbxState *s = opaque;
+
+    /* bits 2 and 6 together (bit 3 / 2|3 alone leave the slot busy) */
+    s->core[MBX_STATUS] |= 0x04 | 0x40;
+    s->jobs++;
+    mbx_update_irq(s);
+}
+
+static Nano7MbxState *mbx_singleton;
+
+static void mbx_summary(void)
+{
+    Nano7MbxState *s = mbx_singleton;
+
+    if (s && s->scenes) {
+        fprintf(stderr, "[nano7-mbx] summary: %" PRIu64 " scenes, %" PRIu64
+                " renders done, %" PRIu64 " render jobs (nothing drawn)\n",
+                s->scenes, s->renders, s->jobs);
+    }
+}
+
 static void mbx_core_reset(Nano7MbxState *s)
 {
     memset(s->core, 0, sizeof(s->core));
@@ -55,6 +114,10 @@ static void mbx_core_reset(Nano7MbxState *s)
     /* Identification signature checked by the driver. Remaining ID words
      * are unknown; do not invent feature bits. */
     s->core[0xff0 / 4] = 0xb105f00d;
+    /* interrupt enable as the driver's init 0x0812b90c leaves it: the
+     * snapshot resumes after that init, and the IRQ 53 handler 0x08191de4
+     * only saves/restores +0x130 around its acks */
+    s->core[MBX_ENABLE] = 0x8775;
     mbx_update_irq(s);
 }
 
@@ -94,8 +157,9 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
     unsigned n = off / 4;
 
     if (s->trace && s->trace_n++ < 200000) {
-        fprintf(stderr, "[nano7-mbx] W%u +0x%05x = 0x%08x\n", w->index,
-                (unsigned)off, v);
+        fprintf(stderr, "[nano7-mbx] W%u +0x%05x = 0x%08x pc=0x%08x\n",
+                w->index, (unsigned)off, v,
+                current_cpu ? ARM_CPU(current_cpu)->env.regs[15] : 0);
     }
 
     if (w->index < 3) {
@@ -113,6 +177,18 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
         unsigned fifo = w->index - 4;
 
         /* All addresses in each aperture feed the same stream. */
+        /* TA scene stream (Session 31): batches into W4, each committed
+         * by a doorbell word 1 to W6 (0x08180b10); the scene ends with the
+         * end-of-list control word 0xf0000000 (other 0xf....... words carry
+         * flags and are followed by more data). The hardware then reports
+         * TA done (bit 5) and, chaining the render itself for a plain
+         * frame, render done (bit 4: the handler 0x08191e64 marks the slot
+         * rendered = state 3 and wakes ctx+0x2c). The fence 0x08192194
+         * writes the same word with no scene armed and waits for bit 4. */
+        if (fifo == 0 && v == 0xf0000000) {
+            s->ta_end = true;
+            nano7_timer_mod(s->ta_timer, nano7_now_ns() + MBX_TA_NS);
+        }
         if (v == 0xf0000000) {
             s->sync_left[fifo] = 6;
         } else if (v == 0x70000000 && s->sync_left[fifo]) {
@@ -136,6 +212,26 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
         s->core[n] = v;
         break;
     case 0x12c:
+        /* software-settable events: the driver writes 1 (wake-up IRQ,
+         * 0x083f1e8c) or 0x20 (fake TA done, 0x0812c37a) */
+        s->core[MBX_STATUS] |= v & 0xffff;
+        break;
+    case 0x6ec:
+        /* render job kick: the scheduler 0x0813645a writes the job's
+         * register pairs (+0x60c..+0x6dc: parameter base, target address,
+         * size, stride) via 0x083f1a88, then +0x6ec. Completion = bits 2|3
+         * and 6 together (0x08148c48 frees the render slot, sets ctx+0x30) */
+        s->core[n] = v;
+        nano7_timer_mod(s->job_timer, nano7_now_ns() + MBX_JOB_NS);
+        break;
+    case 0x800:
+        /* TA start (scene begin, 0x0812c394) */
+        s->core[n] = v & ~1u;
+        if (v & 1) {
+            s->ta_armed = true;
+            s->scenes++;
+        }
+        break;
     case 0xf00:
     case 0xf10:
     case 0xff0 ... 0xffc:
@@ -146,8 +242,12 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
     case 0x808:
         s->core[n] = v & ~1u;
         if (v & 1) {
-            /* TODO: render to guest surfaces; no guest pixels are changed. */
-            s->core[MBX_STATUS] |= 0x10;
+            /* render (ISP/TSP) of the scene, written by 0x08195e50 once
+             * the TA is done; it polls bit 4 inline. Then the job is done:
+             * bits 2|3 and 6 together let 0x08148c48 free the render slot.
+             * TODO: render to guest surfaces; no pixels are changed yet. */
+            s->core[MBX_STATUS] |= 0x10 | 0x0c | 0x40;
+            s->renders++;
         }
         break;
     case 0x838:
@@ -158,6 +258,18 @@ static void mbx_write(void *opaque, hwaddr off, uint64_t value,
         s->core[n] = v & ~1u;
         if (v & 1) {
             s->core[MBX_STATUS] |= 0x40;
+        }
+        break;
+    case 0x818:
+    case 0x81c:
+        /* Render jobs of the GL flush (Session 31): the submit 0x0813175c
+         * claims a slot (0/1), writes it to +0x810, then +0x81c = 1 (the
+         * pair-list job 0x08131b8c uses +0x818 = 1) and polls a word that
+         * the IRQ 53 handler sets on status bit 8 (slot 0) / 9 (slot 1),
+         * 0.5 s timeout -> assert. Completes at once; nothing is drawn. */
+        s->core[n] = v & ~1u;
+        if (v & 1) {
+            s->core[MBX_STATUS] |= 0x100u << (s->core[0x810 / 4] & 1);
         }
         break;
     case 0x1020:
@@ -197,6 +309,11 @@ static const VMStateDescription vmstate_mbx = {
         VMSTATE_UINT32_ARRAY(core, Nano7MbxState, MBX_CORE_WORDS),
         VMSTATE_UINT32_2DARRAY(plane, Nano7MbxState, 3, MBX_PLANE_WORDS),
         VMSTATE_UINT32_ARRAY(sync_left, Nano7MbxState, 3),
+        VMSTATE_TIMER_PTR(ta_timer, Nano7MbxState),
+        VMSTATE_TIMER_PTR(job_timer, Nano7MbxState),
+        VMSTATE_BOOL(ta_armed, Nano7MbxState),
+        VMSTATE_BOOL(ta_end, Nano7MbxState),
+        VMSTATE_BOOL(render_pending, Nano7MbxState),
         VMSTATE_END_OF_LIST()
     },
 };
@@ -208,6 +325,12 @@ static void mbx_init(Object *obj)
 
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->irq);
     s->trace = getenv("NANO7_MBX_TRACE") != NULL;
+    mbx_singleton = s;
+    atexit(mbx_summary);
+    s->ta_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, mbx_ta_done, s);
+    nano7_clock_track(s->ta_timer, true);
+    s->job_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, mbx_job_done, s);
+    nano7_clock_track(s->job_timer, true);
     for (i = 0; i < 7; i++) {
         Nano7MbxWindow *w = &s->window[i];
         g_autofree char *name = g_strdup_printf("nano7.mbx.%u", i);

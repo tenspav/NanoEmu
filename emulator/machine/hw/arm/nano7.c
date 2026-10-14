@@ -105,6 +105,7 @@ struct Nano7MachineState {
     char *nand_disk;        /* 4 KB-LBA disk image for oracle misses */
     char *nand_disk_off;    /* FTL LBA of the image's first sector */
     char *nand_rsrc;        /* resource partition image [@LBA] */
+    char *nand_patch;       /* replaced disk blocks (tools/disk_patch.py) */
     char *disp_dump;        /* directory for display-pipe frame dumps */
     char *buttons;          /* timed button script "SEC:BTN[:MS]/..." */
     char *rtc;              /* PMU RTC start: snapshot, host or Unix secs */
@@ -140,13 +141,15 @@ static void nano7_resume_hw(void)
         address_space_stl_le(as, 0x38e00100 + (i / 32) * 0x1000 +
                              (i % 32) * 4, i, MEMTXATTRS_UNSPECIFIED, NULL);
     }
-    /* bank0: 2,3,7,8,9,10,11,16,17,21,22,26,29,31; bank1: 32,33,37,52,54
+    /* bank0: 2,3,7,8,9,10,11,16,17,21,22,26,29,31; bank1: 32,33,37,52,53,54
      * (54 = FMSS/NAND: handler installed at boot, enabled once NAND runs,
      * which it was on the live device; 37 = display pipe frame done,
-     * registered by its init 0x081bbd98, display on at capture) */
+     * registered by its init 0x081bbd98, display on at capture; 53 = MBX
+     * GPU, enabled by its driver init before T0 - the GL flush waits on
+     * it, Session 31) */
     address_space_stl_le(as, 0x38e00010, 0xa4630f8c,
                          MEMTXATTRS_UNSPECIFIED, NULL);
-    address_space_stl_le(as, 0x38e01010, 0x00500023,
+    address_space_stl_le(as, 0x38e01010, 0x00700023,
                          MEMTXATTRS_UNSPECIFIED, NULL);
     /* display pipe irq enable (power-on 0x081bb6f4 set it before T0) */
     address_space_stl_le(as, 0x39000008, 1, MEMTXATTRS_UNSPECIFIED, NULL);
@@ -594,7 +597,7 @@ static void nano7_init(MachineState *machine)
     nano7_fmc_attach(get_system_memory(), 0x38a00000,
                      s->vic_in[NANO7_IRQ_FMSS]);
     nano7_fmc_nand_config(s->nand_store, s->nand_miss, s->nand_disk,
-                          s->nand_disk_off, s->nand_rsrc);
+                          s->nand_disk_off, s->nand_rsrc, s->nand_patch);
     /* 0x39000000: display pipe = 2D blitter, done = IRQ 37 */
     nano7_disp_attach(get_system_memory(), 0x39000000,
                       s->vic_in[NANO7_IRQ_DISP]);
@@ -1017,6 +1020,7 @@ NANO7_STR_PROP(nand_miss)
 NANO7_STR_PROP(nand_disk)
 NANO7_STR_PROP(nand_disk_off)
 NANO7_STR_PROP(nand_rsrc)
+NANO7_STR_PROP(nand_patch)
 NANO7_STR_PROP(disp_dump)
 NANO7_STR_PROP(buttons)
 NANO7_STR_PROP(rtc)
@@ -1179,6 +1183,7 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->nand_disk);
     g_free(s->nand_disk_off);
     g_free(s->nand_rsrc);
+    g_free(s->nand_patch);
     g_free(s->disp_dump);
     g_free(s->buttons);
     g_free(s->rtc);
@@ -1315,6 +1320,11 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
                                           "resource partition image (MSE "
                                           "rsrc img1) for NAND misses, "
                                           "FILE[@LBA], default LBA 0x3f2");
+    object_class_property_add_str(oc, "nand-patch", nano7_get_nand_patch,
+                                  nano7_set_nand_patch);
+    object_class_property_set_description(oc, "nand-patch",
+                                          "replaced 4 KB disk blocks for NAND "
+                                          "misses (tools/disk_patch.py)");
     object_class_property_add_str(oc, "audio-out", nano7_get_audio_out,
                                   nano7_set_audio_out);
     object_class_property_set_description(oc, "audio-out",

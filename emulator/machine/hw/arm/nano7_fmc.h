@@ -22,12 +22,14 @@ void nano7_fmc_fmss_resume_kick(void);
  * disk_off = FTL LBA of its sector 0 (a disk-mode dd of the iPod is the
  * data volume only: MBR + FAT32 partition; the image starts at FTL LBA
  * 49216 (0xc040) on the snap6 device) */
-/* rsrc = "FILE[@LBA]": the resource partition (the firmware MSE's rsrc
+/* patch = N7PATCH1 file of whole 4 KB blocks by FTL LBA (tools/disk_patch.py:
+ * replace files on the emulated disk without touching the image), served
+ * first. rsrc = "FILE[@LBA]": the resource partition (the firmware MSE's rsrc
  * img1 blob, see tools/extract_rsrc.py) for oracle misses from FTL LBA
  * 0x3f2 on; the OS reads UI images (Resources/UI/SilverImagesDB) there */
 void nano7_fmc_nand_config(const char *store, const char *miss,
                            const char *disk, const char *disk_off,
-                           const char *rsrc);
+                           const char *rsrc, const char *patch);
 
 /* save state: copy the NAND page store out to / back in from a file */
 bool nano7_fmc_store_save(const char *path);

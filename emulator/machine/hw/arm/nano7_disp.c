@@ -11,7 +11,9 @@
  *                        written as is, alpha included);
  *                        ring command 10 ORs in bit0 = kick (one-shot)
  *   +0x08  irq enable    bit0      +0x0c irq status bit0 frame done, W1C
- *   L0 (source)  +0x10 format (6 = ARGB8888, straight alpha), +0x14 addr,
+ *   L0 (source)  +0x10 format (6 = ARGB8888, straight alpha; 4 = RGB565,
+ *                opaque: the decoded album art / placeholder, Session 29),
+ *                +0x14 addr,
  *                +0x1c stride (pixels, low half), +0x20 origin (x<<16|y,
  *                in quarter pixels), +0x24 size (w<<16|h)
  *   L1 (destination, read-modify-write)  +0x30 format, +0x34 base,
@@ -27,7 +29,8 @@
  *
  * Model: the blit runs at the kick; +0x00 = 2 (running), 20 us + 5 ns per
  * pixel later +0x00 = 1, +0x0c bit0, IRQ 37 while (+0x0c & +0x08 & 1).
- * Only format 6 is blitted (others logged once). What is on screen is the
+ * Sources in format 6 or 4, destinations in format 6 are blitted (others
+ * logged once per format). What is on screen is the
  * LCD controller's business (nano7_lcd.c). NANO7_DISP_TRACE=1 logs every
  * kick.
  *
@@ -58,7 +61,7 @@ typedef struct Nano7DispState {
     uint64_t kicks, frames;
     uint64_t blits, blit_px;
     bool trace;                 /* NANO7_DISP_TRACE: log every kick/dump */
-    bool warned_fmt;
+    uint32_t warned_fmts;       /* bit n: format n already reported */
     uint32_t layout_seen[256];  /* layouts (layer regs minus FB addresses) */
     unsigned layout_logs;
     unsigned log_lines;
@@ -90,6 +93,30 @@ static inline uint32_t disp_ld(uint32_t a)
 {
     return address_space_ldl_le(&address_space_memory, a & 0x7fffffff,
                                 MEMTXATTRS_UNSPECIFIED, NULL);
+}
+
+static bool disp_src_fmt_ok(uint32_t fmt)
+{
+    return fmt == 6 || fmt == 4;
+}
+
+/* source pixel (x, y) as ARGB8888; format 4 = RGB565 (R in bits 15:11) */
+static inline uint32_t disp_src_px(uint32_t fmt, uint32_t base,
+                                   uint32_t stride, uint32_t x, uint32_t y)
+{
+    uint32_t p, r, g, b;
+
+    if (fmt != 4) {
+        return disp_ld(base + (y * stride + x) * 4);
+    }
+    p = address_space_lduw_le(&address_space_memory,
+                              (base + (y * stride + x) * 2) & 0x7fffffff,
+                              MEMTXATTRS_UNSPECIFIED, NULL);
+    r = (p >> 11) & 0x1f;
+    g = (p >> 5) & 0x3f;
+    b = p & 0x1f;
+    return 0xff000000u | (r << 3 | r >> 2) << 16 | (g << 2 | g >> 4) << 8 |
+           (b << 3 | b >> 2);
 }
 
 /* blend factor (0..255) from one +0x280 word: selector 0 = the word's own
@@ -150,14 +177,16 @@ static void disp_blit(Nano7DispState *s, uint32_t ctl)
     uint32_t xstep = s->regs[0x50 / 4], ystep = s->regs[0x54 / 4];
     uint32_t sw = ssz >> 16, sh = ssz & 0xffff;
     uint32_t fill = s->regs[0x290 / 4], x, y;
+    uint32_t sfmt = s->regs[0x10 / 4], dfmt = s->regs[0x30 / 4];
     g_autofree uint32_t *row = NULL;
 
-    if (s->regs[0x30 / 4] != 6 || (mode != 1 && s->regs[0x10 / 4] != 6)) {
-        if (!s->warned_fmt) {
-            s->warned_fmt = true;
+    if (dfmt != 6 || (mode != 1 && !disp_src_fmt_ok(sfmt))) {
+        uint32_t bad = dfmt != 6 ? dfmt : sfmt;
+
+        if (bad < 32 && !(s->warned_fmts & (1u << bad))) {
+            s->warned_fmts |= 1u << bad;
             fprintf(stderr, "[nano7-disp] blit with format L0 %u / L1 %u not "
-                    "modeled (only 6 = ARGB8888)\n", s->regs[0x10 / 4],
-                    s->regs[0x30 / 4]);
+                    "modeled (L0 6 / 4, L1 6 only)\n", sfmt, dfmt);
         }
         return;
     }
@@ -182,7 +211,7 @@ static void disp_blit(Nano7DispState *s, uint32_t ctl)
             uint32_t sx = sx0 + MIN((uint32_t)(((uint64_t)x * xstep) >> 16),
                                     sw ? sw - 1 : 0);
             uint32_t S = mode == 1 ? fill :
-                         disp_ld(src + (sy * sstride + sx) * 4);
+                         disp_src_px(sfmt, src, sstride, sx, sy);
             uint32_t D = le32_to_cpu(row[x]);
 
             /* copy and fill write the source; only mode 2 blends (a fill

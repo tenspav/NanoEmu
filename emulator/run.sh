@@ -8,6 +8,8 @@
 #   --nand-store FILE / --nand-miss blank|oracle / --nand-disk IMG: NAND page
 #                                store (see nano7_fmc.c); --nand-disk-offset LBA:
 #                                FTL LBA of the image's sector 0 (snap6 device: 49216)
+#   --nand-patch FILE            replaced disk blocks, e.g. a test app in place of
+#                                an installed one (make it with tools/disk_patch.py)
 #   --nand-rsrc FILE[@LBA]       resource partition image for NAND misses (OS UI
 #                                images; make it with tools/extract_rsrc.py IPSW)
 #   --disp-dump DIR              write display-pipe frames as PPMs
@@ -85,6 +87,8 @@ while [ $# -gt 0 ]; do
         --vnc)
             v=$(optval 0 "${2:-}") && shift 2 || shift
             EXTRA+=(-vnc ":$v") ;;
+        --nand-patch)
+            MARGS="$MARGS,nand-patch=${2:?--nand-patch needs a file}"; shift 2 ;;
         --nand-rsrc)
             MARGS="$MARGS,nand-rsrc=${2:?--nand-rsrc needs a file}"; shift 2 ;;
         --audio-play)

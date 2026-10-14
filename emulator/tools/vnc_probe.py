@@ -3,6 +3,7 @@
 
   vnc_probe.py HOST:PORT shot OUT.png            grab one full frame
   vnc_probe.py HOST:PORT tap X Y [OUTPREFIX]     press+release at (X, Y), frames +1/3/8 s
+  vnc_probe.py HOST:PORT drag X0 Y0 X1 Y1 [SECONDS]  touch-drag (scroll), default 0.5 s
   vnc_probe.py HOST:PORT key KEYSYM              press+release a key (e.g. 0x68 = h)
   vnc_probe.py HOST:PORT hold KEYSYM SECONDS     hold a key down (e.g. 0xff09 = Tab)
   vnc_probe.py HOST:PORT watch SECONDS           count frame updates (proof of a live stream)
@@ -105,6 +106,17 @@ def main():
                 update(s, w, h, fb, 0)
                 png('%s-%ds.png' % (sys.argv[5], t), w, h, fb)
                 print('after-tap frame +%ds -> %s-%ds.png' % (t, sys.argv[5], t))
+    elif cmd == 'drag':
+        x0, y0, x1, y1 = (int(v) for v in sys.argv[3:7])
+        secs = float(sys.argv[7]) if len(sys.argv) > 7 else 0.5
+        steps = max(2, int(secs / 0.02))
+        pointer(s, 1, x0, y0)
+        for i in range(1, steps + 1):
+            time.sleep(secs / steps)
+            pointer(s, 1, x0 + (x1 - x0) * i // steps, y0 + (y1 - y0) * i // steps)
+        time.sleep(0.05)
+        pointer(s, 0, x1, y1)
+        print('drag (%d, %d) -> (%d, %d)' % (x0, y0, x1, y1))
     elif cmd == 'key':
         k = int(sys.argv[3], 0)
         s.sendall(struct.pack('>BBxxI', 4, 1, k))
