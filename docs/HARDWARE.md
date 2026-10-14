@@ -56,7 +56,7 @@ Everything the NanoEmu project has learned about the nano 7G hardware, from our 
 | Codec | SPI-attached (IRQ 9), 16-bit register protocol **[confirmed]** |
 | Sample engine | I2S + DMA engines 0x38200000 (IRQ 16, audio: ch 2 -> I2S0 TX) / 0x38700000 (IRQ 17), linked descriptors **[confirmed, Session 27: IRAM thunks 0x22001168/0x2200116c pass engine id 1/2 to ISR 0x220010ee]** |
 | Decode | MP3/AAC decode co-processor 0x38500000 (IRQ 18, ID 0x004e7309), IRAM mailbox 0x2203ff00 / PCM 0x22038100 |
-| Emulation | Session 27: DMA, codec, I2S (PCM to --audio-out), decoder job/result protocol (silent frames); real MP3 decode not yet |
+| Emulation | Session 27: DMA, codec, I2S (PCM to --audio-out), decoder job/result protocol; Session 28: host-side MP3 decode (minimp3) from the input descriptor at +0x100, bit-exact vs ffmpeg; run.sh --audio-play |
 
 ## Wireless
 

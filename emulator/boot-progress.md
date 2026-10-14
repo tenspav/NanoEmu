@@ -1053,3 +1053,29 @@ DRAM. Default 0 = unchanged. `tools/ramscope_harness/` runs probe/ramscope/ramsc
 modes 0/1 -> NO STORAGE, 2 -> INDEPENDENT MEMORY, 3 -> ALIASED. Found+fixed a real bug this way:
 write offsets beyond the single mapped 1 MB section would have translation-faulted.
 Not modelled: the hardware's bus hang on writes to a rank-less PA 0x0c000000 (device evidence).
+
+## Session 28 (2026-10-14): real sound - host-side MP3 decode in the co-processor model
+WHY NO INPUT BEFORE: the Session 27 stub read +0x114 as a constant 7. It is the port state (+0x110 command
+  4 = stop -> 7, polled by setup 0x083f404a; 0x10/0x20/0x40/0x60 = run -> 0), and the frame feed
+  0x0814959c / 0x084d47a4 only queues input while it reads 0 -> with 7 only doorbells were written.
+INPUT PATH (RE + gdbstub): DecodeFrame feeds one MP3 frame per call, 0x082ad470(obj, src, len) (src = the
+  file buffer in DRAM via the 0x80000000 alias, starts with the fffb sync; 1044/1045 bytes at 320 kbps).
+  0x084d4680 builds a 24-byte descriptor at [codec obj + 0x40e8] = {next, len << 16 | 0xf80, src, -, out,
+  out}; 0x084d47a4 writes its address | 1 (1 = system memory) to +0x100, then +0x98c = 1. No DMA engine,
+  no IRAM copy; 0x38501000 = DRAM controller (periodic zero writes; now inside the 0x2000 adsp window).
+MODEL (nano7_adsp.c): +0x110/+0x114 port state machine; at a doorbell the descriptor's bytes are read
+  from guest RAM into a 16 KB buffer and decoded with minimp3 (emulator/machine/hw/arm/minimp3.h, CC0,
+  lieff/minimp3 @ ea99364f, MINIMP3_ONLY_MP3; copied by build.sh). PCM -> 0x22038100 + descriptor + ok
+  status; no samples yet -> status h1 = 2 (need more input, benign). Decoder reset on config job (+0x984),
+  port stop and state load. NANO7_ADSP_SILENT=1 = old silent frames; NANO7_ADSP_TRACE=1 = register log.
+RESULT (snap6 CMD + --nand-disk ... 49216 --nand-rsrc rsrc/rsrc-1.1.2.img1, play = space on Home, or
+  Music > Songs > Maladie over VNC): "MP3 44100 Hz, 2 ch, 320 kbps"; 1205 frames decoded in ~31 s of
+  playback, 0 need-more-input; I2S peak 31539/32767. VERIFIED BIT-EXACT: 6/6 16-sample probes (every 5 s)
+  of the emulator WAV found exactly in ffmpeg's decode of Maladie.mp3 at one constant offset -> no dropped
+  or repeated frames; playback starts at track position 0.
+LIVE SOUND: run.sh --audio-play = FIFO emulator/state/audio.fifo + host player (ffplay -nodisp -autoexit,
+  else aplay), 44.1 kHz s16 stereo; tested with SDL_AUDIODRIVER=dummy (no sound card on this server):
+  0 bytes dropped, player exits with the emulator. --audio-out FILE(.wav) still records.
+LIMITS: MP3 only (AAC/ALAC tracks still get the old protocol: AAC would need a decoder, ALAC is decoded
+  in software by the OS itself); the raw FIFO assumes 44.1 kHz (a 48 kHz track plays slightly slow via
+  --audio-play; the WAV header follows the I2S rate); fast-forward overruns the player (drops counted).
