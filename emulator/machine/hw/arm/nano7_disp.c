@@ -7,7 +7,8 @@
  *   +0x00  status        bit0 idle/ready (init + power-off spin for it),
  *                        bit1 running (submit 0x083bab28 won't kick)
  *   +0x04  mode + kick   bits 25:24 L0 mode, 29:28 L1 mode: 0 copy,
- *                        2 blend (+0x280 words), 1 solid fill (+0x290);
+ *                        2 blend (+0x280 words), 1 solid fill (+0x290,
+ *                        written as is, alpha included);
  *                        ring command 10 ORs in bit0 = kick (one-shot)
  *   +0x08  irq enable    bit0      +0x0c irq status bit0 frame done, W1C
  *   L0 (source)  +0x10 format (6 = ARGB8888, straight alpha), +0x14 addr,
@@ -182,7 +183,10 @@ static void disp_blit(Nano7DispState *s, uint32_t ctl)
                          disp_ld(src + (sy * sstride + sx) * 4);
             uint32_t D = le32_to_cpu(row[x]);
 
-            row[x] = cpu_to_le32(mode == 0 ? S : disp_blend(s, S, D));
+            /* copy and fill write the source; only mode 2 blends (a fill
+             * clears to +0x290 incl. alpha: keeping the old alpha left
+             * opaque black boxes where the old clock digits were) */
+            row[x] = cpu_to_le32(mode == 2 ? disp_blend(s, S, D) : S);
         }
         address_space_write(&address_space_memory, drow & 0x7fffffff,
                             MEMTXATTRS_UNSPECIFIED, row, dw * 4);

@@ -31,10 +31,15 @@
  *   0x74..0x77 u32 LE persistent offset: Unix time (UTC) = counter + offset;
  *              the OS writes it when the time is set
  *   0x45..0x49 alarm (counter domain) + enable: plain registers
+ * The OS also keeps a time-of-day cache (12 bytes at 0x08a6b7fc: u16 year,
+ * u8 month, day, u16 yday, s8 tz (15 min), u8 dst, hour, min, sec, flags)
+ * that it advances with uptime and only now and then refreshes from the
+ * RTC, so an RTC that disagrees with it makes the status-bar clock jump.
  * Model: the counter runs on the virtual clock, started so that counter +
- * offset = the rtc= time (default: host time); the offset starts at the
- * snapshot's 0x6a090928 (the OS also caches it in RAM). Reading 0x40
- * latches the 4 counter bytes.
+ * offset = the rtc= time: "snapshot" (default) = the cache's time at T0
+ * (read on the first RTC read, taken as UTC), "host" = host time, or Unix
+ * seconds. The offset starts at the snapshot's 0x6a090928 (also cached by
+ * the OS in RAM). Reading 0x40 latches the 4 counter bytes.
  * Other registers are a plain register file (0 at reset). Every register
  * touched is logged once.
  *
@@ -45,12 +50,14 @@
 #include "nano7_gpio.h"
 #include "qemu/timer.h"
 #include "ui/input.h"
+#include "exec/address-spaces.h"
 
 #define PMU_ADDR        0x73
 #define PMU_HOLD_MS     100
 #define PMU_SCRIPT_MAX  32
 #define PMU_BATT_MV     4100        /* battery level 14, as in snap6 */
 #define PMU_RTC_OFFSET  0x6a090928u /* snap6 offset (2026-05-17 00:17:44) */
+#define PMU_TOD_CACHE   0x08a6b7fcu /* OS time-of-day cache (snap6 build) */
 
 typedef struct PmuBtn {
     const char *name;
@@ -77,6 +84,7 @@ typedef struct Nano7PmuState {
     unsigned trace_left;        /* log every access for a while after a button */
     bool trace;                 /* NANO7_PMU_TRACE: log every access */
     int64_t rtc_base;           /* counter value at virtual time 0 */
+    bool rtc_from_snapshot;     /* rtc_base still to be set from the cache */
     PmuEvent script[PMU_SCRIPT_MAX];
     unsigned nscript, next;
     QEMUTimer *script_timer;
@@ -165,11 +173,38 @@ static bool pmu_write(void *opaque, uint8_t v)
     return true;
 }
 
+/* rtc=snapshot: start the RTC at the OS's cached time of day (taken as
+ * UTC, the way the status bar shows RTC time), so both clock sources agree */
+static void pmu_rtc_from_snapshot(Nano7PmuState *s)
+{
+    uint8_t c[12];
+    GDateTime *dt;
+
+    s->rtc_from_snapshot = false;
+    address_space_read(&address_space_memory, PMU_TOD_CACHE,
+                       MEMTXATTRS_UNSPECIFIED, c, sizeof(c));
+    dt = g_date_time_new_utc(c[0] | c[1] << 8, c[2], c[3], c[8], c[9], c[10]);
+    if (!dt) {
+        fprintf(stderr, "[nano7-pmu] RTC: no valid time-of-day cache at "
+                "0x%08x, keeping unix %" PRId64 "\n", PMU_TOD_CACHE,
+                s->rtc_base + PMU_RTC_OFFSET);
+        return;
+    }
+    s->rtc_base = g_date_time_to_unix(dt) - PMU_RTC_OFFSET;
+    fprintf(stderr, "[nano7-pmu] RTC: snapshot time %04u-%02u-%02u %02u:%02u:"
+            "%02u -> unix %" PRId64 "\n", c[0] | c[1] << 8, c[2], c[3], c[8],
+            c[9], c[10], g_date_time_to_unix(dt));
+    g_date_time_unref(dt);
+}
+
 static uint8_t pmu_read(void *opaque)
 {
     Nano7PmuState *s = opaque;
     uint8_t r = s->ptr++;
 
+    if (r == 0x40 && s->rtc_from_snapshot) {
+        pmu_rtc_from_snapshot(s);
+    }
     if (r == 0x40) {        /* latch the RTC counter for 0x40..0x43 */
         uint32_t c = s->rtc_base +
                      qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / NANOSECONDS_PER_SECOND;
@@ -308,13 +343,19 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
     s->regs[0x3e] = 0x7d;
     s->regs[0x3f] = 0x7d;
     {
-        int64_t now = (!rtc || !strcmp(rtc, "host")) ? (int64_t)time(NULL) :
+        bool snap = !rtc || !strcmp(rtc, "snapshot");
+        int64_t now = (snap || !strcmp(rtc, "host")) ? (int64_t)time(NULL) :
                       g_ascii_strtoll(rtc, NULL, 0);
+
+        s->rtc_from_snapshot = snap;
 
         stl_le_p(&s->regs[0x74], PMU_RTC_OFFSET);
         s->rtc_base = now - PMU_RTC_OFFSET;
-        fprintf(stderr, "[nano7-pmu] RTC: unix %" PRId64 " (counter %" PRId64
-                " + offset 0x%08x)\n", now, s->rtc_base, PMU_RTC_OFFSET);
+        if (!snap) {
+            fprintf(stderr, "[nano7-pmu] RTC: unix %" PRId64 " (counter %"
+                    PRId64 " + offset 0x%08x)\n", now, s->rtc_base,
+                    PMU_RTC_OFFSET);
+        }
     }
     pmu_singleton = s;
     s->script_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_script_tick, s);

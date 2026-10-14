@@ -96,7 +96,7 @@ struct Nano7MachineState {
     char *nand_disk;        /* 4 KB-LBA disk image for oracle misses */
     char *disp_dump;        /* directory for display-pipe frame dumps */
     char *buttons;          /* timed button script "SEC:BTN[:MS]/..." */
-    char *rtc;              /* PMU RTC start: "host" or Unix seconds */
+    char *rtc;              /* PMU RTC start: snapshot, host or Unix secs */
     uint32_t ctx_regs[16];
     bool ctx_loaded;
     bool ctx_has_cpsr;        /* DumpRAM format: word16 CPSR, word17 'DRAM' */
@@ -1156,7 +1156,9 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
     object_class_property_add_str(oc, "rtc", nano7_get_rtc, nano7_set_rtc);
     object_class_property_set_description(oc, "rtc",
                                           "PMU real-time clock at start: "
-                                          "host (default) or Unix seconds");
+                                          "snapshot (default: the OS's "
+                                          "cached time), host or Unix "
+                                          "seconds");
     object_class_property_add_str(oc, "buttons", nano7_get_buttons,
                                   nano7_set_buttons);
     object_class_property_set_description(oc, "buttons",
