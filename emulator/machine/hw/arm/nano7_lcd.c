@@ -49,6 +49,7 @@
 #include "target/arm/cpu.h"
 #include "exec/address-spaces.h"
 #include "ui/console.h"
+#include "migration/vmstate.h"
 
 #define LCD_SIZE        0x1000
 #define LCD_TE_PERIOD   16666667    /* ns, 60 Hz */
@@ -396,6 +397,41 @@ static const GraphicHwOps lcd_gfx_ops = {
     .gfx_update = lcd_gfx_update,
 };
 
+static int lcd_post_load(void *opaque, int version_id)
+{
+    Nano7LcdState *s = opaque;
+
+    s->dirty = true;            /* push the restored GRAM at the next TE */
+    return 0;
+}
+
+static const VMStateDescription vmstate_lcd = {
+    .name = "nano7-lcd",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = lcd_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, Nano7LcdState, LCD_SIZE / 4),
+        VMSTATE_BOOL_ARRAY(written, Nano7LcdState, LCD_SIZE / 4),
+        VMSTATE_TIMER_PTR(te_timer, Nano7LcdState),
+        VMSTATE_BOOL(te_low, Nano7LcdState),
+        VMSTATE_UINT32_ARRAY(fb, Nano7LcdState, NANO7_LCD_W * NANO7_LCD_H),
+        VMSTATE_UINT32_ARRAY(comp, Nano7LcdState, NANO7_LCD_W * NANO7_LCD_H),
+        VMSTATE_UINT32(last_hash, Nano7LcdState),
+        VMSTATE_UINT32_ARRAY(dsim_regs, Nano7LcdState, LCD_SIZE / 4),
+        VMSTATE_UINT8_ARRAY(pkt, Nano7LcdState, 0x4000),
+        VMSTATE_UINT32(pkt_len, Nano7LcdState),
+        VMSTATE_UINT32(win_x0, Nano7LcdState),
+        VMSTATE_UINT32(win_x1, Nano7LcdState),
+        VMSTATE_UINT32(win_y0, Nano7LcdState),
+        VMSTATE_UINT32(win_y1, Nano7LcdState),
+        VMSTATE_UINT32(cur_x, Nano7LcdState),
+        VMSTATE_UINT32(cur_y, Nano7LcdState),
+        VMSTATE_UINT64(tes, Nano7LcdState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
 {
     Nano7LcdState *s = g_new0(Nano7LcdState, 1);
@@ -406,6 +442,7 @@ void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
     }
     lcd_singleton = s;
     atexit(lcd_summary);
+    vmstate_register_any(NULL, &vmstate_lcd, s);
     s->con = graphic_console_init(NULL, 0, &lcd_gfx_ops, s);
     dpy_gfx_replace_surface(s->con, qemu_create_displaysurface_from(
                                 NANO7_LCD_W, NANO7_LCD_H, PIXMAN_x8r8g8b8,

@@ -28,6 +28,7 @@
 #include "nano7_gpio.h"
 #include "hw/core/cpu.h"
 #include "target/arm/cpu.h"
+#include "migration/vmstate.h"
 
 #define GPIO_GROUPS     8
 #define GPIO_PINS       256
@@ -239,6 +240,40 @@ void nano7_gpio_set_level(unsigned n, int level)
     w->level = level ? w->level | bit : w->level & ~bit;
 }
 
+static const VMStateDescription vmstate_gpio_bank = {
+    .name = "nano7-gpio-bank",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32(written, GpioBankWord),
+        VMSTATE_UINT32(level, GpioBankWord),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static int gpio_post_load(void *opaque, int version_id)
+{
+    gpio_update(opaque);
+    return 0;
+}
+
+static const VMStateDescription vmstate_gpio = {
+    .name = "nano7-gpio",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = gpio_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(cfg, Nano7GpioState, GPIO_GROUPS),
+        VMSTATE_UINT32_ARRAY(pend, Nano7GpioState, GPIO_GROUPS),
+        VMSTATE_UINT32_ARRAY(mask, Nano7GpioState, GPIO_GROUPS),
+        VMSTATE_UINT32_ARRAY(extra, Nano7GpioState, GPIO_GROUPS),
+        /* bank overlays are created at init in a fixed order */
+        VMSTATE_STRUCT_ARRAY(banks, Nano7GpioState, GPIO_BANK_WORDS, 1,
+                             vmstate_gpio_bank, GpioBankWord),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 void nano7_gpio_attach(MemoryRegion *parent, qemu_irq *vic_in)
 {
     Nano7GpioState *s = g_new0(Nano7GpioState, 1);
@@ -252,6 +287,7 @@ void nano7_gpio_attach(MemoryRegion *parent, qemu_irq *vic_in)
     s->parent = parent;
     s->trace = getenv("NANO7_GPIO_TRACE") != NULL;
     gpio_singleton = s;
+    vmstate_register_any(NULL, &vmstate_gpio, s);
     memory_region_init_io(&s->irq_mr, NULL, &gpio_irq_ops, s,
                           "nano7.gpio-irq", 0x80);
     memory_region_add_subregion_overlap(parent, 0x39700080, &s->irq_mr, 1);

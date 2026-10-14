@@ -37,6 +37,7 @@
 #include "nano7_gpio.h"
 #include "qemu/timer.h"
 #include "ui/input.h"
+#include "migration/vmstate.h"
 
 #define TP_SIZE         0x1000
 #define TP_MAX_XFER     0x200
@@ -329,6 +330,39 @@ static const QemuInputHandler tp_input_handler = {
     .sync  = tp_input_sync,
 };
 
+static int tp_post_load(void *opaque, int version_id)
+{
+    tp_update(opaque);
+    return 0;
+}
+
+static const VMStateDescription vmstate_touch = {
+    .name = "nano7-touch",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = tp_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, Nano7TouchState, TP_SIZE / 4),
+        VMSTATE_UINT32(flags, Nano7TouchState),
+        VMSTATE_TIMER_PTR(xfer_timer, Nano7TouchState),
+        VMSTATE_TIMER_PTR(poll_timer, Nano7TouchState),
+        VMSTATE_UINT8_ARRAY(tx, Nano7TouchState, TP_MAX_XFER),
+        VMSTATE_UINT8_ARRAY(rx, Nano7TouchState, TP_MAX_XFER),
+        VMSTATE_UINT32(tx_len, Nano7TouchState),
+        VMSTATE_UINT32(tx_want, Nano7TouchState),
+        VMSTATE_UINT32(rx_len, Nano7TouchState),
+        VMSTATE_UINT32(rx_pos, Nano7TouchState),
+        VMSTATE_BOOL(busy, Nano7TouchState),
+        VMSTATE_BOOL(served, Nano7TouchState),
+        VMSTATE_BOOL(line_low, Nano7TouchState),
+        VMSTATE_BUFFER_UNSAFE(q, Nano7TouchState, 1,
+                              sizeof(TouchReport) * TP_QUEUE),
+        VMSTATE_UINT32(q_head, Nano7TouchState),
+        VMSTATE_UINT32(q_n, Nano7TouchState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 void nano7_touch_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
 {
     Nano7TouchState *s = g_new0(Nano7TouchState, 1);
@@ -338,6 +372,7 @@ void nano7_touch_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     s->xfer_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, tp_xfer_done, s);
     s->poll_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, tp_poll, s);
     nano7_gpio_model_pin(NANO7_GPIO_TOUCH, 1);
+    vmstate_register_any(NULL, &vmstate_touch, s);
     memory_region_init_io(&s->mr, NULL, &tp_ops, s, "nano7.touch", TP_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);
     /* the handler only uses dev as an opaque cookie */

@@ -51,6 +51,7 @@
 #include "qemu/timer.h"
 #include "ui/input.h"
 #include "exec/address-spaces.h"
+#include "migration/vmstate.h"
 
 #define PMU_ADDR        0x73
 #define PMU_HOLD_MS     100
@@ -321,13 +322,11 @@ static void pmu_parse_script(Nano7PmuState *s, const char *script)
 
 /* keyboard (VNC / display window / monitor `sendkey`): h home, p power,
  * space play, Up / = / keypad + volume up, Down / - / keypad - volume down */
-static void pmu_key_event(DeviceState *dev, QemuConsole *src,
-                          InputEvent *evt)
+bool nano7_pmu_key(int qcode, bool down)
 {
-    InputKeyEvent *key = evt->u.key.data;
     int btn;
 
-    switch (qemu_input_key_value_to_qcode(key->key)) {
+    switch (qcode) {
     case Q_KEY_CODE_H:     btn = NANO7_BTN_HOME;  break;
     case Q_KEY_CODE_P:     btn = NANO7_BTN_POWER; break;
     case Q_KEY_CODE_SPC:   btn = NANO7_BTN_PLAY;  break;
@@ -337,15 +336,28 @@ static void pmu_key_event(DeviceState *dev, QemuConsole *src,
     case Q_KEY_CODE_DOWN:
     case Q_KEY_CODE_MINUS:
     case Q_KEY_CODE_KP_SUBTRACT: btn = NANO7_BTN_VOLDOWN; break;
-    default:               return;
+    default:               return false;
     }
-    nano7_pmu_button(btn, key->down);
+    nano7_pmu_button(btn, down);
+    return true;
 }
 
-static const QemuInputHandler pmu_key_handler = {
-    .name  = "nano7 buttons",
-    .mask  = INPUT_EVENT_MASK_KEY,
-    .event = pmu_key_event,
+static const VMStateDescription vmstate_pmu = {
+    .name = "nano7-pmu",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT8_ARRAY(regs, Nano7PmuState, 256),
+        VMSTATE_UINT8(ptr, Nano7PmuState),
+        VMSTATE_BOOL(have_ptr, Nano7PmuState),
+        VMSTATE_INT64(rtc_base, Nano7PmuState),
+        VMSTATE_BOOL(rtc_from_snapshot, Nano7PmuState),
+        VMSTATE_UINT32(next, Nano7PmuState),
+        VMSTATE_TIMER_PTR(script_timer, Nano7PmuState),
+        VMSTATE_TIMER_PTR_ARRAY(release_timer, Nano7PmuState,
+                                NANO7_BTN_COUNT),
+        VMSTATE_END_OF_LIST()
+    }
 };
 
 void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
@@ -355,7 +367,6 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
         .addr = PMU_ADDR, .opaque = s,
         .start = pmu_start, .write = pmu_write, .read = pmu_read,
     };
-    QemuInputHandlerState *hs;
 
     nano7_gpio_model_pin(NANO7_GPIO_PMU_IRQ, 1);   /* event line idle high */
     s->trace = getenv("NANO7_PMU_TRACE") != NULL;
@@ -383,6 +394,7 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
         }
     }
     pmu_singleton = s;
+    vmstate_register_any(NULL, &vmstate_pmu, s);
     s->script_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_script_tick, s);
     s->release_timer[NANO7_BTN_HOME] =
         timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_release_home, s);
@@ -400,6 +412,4 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
     if (script) {
         pmu_parse_script(s, script);
     }
-    hs = qemu_input_handler_register(NULL, &pmu_key_handler);
-    qemu_input_handler_activate(hs);
 }

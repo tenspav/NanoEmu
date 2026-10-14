@@ -25,6 +25,7 @@
 #include "qemu/osdep.h"
 #include "nano7_i2c.h"
 #include "qemu/timer.h"
+#include "migration/vmstate.h"
 
 #define I2C_SIZE        0x1000
 #define I2C_BYTE_NS     20000
@@ -39,6 +40,7 @@ struct Nano7I2CBus {
     Nano7I2CSlave slaves[I2C_MAX_SLAVES];
     unsigned nslaves;
     Nano7I2CSlave *cur;
+    int32_t cur_idx;            /* save state: index of cur (-1 = none) */
     QEMUTimer *timer;
     qemu_irq irq;
     uint64_t xfers;
@@ -167,6 +169,60 @@ static const MemoryRegionOps i2c_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
+static int i2c_pre_save(void *opaque)
+{
+    Nano7I2CBus *b = opaque;
+
+    b->cur_idx = b->cur ? b->cur - b->slaves : -1;
+    return 0;
+}
+
+static int i2c_post_load(void *opaque, int version_id)
+{
+    Nano7I2CBus *b = opaque;
+
+    b->cur = b->cur_idx >= 0 && b->cur_idx < b->nslaves ?
+             &b->slaves[b->cur_idx] : NULL;
+    i2c_update(b);
+    return 0;
+}
+
+static const VMStateDescription vmstate_i2c = {
+    .name = "nano7-i2c",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .pre_save = i2c_pre_save,
+    .post_load = i2c_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, Nano7I2CBus, I2C_SIZE / 4),
+        VMSTATE_UINT32(con, Nano7I2CBus),
+        VMSTATE_UINT32(stat, Nano7I2CBus),
+        VMSTATE_UINT32(ds, Nano7I2CBus),
+        VMSTATE_UINT32(st2, Nano7I2CBus),
+        VMSTATE_BOOL(busy, Nano7I2CBus),
+        VMSTATE_BOOL(nack, Nano7I2CBus),
+        VMSTATE_BOOL(rx, Nano7I2CBus),
+        VMSTATE_BOOL(rx_last, Nano7I2CBus),
+        VMSTATE_BOOL(ds_written, Nano7I2CBus),
+        VMSTATE_INT32(cur_idx, Nano7I2CBus),
+        VMSTATE_TIMER_PTR(timer, Nano7I2CBus),
+        VMSTATE_UINT64(xfers, Nano7I2CBus),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static const VMStateDescription vmstate_i2c_regfile = {
+    .name = "nano7-i2c-regfile",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT8_ARRAY(regs, I2CRegfileSlave, 256),
+        VMSTATE_UINT8(ptr, I2CRegfileSlave),
+        VMSTATE_BOOL(have_ptr, I2CRegfileSlave),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 Nano7I2CBus *nano7_i2c_attach(MemoryRegion *parent, hwaddr base,
                               qemu_irq irq, const char *name)
 {
@@ -176,6 +232,7 @@ Nano7I2CBus *nano7_i2c_attach(MemoryRegion *parent, hwaddr base,
     b->name = g_strdup(name);
     b->irq = irq;
     b->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, i2c_byte_done, b);
+    vmstate_register_any(NULL, &vmstate_i2c, b);
     memory_region_init_io(&b->mr, NULL, &i2c_ops, b, mrname, I2C_SIZE);
     memory_region_add_subregion_overlap(parent, base, &b->mr, 0);
     return b;
@@ -222,6 +279,8 @@ void nano7_i2c_add_regfile_slave(Nano7I2CBus *b, uint8_t addr)
         .addr = addr, .opaque = g_new0(I2CRegfileSlave, 1),
         .start = rf_start, .write = rf_write, .read = rf_read,
     };
+
+    vmstate_register_any(NULL, &vmstate_i2c_regfile, sl.opaque);
 
     nano7_i2c_add_slave(b, &sl);
 }

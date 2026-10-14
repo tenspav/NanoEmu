@@ -12,6 +12,8 @@
 #   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play|volup|voldown);
 #                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
 #   --rtc snapshot|host|SECONDS  PMU real-time clock at start (default snapshot)
+#   keys (VNC/display/sendkey): F1 reset (reload the boot state), F2 save
+#                                state, F4 load state (emulator/state/)
 #   --vnc [N]                    serve the LCD on VNC display :N (port 5900+N,
 #                                default :0); mouse = touch, keys h/p/space
 #   extra qemu args are passed through
@@ -24,7 +26,7 @@ IRAM_DEFAULT=/home/pavliukov/ipodwork/bt-research-20261007/nano-os-20261007/iram
 RAMFULL_DEFAULT=/home/pavliukov/ipodwork/bt-research-20261007/nano-os-20261007/ram-full-08000000.bin
 CTX_DEFAULT=/home/pavliukov/ipodwork/bt-research-20261007/nano-os-20261007/ctx.bin
 
-MARGS="nano7"
+MARGS="nano7,state-dir=$HERE/state,screens-dir=$HERE/screens"
 # default bootrom: the real dump, if present
 if [ -f "$HERE/../dumps/bootrom-vrom.bin" ]; then
     MARGS="$MARGS,bootrom=$HERE/../dumps/bootrom-vrom.bin"

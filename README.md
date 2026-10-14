@@ -53,7 +53,7 @@ Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 
 ## Key discoveries so far
 
-- ⚡ **The CPU is capped:** PLL1 runs at 684 MHz but the CPU divider holds it at 342 MHz. A single CLKCON register write doubles the clock. Risk analysis in [`docs/research/oc.md`](docs/research/oc.md) and [`docs/research/overclock-codex.md`](docs/research/overclock-codex.md)
+- ⚡ **The CPU is capped:** PLL1 runs at 684 MHz but the CPU divider holds it at 342 MHz. A single CLKCON register write doubles the clock. **The GPU is capped too:** stock 133 MHz, unlockable to 171-266 MHz ([`docs/research/gpu-clock.md`](docs/research/gpu-clock.md)). Risk analysis in [`docs/research/oc.md`](docs/research/oc.md) and [`docs/research/overclock-codex.md`](docs/research/overclock-codex.md)
 - 🧠 **No 8 MB app heap quota:** homebrew apps share a 40 MB OS heap; memory pressure comes from fragmentation, not a hard cap ([`docs/research/ram-map.md`](docs/research/ram-map.md))
 - 📻 **FM radio lives inside the Bluetooth chip** (Broadcom, HCI vendor command 0xFC15) ([`docs/research/radio.md`](docs/research/radio.md))
 - 📡 **Full classic Bluetooth stack present** (HCI/L2CAP/RFCOMM/A2DP/SSP), enabling fast host channels and HID gamepads ([`docs/research/bluetooth-stack.md`](docs/research/bluetooth-stack.md))

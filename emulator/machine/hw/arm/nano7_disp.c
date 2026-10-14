@@ -39,6 +39,7 @@
 #include "qemu/timer.h"
 #include "target/arm/cpu.h"
 #include "exec/address-spaces.h"
+#include "migration/vmstate.h"
 
 #define DISP_SIZE       0x1000
 #define DISP_BLIT_NS    20000       /* per blit, plus 5 ns per pixel */
@@ -309,6 +310,31 @@ static const MemoryRegionOps disp_ops = {
     .impl = { .min_access_size = 4, .max_access_size = 4 },
 };
 
+static int disp_post_load(void *opaque, int version_id)
+{
+    disp_update(opaque);
+    return 0;
+}
+
+static const VMStateDescription vmstate_disp = {
+    .name = "nano7-disp",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = disp_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, Nano7DispState, DISP_SIZE / 4),
+        VMSTATE_UINT32(status, Nano7DispState),
+        VMSTATE_UINT32(irq_status, Nano7DispState),
+        VMSTATE_TIMER_PTR(timer, Nano7DispState),
+        VMSTATE_UINT64(last_px, Nano7DispState),
+        VMSTATE_UINT64(kicks, Nano7DispState),
+        VMSTATE_UINT64(frames, Nano7DispState),
+        VMSTATE_UINT64(blits, Nano7DispState),
+        VMSTATE_UINT64(blit_px, Nano7DispState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 void nano7_disp_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
 {
     Nano7DispState *s = g_new0(Nano7DispState, 1);
@@ -320,6 +346,7 @@ void nano7_disp_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     s->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, disp_frame_done, s);
     disp_singleton = s;
     atexit(disp_summary);
+    vmstate_register_any(NULL, &vmstate_disp, s);
     memory_region_init_io(&s->mr, NULL, &disp_ops, s, "nano7.disp",
                           DISP_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);

@@ -20,5 +20,7 @@ enum { NANO7_BTN_HOME, NANO7_BTN_POWER, NANO7_BTN_PLAY, NANO7_BTN_VOLUP,
  * host clock, else Unix seconds (UTC) at start */
 void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc);
 void nano7_pmu_button(int btn, bool pressed);
+/* a key event (QKeyCode) from the front-end; true if it is a button key */
+bool nano7_pmu_key(int qcode, bool down);
 
 #endif

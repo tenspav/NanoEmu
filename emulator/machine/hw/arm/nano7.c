@@ -44,6 +44,7 @@
 #include "nano7_disp.h"
 #include "nano7_lcd.h"
 #include "nano7_touch.h"
+#include "nano7_ui.h"
 #include "nano7_gpio.h"
 #include "nano7_i2c.h"
 #include "nano7_pmu.h"
@@ -99,6 +100,8 @@ struct Nano7MachineState {
     char *disp_dump;        /* directory for display-pipe frame dumps */
     char *buttons;          /* timed button script "SEC:BTN[:MS]/..." */
     char *rtc;              /* PMU RTC start: snapshot, host or Unix secs */
+    char *state_dir;        /* save-state slots (F2 / F4, F1 reset) */
+    char *screens_dir;      /* F12 screenshots */
     uint32_t ctx_regs[16];
     bool ctx_loaded;
     bool ctx_has_cpsr;        /* DumpRAM format: word16 CPSR, word17 'DRAM' */
@@ -498,6 +501,20 @@ static void nano7_init(MachineState *machine)
     }
 
     s->cpu = ARM_CPU(cpu_create(machine->cpu_type));
+
+    /* front-end keys + save states: the RAM regions are saved raw, the
+     * devices below register their own vmstate sections */
+    nano7_ui_init(s->state_dir, s->screens_dir);
+    nano7_ui_add_ram(&s->dram, "dram");
+    if (memory_region_size(&s->iram_vec)) {
+        nano7_ui_add_ram(&s->iram_vec, "iram-vec");
+    }
+    if (memory_region_size(&s->iram)) {
+        nano7_ui_add_ram(&s->iram, "iram");
+    }
+    if (memory_region_size(&s->vrom)) {
+        nano7_ui_add_ram(&s->vrom, "vrom");
+    }
 
     /* 0x38e00000: dual PL192 VIC (IRQ 0..63) -> CPU IRQ/FIQ.
      * 0x3c700000: timer block (scheduler tick = channel B) on IRQ 8;
@@ -908,6 +925,8 @@ NANO7_STR_PROP(nand_disk_off)
 NANO7_STR_PROP(disp_dump)
 NANO7_STR_PROP(buttons)
 NANO7_STR_PROP(rtc)
+NANO7_STR_PROP(state_dir)
+NANO7_STR_PROP(screens_dir)
 
 static char *nano7_get_torn_map(Object *obj, Error **errp)
 {
@@ -1066,6 +1085,8 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->disp_dump);
     g_free(s->buttons);
     g_free(s->rtc);
+    g_free(s->state_dir);
+    g_free(s->screens_dir);
 }
 
 static void nano7_machine_class_init(ObjectClass *oc, void *data)
@@ -1175,6 +1196,15 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
     object_class_property_set_description(oc, "disp-dump",
                                           "directory: write each changed "
                                           "scanned-out LCD frame as a PPM");
+    object_class_property_add_str(oc, "state-dir", nano7_get_state_dir,
+                                  nano7_set_state_dir);
+    object_class_property_set_description(oc, "state-dir",
+                                          "directory for save-state slots "
+                                          "(F2 save, F4 load, F1 reset)");
+    object_class_property_add_str(oc, "screens-dir", nano7_get_screens_dir,
+                                  nano7_set_screens_dir);
+    object_class_property_set_description(oc, "screens-dir",
+                                          "directory for F12 screenshots");
     object_class_property_add_str(oc, "rtc", nano7_get_rtc, nano7_set_rtc);
     object_class_property_set_description(oc, "rtc",
                                           "PMU real-time clock at start: "

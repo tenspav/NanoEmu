@@ -25,4 +25,8 @@ void nano7_fmc_fmss_resume_kick(void);
 void nano7_fmc_nand_config(const char *store, const char *miss,
                            const char *disk, const char *disk_off);
 
+/* save state: copy the NAND page store out to / back in from a file */
+bool nano7_fmc_store_save(const char *path);
+bool nano7_fmc_store_load(const char *path);
+
 #endif

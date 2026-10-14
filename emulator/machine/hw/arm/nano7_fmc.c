@@ -31,6 +31,7 @@
 #include "hw/irq.h"
 #include "exec/address-spaces.h"
 #include "qemu/timer.h"
+#include "migration/vmstate.h"
 
 #define FMC_SIZE        0x1000
 #define FMC_NUM_CE      2
@@ -278,12 +279,25 @@ static int64_t nand_insert(NandStore *n, uint32_t ce, uint32_t addr,
     return slot;
 }
 
-static void nand_open(NandStore *n, const char *path)
+/* rebuild the page index from the record headers in the file */
+static void nand_reindex(NandStore *n)
 {
     NandHdr h;
     uint32_t i;
-    off_t size;
+    off_t size = lseek(n->fd, 0, SEEK_END);
 
+    g_hash_table_remove_all(n->idx);
+    for (i = 0; i < size / NAND_REC; i++) {
+        if (pread(n->fd, &h, sizeof(h), (off_t)i * NAND_REC) == sizeof(h) &&
+            h.magic == NAND_MAGIC) {
+            nand_insert(n, h.ce, h.addr, i);
+        }
+    }
+    n->slots = size / NAND_REC;
+}
+
+static void nand_open(NandStore *n, const char *path)
+{
     if (n->fd >= 0) {
         close(n->fd);
     }
@@ -311,14 +325,7 @@ static void nand_open(NandStore *n, const char *path)
         unlink(tmp);
         g_free(tmp);
     }
-    size = lseek(n->fd, 0, SEEK_END);
-    for (i = 0; i < size / NAND_REC; i++) {
-        if (pread(n->fd, &h, sizeof(h), (off_t)i * NAND_REC) == sizeof(h) &&
-            h.magic == NAND_MAGIC) {
-            nand_insert(n, h.ce, h.addr, i);
-        }
-    }
-    n->slots = size / NAND_REC;
+    nand_reindex(n);
     if (path) {
         fprintf(stderr, "[nano7-fmc] nand-store %s: %u pages\n", path,
                 g_hash_table_size(n->idx));
@@ -840,6 +847,107 @@ static void nand_oracle(Nano7FmcState *s)
     }
 }
 
+/* ------------------------------------------------------------ save state --- */
+static int fmc_post_load(void *opaque, int version_id)
+{
+    fmss_update_irq(opaque);
+    return 0;
+}
+
+static const VMStateDescription vmstate_fmc = {
+    .name = "nano7-fmc",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .post_load = fmc_post_load,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(regs, Nano7FmcState, FMC_SIZE / 4),
+        VMSTATE_BOOL_ARRAY(written, Nano7FmcState, FMC_SIZE / 4),
+        VMSTATE_INT32(ce, Nano7FmcState),
+        VMSTATE_UINT8(cur_cmd, Nano7FmcState),
+        VMSTATE_UINT32(status, Nano7FmcState),
+        VMSTATE_UINT32(popped, Nano7FmcState),
+        VMSTATE_UINT8_ARRAY(buf, Nano7FmcState, FMC_BUF_MAX),
+        VMSTATE_UINT32(buf_len, Nano7FmcState),
+        VMSTATE_UINT32(buf_pos, Nano7FmcState),
+        VMSTATE_UINT8(last_cmd, Nano7FmcState),
+        VMSTATE_UINT32(cs_status, Nano7FmcState),
+        VMSTATE_UINT32(fmss_pc, Nano7FmcState),
+        VMSTATE_BOOL(resume_kick_ok, Nano7FmcState),
+        VMSTATE_UINT64(fmss_runs, Nano7FmcState),
+        VMSTATE_UINT64(dma_in, Nano7FmcState),
+        VMSTATE_UINT64(dma_out, Nano7FmcState),
+        /* NAND store cursor; the store file is copied separately */
+        VMSTATE_INT32(nand.mode, Nano7FmcState),
+        VMSTATE_BUFFER_UNSAFE(nand.cur, Nano7FmcState, 1, sizeof(NandHdr)),
+        VMSTATE_INT64(nand.slot, Nano7FmcState),
+        VMSTATE_INT32(nand.sect, Nano7FmcState),
+        VMSTATE_INT32(nand.last_sect, Nano7FmcState),
+        VMSTATE_UINT32(nand.chunk, Nano7FmcState),
+        VMSTATE_BUFFER_UNSAFE(nand.rdq, Nano7FmcState, 1,
+                              sizeof(NandRead) * FMC_NUM_CE * NAND_RDQ),
+        VMSTATE_UINT32_ARRAY(nand.rdq_head, Nano7FmcState, FMC_NUM_CE),
+        VMSTATE_UINT32_ARRAY(nand.rdq_n, Nano7FmcState, FMC_NUM_CE),
+        VMSTATE_UINT64(nand.pages_prog, Nano7FmcState),
+        VMSTATE_UINT64(nand.sect_prog, Nano7FmcState),
+        VMSTATE_UINT64(nand.sect_hit, Nano7FmcState),
+        VMSTATE_UINT64(nand.sect_miss, Nano7FmcState),
+        VMSTATE_UINT64(nand.oracle_fixed, Nano7FmcState),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
+static bool fmc_copy_fd(int from, int to)
+{
+    static uint8_t buf[1 << 20];
+    off_t off = 0;
+    ssize_t n;
+
+    while ((n = pread(from, buf, sizeof(buf), off)) > 0) {
+        if (pwrite(to, buf, n, off) != n) {
+            return false;
+        }
+        off += n;
+    }
+    return n == 0;
+}
+
+bool nano7_fmc_store_save(const char *path)
+{
+    Nano7FmcState *s = fmc_singleton;
+    int fd;
+    bool ok;
+
+    if (!s) {
+        return false;
+    }
+    fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) {
+        return false;
+    }
+    ok = fmc_copy_fd(s->nand.fd, fd);
+    close(fd);
+    return ok;
+}
+
+bool nano7_fmc_store_load(const char *path)
+{
+    Nano7FmcState *s = fmc_singleton;
+    int fd;
+    bool ok;
+
+    if (!s) {
+        return false;
+    }
+    fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        return false;
+    }
+    ok = ftruncate(s->nand.fd, 0) == 0 && fmc_copy_fd(fd, s->nand.fd);
+    close(fd);
+    nand_reindex(&s->nand);
+    return ok;
+}
+
 void nano7_fmc_nand_config(const char *store, const char *miss,
                            const char *disk, const char *disk_off)
 {
@@ -1059,6 +1167,7 @@ void nano7_fmc_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     s->ce = -1;
     s->nand.fd = -1;
     s->nand.disk_fd = -1;
+    vmstate_register_any(NULL, &vmstate_fmc, s);
     nand_open(&s->nand, NULL);
     memory_region_init_io(&s->mr, NULL, &fmc_ops, s, "nano7.fmc", FMC_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);

@@ -36,7 +36,7 @@ Everything the NanoEmu project has learned about the nano 7G hardware, from our 
 | Model | Imagination PowerVR MBX Lite (strings "MBX1", threads MBXFlushThread/MBXFlipHandlerThread, 2D core "GKMBX2D") **[confirmed presence]** |
 | MMIO | 0x39100000 / 0x39200000 / 0x39300000 + control 0x3b000000, FIFO windows **[confirmed]** |
 | IRQ | 53 **[confirmed]** |
-| Clock / fill rate | **[unconfirmed]** (public PowerVR MBX Lite figures: ~1M tris/s, ~100M px/s, OpenGL ES 1.1) |
+| Clock | Stock 133 MHz (PLL2/2); unlockable to 171 MHz (safe, driver-known) or 266 MHz **[confirmed]** |
 | Emulation | Spec in docs/research/gpu-mbx-spec.md, not implemented yet |
 
 ## Video decode
