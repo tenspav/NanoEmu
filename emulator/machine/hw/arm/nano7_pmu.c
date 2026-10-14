@@ -25,6 +25,16 @@
  *   0x3c..0x3f temperature fields (0x0818a4e8): ~24 C
  *   0x05  bit6 external power, bit3 charger good (both = on USB power)
  *   0x29  bit2 + current-limit code bits 1:0 (2 = 500 mA)   0x0d bit3 = 0
+ * Real-time clock (Session 20 RE; read 0x0801ed02, set path 0x08010b1c):
+ *   0x40..0x43 u32 LE free-running 1 Hz counter (seconds since PMU power-
+ *              up, never written by the OS; it polls it at boot)
+ *   0x74..0x77 u32 LE persistent offset: Unix time (UTC) = counter + offset;
+ *              the OS writes it when the time is set
+ *   0x45..0x49 alarm (counter domain) + enable: plain registers
+ * Model: the counter runs on the virtual clock, started so that counter +
+ * offset = the rtc= time (default: host time); the offset starts at the
+ * snapshot's 0x6a090928 (the OS also caches it in RAM). Reading 0x40
+ * latches the 4 counter bytes.
  * Other registers are a plain register file (0 at reset). Every register
  * touched is logged once.
  *
@@ -40,6 +50,7 @@
 #define PMU_HOLD_MS     100
 #define PMU_SCRIPT_MAX  32
 #define PMU_BATT_MV     4100        /* battery level 14, as in snap6 */
+#define PMU_RTC_OFFSET  0x6a090928u /* snap6 offset (2026-05-17 00:17:44) */
 
 typedef struct PmuBtn {
     const char *name;
@@ -65,6 +76,7 @@ typedef struct Nano7PmuState {
     bool seen[256][2];          /* register logged (read / write) */
     unsigned trace_left;        /* log every access for a while after a button */
     bool trace;                 /* NANO7_PMU_TRACE: log every access */
+    int64_t rtc_base;           /* counter value at virtual time 0 */
     PmuEvent script[PMU_SCRIPT_MAX];
     unsigned nscript, next;
     QEMUTimer *script_timer;
@@ -143,6 +155,8 @@ static bool pmu_write(void *opaque, uint8_t v)
         /* ADC result: read-only */
     } else if (r >= 0x3c && r <= 0x3f) {
         /* temperature measurement: read-only */
+    } else if (r >= 0x40 && r <= 0x43) {
+        /* RTC counter: read-only */
     } else if (r == 0x30) {
         pmu_adc(s, v);
     } else {
@@ -156,6 +170,12 @@ static uint8_t pmu_read(void *opaque)
     Nano7PmuState *s = opaque;
     uint8_t r = s->ptr++;
 
+    if (r == 0x40) {        /* latch the RTC counter for 0x40..0x43 */
+        uint32_t c = s->rtc_base +
+                     qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / NANOSECONDS_PER_SECOND;
+
+        stl_le_p(&s->regs[0x40], c);
+    }
     pmu_log(s, r, false, s->regs[r]);
     return s->regs[r];
 }
@@ -268,7 +288,7 @@ static const QemuInputHandler pmu_key_handler = {
     .event = pmu_key_event,
 };
 
-void nano7_pmu_attach(Nano7I2CBus *bus, const char *script)
+void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
 {
     Nano7PmuState *s = g_new0(Nano7PmuState, 1);
     Nano7I2CSlave sl = {
@@ -287,6 +307,15 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script)
     s->regs[0x3d] = 0x84;
     s->regs[0x3e] = 0x7d;
     s->regs[0x3f] = 0x7d;
+    {
+        int64_t now = (!rtc || !strcmp(rtc, "host")) ? (int64_t)time(NULL) :
+                      g_ascii_strtoll(rtc, NULL, 0);
+
+        stl_le_p(&s->regs[0x74], PMU_RTC_OFFSET);
+        s->rtc_base = now - PMU_RTC_OFFSET;
+        fprintf(stderr, "[nano7-pmu] RTC: unix %" PRId64 " (counter %" PRId64
+                " + offset 0x%08x)\n", now, s->rtc_base, PMU_RTC_OFFSET);
+    }
     pmu_singleton = s;
     s->script_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, pmu_script_tick, s);
     s->release_timer[NANO7_BTN_HOME] =

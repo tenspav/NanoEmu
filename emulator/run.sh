@@ -10,6 +10,7 @@
 #   --disp-dump DIR              write display-pipe frames as PPMs
 #   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play); keys h/p/space
 #                                via the monitor's sendkey
+#   --rtc host|UNIX_SECONDS      PMU real-time clock at start (default host)
 #   extra qemu args are passed through
 set -euo pipefail
 
@@ -66,6 +67,8 @@ while [ $# -gt 0 ]; do
             MARGS="$MARGS,nand-disk=${2:?--nand-disk needs a file}"; shift 2 ;;
         --disp-dump)
             MARGS="$MARGS,disp-dump=${2:?--disp-dump needs a directory}"; shift 2 ;;
+        --rtc)
+            MARGS="$MARGS,rtc=${2:?--rtc needs host or Unix seconds}"; shift 2 ;;
         --buttons)
             MARGS="$MARGS,buttons=${2:?--buttons needs SEC:BTN[:MS]/...}"; shift 2 ;;
         --torn-map)

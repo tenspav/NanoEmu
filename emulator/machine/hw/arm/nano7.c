@@ -96,6 +96,7 @@ struct Nano7MachineState {
     char *nand_disk;        /* 4 KB-LBA disk image for oracle misses */
     char *disp_dump;        /* directory for display-pipe frame dumps */
     char *buttons;          /* timed button script "SEC:BTN[:MS]/..." */
+    char *rtc;              /* PMU RTC start: "host" or Unix seconds */
     uint32_t ctx_regs[16];
     bool ctx_loaded;
     bool ctx_has_cpsr;        /* DumpRAM format: word16 CPSR, word17 'DRAM' */
@@ -523,7 +524,7 @@ static void nano7_init(MachineState *machine)
         nano7_i2c_add_regfile_slave(i2c0, 0x08);
         nano7_i2c_add_regfile_slave(i2c1, 0x1a);
         nano7_i2c_add_regfile_slave(i2c1, 0x18);
-        nano7_pmu_attach(i2c1, s->buttons);
+        nano7_pmu_attach(i2c1, s->buttons, s->rtc);
     }
 
     if (s->ctx_file) {
@@ -891,6 +892,7 @@ NANO7_STR_PROP(nand_miss)
 NANO7_STR_PROP(nand_disk)
 NANO7_STR_PROP(disp_dump)
 NANO7_STR_PROP(buttons)
+NANO7_STR_PROP(rtc)
 
 static char *nano7_get_torn_map(Object *obj, Error **errp)
 {
@@ -1047,6 +1049,7 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->nand_disk);
     g_free(s->disp_dump);
     g_free(s->buttons);
+    g_free(s->rtc);
 }
 
 static void nano7_machine_class_init(ObjectClass *oc, void *data)
@@ -1150,6 +1153,10 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
     object_class_property_set_description(oc, "disp-dump",
                                           "directory: write each changed "
                                           "scanned-out LCD frame as a PPM");
+    object_class_property_add_str(oc, "rtc", nano7_get_rtc, nano7_set_rtc);
+    object_class_property_set_description(oc, "rtc",
+                                          "PMU real-time clock at start: "
+                                          "host (default) or Unix seconds");
     object_class_property_add_str(oc, "buttons", nano7_get_buttons,
                                   nano7_set_buttons);
     object_class_property_set_description(oc, "buttons",

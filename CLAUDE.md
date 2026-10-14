@@ -20,6 +20,7 @@ Homebrew QEMU emulator for a legacy ARM media-player SoC (Samsung S5L8747-class,
 - Physical buttons mapped to keyboard: volume up/down, play/pause, sleep/wake, home (button spec: workers/codex-touch.txt — Home/Power via I2C1 slave 0x73 reg 0x07, wheel GPIO)
 - Must boot the original RetailOS to the Home screen with real disk content
 - Eventually buildable on macOS (user's MacBook M2)
+- In-emulator usage HUD with simple graphs: guest CPU busy % (from PC sampler: idle-loop vs work), guest RAM usage (read the OS's own heap/allocator stats, we know the structures), GPU busy % once the GPU is modeled. Ships with the live display window.
 
 ## Project rules
 - Read emulator/boot-progress.md first — it is the session journal; append a dated entry for every work session.
