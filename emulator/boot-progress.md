@@ -821,3 +821,26 @@ SEEN, NOT FIXED: (1) the status-bar clock jumps from 12:52 PM to 12:18 AM, later
   RTC (not modeled, reads 0) is the likely source; (2) at start the OS polls PMU 0x10 (~700x, ~1.5 s)
   and 0x40..0x43 (~90x) until it gives up - unknown status bits.
 CMD: Session 17 CMD + --disp-dump DIR (fixups/snap6-resume.poke, --nand-miss oracle, --buttons ...).
+
+## Session 20 (2026-10-14): PMU real-time clock + blitter fill fix -> correct, clean status-bar clock
+RE (PMU 0x73, snap6 build; read 0x0801ed02 = write [reg] then N-byte read, set path 0x08010b1c):
+  0x40..0x43 u32 LE free-running 1 Hz counter (never written; the ~90 boot reads of 0x40..0x43 noted in
+  Session 19 are its poll), 0x74..0x77 u32 LE persistent offset, Unix time (UTC) = counter + offset;
+  snapshot offset 0x6a090928 (2026-05-17 00:17:44, also cached at [0x0890c0a8+0x18]); 0x45..0x49 alarm
+  + enable (plain). With the counter at 0 the OS saw exactly the offset -> the "12:17/12:18 AM" clock.
+  The OS also keeps a time-of-day cache at 0x08a6b7fc (u16 year, u8 mon, day, u16 yday, s8 tz in 15 min
+  (-32), u8 dst (1), h, m, s, flags; snapshot 2026-10-13 07:06:33) that it advances with uptime and
+  refreshes from the RTC only now and then; the status bar shows the RTC time without tz conversion.
+MODEL (nano7_pmu.c): counter on the virtual clock, read latched at 0x40; offset writable; machine prop
+  rtc= / run.sh --rtc: "snapshot" (default; RTC starts at the cache's time, taken as UTC, so both clock
+  sources agree), "host", or Unix seconds.
+BLITTER FIX (nano7_disp.c): mode 1 (fill) now writes +0x290 as is, alpha included. Applying the blend
+  words kept the old alpha -> opaque black boxes where the old clock digits were (minute redraw = fill
+  129x26 at (55,1) of the status-bar buffer, CPU draws digits, src-over onto the screen).
+RUNS: --rtc 2026-10-14 15:30:00 UTC -> "3:32 PM" at t=121 s (RTC path correct, UTC shown) but "7:08 AM"
+  in another frame (cache path) = the jump the snapshot default now avoids. Default run (Home at
+  60/90/130 s): "7:08 AM" at t=91.7 = 07:06:33 + 92 s, digits clean. The "12:52 PM" right after the wake
+  is the status bar as last rendered on the device before the snapshot, until the next minute redraw.
+OPEN: whether the cache's 07:06:33 is UTC or local (tz -8 h, DST) is not settled; use --rtc host for
+  wall-clock time (expect one jump when the OS next refreshes its cache from the RTC).
+CMD: Session 17 CMD + --disp-dump DIR [--rtc snapshot|host|SECONDS].
