@@ -8,7 +8,7 @@ Everything the NanoEmu project has learned about the nano 7G hardware, from our 
 |---|---|
 | Chip | Samsung S5L8747-class application processor ("N31" platform) **[confirmed]** |
 | CPU | ARM Cortex-A5, single core, ARMv7-A + Thumb-2 **[confirmed]** |
-| CPU clock | **[unconfirmed]** (PLL/CLKCON programming seen at 0x3c500000; exact frequency not yet measured) |
+| CPU clock | PLL1 locked at 684 MHz; CPU runs at 342 MHz (div 2). One-register boost to 684 MHz identified (CLKCON 0x3c500000) **[confirmed]** |
 | Boot ROM | 64 KB at 0x20000000 (dumps mirror 4x), reset vector 0x200000a8, Apple SecureROM with DFU over USB **[confirmed: we dumped it]** |
 
 ## Memory
