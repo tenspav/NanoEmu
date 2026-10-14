@@ -10,6 +10,9 @@
  *       coordinates follow)
  *   F9  integer zoom 1x / 2x / 3x (nearest neighbour, no blur)
  *   F12 screenshot: the panel frame as PNG into screens-dir
+ *   F5 / Pause  pause / resume the guest
+ *   F6  fast-forward 1x / 2x / 4x (cycle)   Tab (held)  4x while held
+ *       (guest time base, nano7_clock.c; the RTC runs fast too)
  * Actions run from a bottom half in the main loop, not inside the input
  * dispatch.
  *
@@ -49,6 +52,7 @@
 #include "ui/input.h"
 #include "ui/console.h"
 #include "nano7_lcd.h"
+#include "nano7_clock.h"
 #include <zlib.h>
 
 #define UI_MAX_RAM      8
@@ -77,6 +81,7 @@ typedef struct Nano7UiState {
     int rot;                    /* clockwise degrees: 0, 90, 180, 270 */
     int zoom;                   /* 1..3 */
     int out_w, out_h;
+    int ff_speed;               /* F6 setting; Tab overrides while held */
 } Nano7UiState;
 
 static Nano7UiState *ui;
@@ -396,6 +401,12 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
     if (nano7_pmu_key(qcode, key->down)) {
         return;
     }
+    if (qcode == Q_KEY_CODE_TAB) {      /* hold to fast-forward */
+        nano7_clock_set_speed(key->down ? 4 : ui->ff_speed);
+        fprintf(stderr, "[nano7-ui] speed %dx%s\n", nano7_clock_speed(),
+                key->down ? " (Tab held)" : "");
+        return;
+    }
     if (!key->down) {
         return;
     }
@@ -422,6 +433,21 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
     case Q_KEY_CODE_F12:
         ui_request(UI_SHOT);
         break;
+    case Q_KEY_CODE_F5:
+    case Q_KEY_CODE_PAUSE:
+        if (runstate_is_running()) {
+            vm_stop(RUN_STATE_PAUSED);
+            fprintf(stderr, "[nano7-ui] paused\n");
+        } else if (runstate_check(RUN_STATE_PAUSED)) {
+            vm_start();
+            fprintf(stderr, "[nano7-ui] resumed\n");
+        }
+        break;
+    case Q_KEY_CODE_F6:
+        ui->ff_speed = ui->ff_speed >= 4 ? 1 : ui->ff_speed * 2;
+        nano7_clock_set_speed(ui->ff_speed);
+        fprintf(stderr, "[nano7-ui] speed %dx\n", ui->ff_speed);
+        break;
     default:
         break;
     }
@@ -442,6 +468,8 @@ void nano7_ui_init(const char *state_dir, const char *screens_dir)
     ui->screens_dir = g_strdup(screens_dir ? screens_dir : "screens");
     ui->bh = qemu_bh_new(ui_bh, NULL);
     ui->zoom = 1;
+    ui->ff_speed = 1;
+    nano7_clock_set_speed(1);   /* registers the guest clock's vmstate */
     ui->con = graphic_console_init(NULL, 0, &ui_gfx_ops, ui);
     ui_render();                /* black 240x432 until the first frame */
     ui->vmse = qemu_add_vm_change_state_handler(ui_vm_state, NULL);

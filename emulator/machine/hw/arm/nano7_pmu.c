@@ -49,6 +49,7 @@
 #include "nano7_pmu.h"
 #include "nano7_gpio.h"
 #include "qemu/timer.h"
+#include "nano7_clock.h"
 #include "ui/input.h"
 #include "exec/address-spaces.h"
 #include "migration/vmstate.h"
@@ -111,7 +112,7 @@ static void pmu_log(Nano7PmuState *s, uint8_t reg, bool wr, uint8_t v)
             s->trace_left--;
         }
         fprintf(stderr, "[nano7-pmu] t=%.3f s %s reg 0x%02x %s 0x%02x\n",
-                qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9, wr ? "W" : "R",
+                nano7_now_ns() / 1e9, wr ? "W" : "R",
                 reg, wr ? "=" : "->", v);
         return;
     }
@@ -210,7 +211,7 @@ static uint8_t pmu_read(void *opaque)
         pmu_rtc_from_snapshot(s);
     }
     if (r == 0x40) {        /* latch the RTC counter for 0x40..0x43 */
-        uint32_t c = s->rtc_base + qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) /
+        uint32_t c = s->rtc_base + nano7_now_ns() /
                                    NANOSECONDS_PER_SECOND;
 
         stl_le_p(&s->regs[0x40], c);
@@ -233,7 +234,7 @@ void nano7_pmu_button(int btn, bool pressed)
         nano7_gpio_set_level(btn == NANO7_BTN_VOLUP ? NANO7_GPIO_VOL_UP :
                              NANO7_GPIO_VOL_DOWN, !pressed);
         fprintf(stderr, "[nano7-pmu] t=%.3f s button %s %s\n",
-                qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9, b->name,
+                nano7_now_ns() / 1e9, b->name,
                 pressed ? "pressed" : "released");
         return;
     }
@@ -246,7 +247,7 @@ void nano7_pmu_button(int btn, bool pressed)
     s->regs[3] |= b->ev_bit;
     s->trace_left = 64;
     fprintf(stderr, "[nano7-pmu] t=%.3f s button %s %s\n",
-            qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9, b->name,
+            nano7_now_ns() / 1e9, b->name,
             pressed ? "pressed" : "released");
     pmu_line(s);
 }
@@ -269,21 +270,22 @@ static void pmu_tap(Nano7PmuState *s, int btn, uint32_t hold_ms)
 {
     nano7_pmu_button(btn, true);
     timer_mod_ns(s->release_timer[btn],
-                 qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +
-                 (int64_t)hold_ms * 1000000);
+                 nano7_deadline(nano7_now_ns() +
+                 (int64_t)hold_ms * 1000000));
 }
 
 static void pmu_script_tick(void *opaque)
 {
     Nano7PmuState *s = opaque;
-    int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    int64_t now = nano7_now_ns();
 
     while (s->next < s->nscript && s->script[s->next].at_ns <= now) {
         pmu_tap(s, s->script[s->next].btn, s->script[s->next].hold_ms);
         s->next++;
     }
     if (s->next < s->nscript) {
-        timer_mod_ns(s->script_timer, s->script[s->next].at_ns);
+        timer_mod_ns(s->script_timer,
+                     nano7_deadline(s->script[s->next].at_ns));
     }
 }
 
@@ -316,7 +318,8 @@ static void pmu_parse_script(Nano7PmuState *s, const char *script)
         s->nscript++;
     }
     if (s->nscript) {
-        timer_mod_ns(s->script_timer, s->script[0].at_ns);
+        timer_mod_ns(s->script_timer,
+                     nano7_deadline(s->script[0].at_ns));
     }
 }
 

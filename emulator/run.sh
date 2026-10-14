@@ -13,7 +13,9 @@
 #                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
 #   --rtc snapshot|host|SECONDS  PMU real-time clock at start (default snapshot)
 #   keys (VNC/display/sendkey): F1 reset (reload the boot state), F2 save
-#                                state, F4 load state (emulator/state/)
+#                                state, F4 load state (emulator/state/), F5/Pause
+#                                pause, F6 speed 1x/2x/4x, Tab hold 4x, F7 rotate,
+#                                F9 zoom 1x/2x/3x, F12 screenshot (emulator/screens/)
 #   --vnc [N]                    serve the LCD on VNC display :N (port 5900+N,
 #                                default :0); mouse = touch, keys h/p/space
 #   extra qemu args are passed through

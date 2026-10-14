@@ -28,6 +28,7 @@
 #include "nano7_timer.h"
 #include "hw/core/cpu.h"
 #include "qemu/timer.h"
+#include "nano7_clock.h"
 #include "target/arm/cpu.h"
 #include "migration/vmstate.h"
 
@@ -139,10 +140,11 @@ static void tmr_expire(void *opaque)
     c->start_ns += tmr_period_ns(c);
     /* don't try to catch up after a long host stall */
     if (c->start_ns + tmr_period_ns(c) <
-        qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL)) {
-        c->start_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+        nano7_now_ns()) {
+        c->start_ns = nano7_now_ns();
     }
-    timer_mod_ns(c->timer, c->start_ns + tmr_period_ns(c));
+    timer_mod_ns(c->timer,
+                 nano7_deadline(c->start_ns + tmr_period_ns(c)));
     tmr_update(s);
 }
 
@@ -154,7 +156,7 @@ static void tmr_expire(void *opaque)
  */
 static uint64_t tmr_usec(Nano7TimerState *s)
 {
-    return s->usec_base + qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1000;
+    return s->usec_base + nano7_now_ns() / 1000;
 }
 
 static uint64_t tmr_read(void *opaque, hwaddr offset, unsigned size)
@@ -184,7 +186,7 @@ static uint64_t tmr_read(void *opaque, hwaddr offset, unsigned size)
         case 0x10: return c->pre;
         case 0x14:
             if (c->cmd & 1) {
-                int64_t el = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) -
+                int64_t el = nano7_now_ns() -
                              c->start_ns;
                 return muldiv64(MAX(el, 0), TMR_HZ,
                                 NANOSECONDS_PER_SECOND * (c->pre + 1));
@@ -217,7 +219,7 @@ static void tmr_write(void *opaque, hwaddr offset, uint64_t value,
     }
 
     Nano7TimerChan *c = &s->ch[n];
-    int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    int64_t now = nano7_now_ns();
 
     switch (reg) {
     case 0x00:
@@ -241,7 +243,8 @@ static void tmr_write(void *opaque, hwaddr offset, uint64_t value,
         }
         c->cmd = v & ~2u;
         if (c->cmd & 1) {
-            timer_mod_ns(c->timer, c->start_ns + tmr_period_ns(c));
+            timer_mod_ns(c->timer,
+                         nano7_deadline(c->start_ns + tmr_period_ns(c)));
         } else {
             timer_del(c->timer);
         }

@@ -48,6 +48,7 @@
 #include "target/arm/cpu.h"
 #include "exec/address-spaces.h"
 #include "nano7_ui.h"
+#include "nano7_clock.h"
 #include "migration/vmstate.h"
 
 #define LCD_SIZE        0x1000
@@ -186,7 +187,7 @@ static void lcd_dump(Nano7LcdState *s)
     fclose(f);
     s->dumps++;
     fprintf(stderr, "[nano7-lcd] t=%.3f s TE %" PRIu64 " screen (win0 0x%08x) "
-            "-> %s\n", qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9, s->tes,
+            "-> %s\n", nano7_now_ns() / 1e9, s->tes,
             s->regs[0x24 / 4], path);
     fflush(stderr);
 }
@@ -226,18 +227,19 @@ static void lcd_scanout(Nano7LcdState *s)
 static void lcd_te(void *opaque)
 {
     Nano7LcdState *s = opaque;
-    int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    int64_t now = nano7_now_ns();
 
     if (!s->te_low) {
         s->te_low = true;
         s->tes++;
         nano7_gpio_set_level(NANO7_GPIO_LCD_TE, 0);
         lcd_scanout(s);
-        timer_mod_ns(s->te_timer, now + LCD_TE_LOW);
+        timer_mod_ns(s->te_timer, nano7_deadline(now + LCD_TE_LOW));
     } else {
         s->te_low = false;
         nano7_gpio_set_level(NANO7_GPIO_LCD_TE, 1);
-        timer_mod_ns(s->te_timer, now + LCD_TE_PERIOD - LCD_TE_LOW);
+        timer_mod_ns(s->te_timer,
+                     nano7_deadline(now + LCD_TE_PERIOD - LCD_TE_LOW));
     }
 }
 
@@ -256,7 +258,7 @@ static void lcd_write(void *opaque, hwaddr off, uint64_t v, unsigned size)
         s->base_changes++ < 16) {
         fprintf(stderr, "[nano7-lcd] t=%.3f s pc=0x%08x window %d base -> "
                 "0x%08x (ctl 0x%08x, en 0x%x)\n",
-                qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9,
+                nano7_now_ns() / 1e9,
                 current_cpu ? ARM_CPU(current_cpu)->env.regs[15] : 0,
                 off == 0x44, (uint32_t)v, s->regs[(off - 4) / 4],
                 (s->regs[0x04 / 4] >> 4) & 3);
@@ -358,7 +360,7 @@ static void dsim_write(void *opaque, hwaddr off, uint64_t v, unsigned size)
         }
         if (s->dsi_packets++ < 8) {
             fprintf(stderr, "[nano7-lcd] t=%.3f s DSI packet type 0x%02x len "
-                    "%u cmd 0x%02x\n", qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) /
+                    "%u cmd 0x%02x\n", nano7_now_ns() /
                     1e9, type, len, s->pkt_len ? s->pkt[0] : 0);
         }
         s->pkt_len = 0;
@@ -424,8 +426,8 @@ void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
     vmstate_register_any(NULL, &vmstate_lcd, s);
     nano7_gpio_model_pin(NANO7_GPIO_LCD_TE, 1);
     s->te_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, lcd_te, s);
-    timer_mod_ns(s->te_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +
-                 LCD_TE_PERIOD);
+    timer_mod_ns(s->te_timer, nano7_deadline(nano7_now_ns() +
+                 LCD_TE_PERIOD));
     memory_region_init_io(&s->mr, NULL, &lcd_ops, s, "nano7.lcd", LCD_SIZE);
     memory_region_add_subregion_overlap(parent, base, &s->mr, 0);
     s->win_x1 = NANO7_LCD_W - 1;
