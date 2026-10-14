@@ -876,3 +876,39 @@ CMD: ./run.sh --ramfull ../dumps/snap6/ram-full.bin --iram ../dumps/snap6/iram.b
   --overlay ../dumps/snap6/overlay.bin --os-poke-file fixups/snap6-resume.poke --torn-map
   ../dumps/snap6/torn-map.bin --nand-miss oracle --vnc 5 [--buttons "60:home:100"]
   -M nano7,mmu=0x08b28000,torn-ignore-pc=0x093d2a80:0x093d4100    (then: vncviewer HOST:5905)
+
+## Session 22 (2026-10-14): volume buttons; DSI controller; Lines launch traced to a FAT-cache anomaly
+VOLUME (RE snap6): GPIO 0x28 up / 0x29 down (0x3cf000a4 bits 0/1, active-low), group 2 bits 0/1 -> IRQ
+  31; GPIOButtonManagerTask (idx 19, entry 0x080de2cc) waits on event 0x48 (callback 0x081541f4), the
+  GPIO ISR flips +0x88 polarity per edge -> needs press AND release interrupts; 10 ms debounce, emits
+  0x08408570(8 up / 7 down). No snapshot tear. MODEL: nano7_gpio_model_pin_both_edges (rising edges
+  latch too); buttons volup/voldown (--buttons) and keys Up/=/keypad+ and Down/-/keypad- via the PMU
+  front-end; resume-hw: 0x397000c8 |= 3, 0x39700088 |= 3. Verified: press+release edges reach IRQ 31.
+DSI (nano7_lcd.c): MIPI DSIM 0x3d800000 modeled: payload FIFO +0x38, packet header +0x34 (0x29 DCS long
+  write: 0x2a/0x2b window, 0x2c/0x3c RGB888 pixels into panel GRAM; 0x05 short writes ignored), FIFO
+  control +0x44 always empty/not full. The OS sends 0x2a/0x2b + short 0x2c every frame and used to spin
+  on the unmodeled FIFO status (10.9 M unimpl accesses per run). GRAM is now the displayed surface;
+  window composites are copied in only when they change, so direct DSI drawing would persist.
+DISK IMAGE: dumps/ipod-disk.dd (15.8 GB, dd of the device) = MBR + FAT32 partition at block 63 (4 KB
+  sectors, 4/cluster, rsv 32, 2 FATs x 942, root clus 2, data at partition block 1916 = image 1979).
+  FTL LBA = image block + 8661 (verified: Lines.hbapp cluster 9672 = image 40659 = FTL 0xc0a8, read by
+  the OS on launch). New option nand-disk-offset= / run.sh --nand-disk-offset 8661. Without the offset
+  every oracle fill was 8661 blocks off. The image was taken hours after snap6 (dump files moved), so it
+  is not fully consistent with the snapshot.
+LINES LAUNCH (RE + gdbstub traces; tools/rsp_trace.py = tiny GDB-remote client: breakpoints, step-over,
+  return values, memory at r0/r1/r2): resident at 0x09880000..: tap -> launch 0x098868F4 -> loader
+  0x09887C88: size wrapper 0x09886EA4 returns 111012 (correct), 24-byte read 0x09886E60 returns 24 but the
+  bytes are garbage -> magic check fails -> silent failure (tap consumed, icon stays pressed). Inside
+  the read: FAT get 0x084F510A(vol 0x08AE77BC, cluster 9672) returns 0x32013346 every time (image FAT
+  says 9673); the only NAND read in that window is FTL 0xc0a8 (the file's own first block), and
+  0x32013346 is exactly that block's bytes at offset 1824 = where FAT[9672] sits in a FAT block (real
+  FAT block 104 / FTL 0x223d has c9250000 there, never read). The bad chain then reads FTL 0x15f13.
+  So a FAT-sector request is satisfied with the data block's bytes - most likely a block read cache in
+  the FS/FTL layer (all FTL reads land in buffer 0x8b40a440) whose tag state from the snapshot no longer
+  matches the buffer contents. Not yet located. Snapshot FAT cache (vol+0x8c, 32 slots) matches the
+  image; nothing dirty (subagent RE: FAT cache tags 0x08AE7874.., 512 B sector cache 0x08AE7FAC x256).
+ALSO: Music hangs with --nand-disk (even with the offset) but opens without it - same mixed-state issue.
+NEXT: find the block-read cache (who maps FAT LBA 0x223d onto the 0xc0a8 buffer; break on the callers of
+  wrapper 0x0854db60 with the FAT-get on the stack) and invalidate its tags at resume; or take a fresh
+  DumpRAM snapshot + dd pair with no writes in between.
+CMD (with disk): Session 21 CMD + --nand-disk ../dumps/ipod-disk.dd --nand-disk-offset 8661.
