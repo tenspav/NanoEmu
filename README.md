@@ -21,7 +21,11 @@ The goal: boot the original nano 7G firmware in a window on your computer, with 
 - ✅ Input path: I2C PMU (Home, Power, Play/Pause buttons) + GPIO interrupts
 - ✅ **Home button wakes the device and exits to the REAL home screen** (icons, page dots, live clock, battery indicator)
 - ✅ PMU: battery voltage, temperature, charger status (no more Low Battery screen)
-- 🔜 Real-time clock (PMU RTC), live QEMU display window, touch input, volume buttons
+- ✅ Real-time clock (PMU RTC)
+- ✅ **LIVE WINDOW over VNC + mouse-as-touch + keyboard buttons** (tapping Music opens the Music app; h/p/space = Home/Power/Play)
+- 🔜 Volume buttons, multi-touch, homebrew apps need real NAND content (disk image already cloned)
+
+![Music app opened by a mouse tap in the live VNC window](docs/images/music-app-vnc.png)
 - ⬜ Boot-to-Home-screen with real disk content
 - ⬜ macOS build
 

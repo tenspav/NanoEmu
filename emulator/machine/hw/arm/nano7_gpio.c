@@ -185,6 +185,18 @@ void nano7_gpio_model_pin(unsigned n, int level)
     w->level = (w->level & ~(1u << (n & 7))) | (level ? 1u << (n & 7) : 0);
 }
 
+bool nano7_gpio_irq_armed(unsigned n)
+{
+    Nano7GpioState *s = gpio_singleton;
+    unsigned g, bit;
+
+    if (!s) {
+        return false;
+    }
+    gpio_map(n, &g, &bit);
+    return g < GPIO_GROUPS && (s->mask[g] >> bit & 1);
+}
+
 void nano7_gpio_set_level(unsigned n, int level)
 {
     Nano7GpioState *s = gpio_singleton;

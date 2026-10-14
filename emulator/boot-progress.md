@@ -844,3 +844,35 @@ RUNS: --rtc 2026-10-14 15:30:00 UTC -> "3:32 PM" at t=121 s (RTC path correct, U
 OPEN: whether the cache's 07:06:33 is UTC or local (tz -8 h, DST) is not settled; use --rtc host for
   wall-clock time (expect one jump when the OS next refreshes its cache from the RTC).
 CMD: Session 17 CMD + --disp-dump DIR [--rtc snapshot|host|SECONDS].
+
+## Session 21 (2026-10-14): live display over VNC, mouse = touchscreen, keys = buttons
+DISPLAY: the build already has VNC (pixman yes; SDL/GTK disabled), so no reconfigure. nano7_lcd.c now owns
+  a QEMU graphic console: its 240x432 XRGB composite (per TE pulse, bulk row reads instead of per-pixel
+  loads) IS the DisplaySurface; dpy_gfx_update_full only when the frame hash changes. run.sh --vnc [N]
+  adds -vnc :N (port 5900+N; -nographic kept). tools/vnc_probe.py = minimal RFB 3.8 client (shot, tap,
+  key, watch) since no VNC client is installed here.
+TOUCH (RE re-verified on snap6, Session 21): serial port 2 0x3d200000, IRQ 11, handler 0x08000fec:
+  +0x00 bits 2/3 FIFO flush, +0x04 read-back + bit8 START, +0x08 status bit0/bit22 done, bit1 TX
+  request, bit5 RX data (W1C) + live levels 10:6 TX / 15:11 RX, +0x0c bit1 CS (clear = selected),
+  +0x10 TX, +0x20 RX pop, +0x34/+0x4c length. MultitouchTask = thread 10 (id 0xa), blocked on event 0x43
+  from ready callback 0x08163ab1 (GPIO 0x26 = group 1 bit 30, IRQ 32); per report: 16-byte length query
+  (tx[2] = 0; reply LE16 L at 1, LE16 sum of 0..13 at 14) then fetch of L+5 bytes (tx[2] = 1; EA 01 L
+  hdr-checksum, payload, LE16 sum), then re-arm (mask bit set, pending cleared). Real gate 0x089144d4[0,1]
+  = 1,1 in snap6 (0x08909068 is not it). nano7_touch.[ch] (new): one-contact reports (0x44 payload,
+  record off 0x12 stride 0x10, id 1, type 1, state 3 down / 4 move / 5 up, raw = inverse of x =
+  (rawX+75)*239/2845, y = 431-(rawY+75)*431/5250); ready line low only while a report is queued AND the
+  OS armed the line, high again on CS release after the serving fetch. Host mouse via an absolute
+  QemuInputHandler (VNC/GTK/SDL); moves coalesced. resume-hw: 0x397000c4 = 0x40000040 (TE + touch),
+  0x397000e4 |= 1<<30. nano7_gpio: nano7_gpio_irq_armed(). Keys h/p/space: the PMU input handler (same
+  nano7_pmu_button path as --buttons) works over VNC.
+VERIFY (canonical snap6 CMD + --vnc 5, --buttons "60:home:100/70:home:100"): VNC frames of the app and
+  home screen; tap at (64,86) on home page 1 -> touch down/up fetched -> Music app opens (Genius Mixes,
+  Playlists, Artists, ...); 7 frame updates in 4 s streamed during the transition; VNC key h -> PMU Home
+  -> back to the home screen (clock 7:07 AM). PNGs: screens/session21/.
+OPEN: tapping the homebrew "Lines" icon only shows the pressed highlight (launch stalls; the app's files
+  are pre-snapshot NAND data = oracle zeros without a disk image); touch after screen-off may need the
+  controller firmware-upload path (0x0801f9dc) that is not modeled; multi-touch, volume buttons not done.
+CMD: ./run.sh --ramfull ../dumps/snap6/ram-full.bin --iram ../dumps/snap6/iram.bin --ctx fixups/snap6-ctx.bin
+  --overlay ../dumps/snap6/overlay.bin --os-poke-file fixups/snap6-resume.poke --torn-map
+  ../dumps/snap6/torn-map.bin --nand-miss oracle --vnc 5 [--buttons "60:home:100"]
+  -M nano7,mmu=0x08b28000,torn-ignore-pc=0x093d2a80:0x093d4100    (then: vncviewer HOST:5905)

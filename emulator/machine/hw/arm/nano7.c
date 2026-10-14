@@ -43,6 +43,7 @@
 #include "nano7_fmc.h"
 #include "nano7_disp.h"
 #include "nano7_lcd.h"
+#include "nano7_touch.h"
 #include "nano7_gpio.h"
 #include "nano7_i2c.h"
 #include "nano7_pmu.h"
@@ -142,9 +143,12 @@ static void nano7_resume_hw(void)
                          NULL);
     address_space_stl_le(as, 0x397000cc, 1u << 14, MEMTXATTRS_UNSPECIFIED,
                          NULL);
-    /* GPIO 14 (panel TE, group 1 bit 6 -> IRQ 32) armed by the display
-     * driver (commit callback 0x08060b19) */
-    address_space_stl_le(as, 0x397000c4, 1u << 6, MEMTXATTRS_UNSPECIFIED,
+    /* group 1 -> IRQ 32: GPIO 14 (panel TE, bit 6) armed by the display
+     * driver (commit callback 0x08060b19), GPIO 0x26 (touch report ready,
+     * bit 30) armed by MultitouchTask (0x083f6f3c(0x26, 1)) */
+    address_space_stl_le(as, 0x397000c4, 1u << 6 | 1u << 30,
+                         MEMTXATTRS_UNSPECIFIED, NULL);
+    address_space_stl_le(as, 0x397000e4, 1u << 30, MEMTXATTRS_UNSPECIFIED,
                          NULL);
     /* LCD window 0 geometry: programmed once at display init, before T0; a
      * commit (0x08080b70) only rewrites enable, +0x10 and the base. Full-
@@ -514,6 +518,10 @@ static void nano7_init(MachineState *machine)
     /* 0x38900000: LCD controller (2 scan-out windows) + panel TE on GPIO 14;
      * disp-dump writes the scanned-out screen */
     nano7_lcd_attach(get_system_memory(), 0x38900000, s->disp_dump);
+    /* 0x3d200000: serial port 2 = multitouch controller (IRQ 11, ready
+     * line GPIO 0x26), fed by the host mouse */
+    nano7_touch_attach(get_system_memory(), 0x3d200000,
+                       s->vic_in[NANO7_IRQ_TOUCH_SPI]);
     /* I2C buses: bus 0 slave 0x08; bus 1 PMU 0x73 (buttons) + 0x1a, 0x18 */
     {
         Nano7I2CBus *i2c0 = nano7_i2c_attach(get_system_memory(), 0x3c600000,

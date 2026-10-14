@@ -57,7 +57,8 @@ cp "$HERE/machine/hw/arm/nano7.c" "$HERE/machine/hw/arm/nano7_unimpl.c" \
    "$HERE/machine/hw/arm/nano7_gpio.h" "$HERE/machine/hw/arm/nano7_i2c.c" \
    "$HERE/machine/hw/arm/nano7_i2c.h" "$HERE/machine/hw/arm/nano7_pmu.c" \
    "$HERE/machine/hw/arm/nano7_pmu.h" "$HERE/machine/hw/arm/nano7_lcd.c" \
-   "$HERE/machine/hw/arm/nano7_lcd.h" "$QEMU_DIR/hw/arm/"
+   "$HERE/machine/hw/arm/nano7_lcd.h" "$HERE/machine/hw/arm/nano7_touch.c" \
+   "$HERE/machine/hw/arm/nano7_touch.h" "$QEMU_DIR/hw/arm/"
 
 grep -q "^config NANO7" "$QEMU_DIR/hw/arm/Kconfig" || \
     cat "$HERE/machine/kconfig.snippet" >> "$QEMU_DIR/hw/arm/Kconfig"
