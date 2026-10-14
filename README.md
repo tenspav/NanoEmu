@@ -28,6 +28,12 @@ Boots the **real RetailOS** from a live device snapshot into a **clickable windo
 
 <p align="center"><i>The Music app, opened by a mouse tap in the live window.</i></p>
 
+<p align="center">
+  <img src="docs/images/gba-pokemon.png" width="240" alt="GBA emulator running Pokemon FireRed">
+</p>
+
+<p align="center"><i>A GBA emulator homebrew (Lines) running Pokemon FireRed at 62 FPS inside NanoEmu. An emulator inside an emulator.</i></p>
+
 ## The hardware inside
 
 | | |
