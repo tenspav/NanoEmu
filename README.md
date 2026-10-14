@@ -1,82 +1,95 @@
-# NanoEmu
+<p align="center">
+  <img src="docs/images/home-page1.png" width="240" alt="NanoEmu home screen">
+</p>
 
-A work-in-progress QEMU-based emulator for the **iPod nano 7th generation** (2012, Samsung S5L8747-class SoC, Cortex-A5, 64 MB DRAM) - built for hardware preservation, homebrew development, and eventually running custom software on (and alongside) the original RetailOS.
+<h1 align="center">NanoEmu</h1>
 
-The goal: boot the original nano 7G firmware in a window on your computer, with the mouse as the touchscreen and keyboard keys as the physical buttons - and use it as a safe testbed for a future custom OS.
+<p align="center">
+  A QEMU-based emulator for the <b>iPod nano 7th generation</b> (2012)<br>
+  Hardware preservation, homebrew research, and a testbed for a future custom OS.
+</p>
 
-![First screen rendered by the emulated OS](docs/images/first-emulated-screen.png)
+<p align="center">
+  <img alt="version" src="https://img.shields.io/badge/version-0.5.0-blue">
+  <img alt="platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20(soon)-lightgrey">
+  <img alt="guest" src="https://img.shields.io/badge/guest-RetailOS%2037A40005-green">
+  <img alt="license" src="https://img.shields.io/badge/code-GPLv2%20(QEMU)-orange">
+</p>
 
-*Above: the real RetailOS running in NanoEmu rendered this screen by itself (240×432). It resumed from a live RAM snapshot of a real device, ran its own UI loop, drew frames, and eventually auto-dimmed the display - just like a real iPod left idle.*
+---
 
-## Current status
+## What it does today
 
-- ✅ Custom QEMU 9.1.2 machine (`nano7`): CPU, RAM, IRAM
-- ✅ Real SecureROM bootrom dump executes (verified authentic)
-- ✅ Interrupt controller (dual PL192-style VIC), timers (500 Hz scheduler tick, 1 MHz clock)
-- ✅ NAND flash controller (FMC) including the FMSS command sequencer, with a real sparse backing store - read-after-write accepted by the device's FTL/filesystem
-- ✅ SPI command engine (PMU/backlight), GPIO, I2C, power-gating - enough for the OS to run unmodified
-- ✅ Stable resume from a live-device RAM snapshot: 90k+ syscalls and 45k+ interrupts per 90 s run, no panics
-- ✅ Display pipeline: frame-done IRQ, framebuffer capture - the OS renders its own screens
-- ✅ Correct idle/auto-lock behavior (screen dims and powers off like real hardware)
-- ✅ Input path: I2C PMU (Home, Power, Play/Pause buttons) + GPIO interrupts
-- ✅ **Home button wakes the device and exits to the REAL home screen** (icons, page dots, live clock, battery indicator)
-- ✅ PMU: battery voltage, temperature, charger status (no more Low Battery screen)
-- ✅ Real-time clock (PMU RTC)
-- ✅ **LIVE WINDOW over VNC + mouse-as-touch + keyboard buttons** (tapping Music opens the Music app; h/p/space = Home/Power/Play)
-- 🔜 Volume buttons, multi-touch, homebrew apps need real NAND content (disk image already cloned)
+Boots the **real RetailOS** from a live device snapshot into a **clickable window** (VNC), with working buttons, touch, persistent flash storage, and correct power behavior. The OS renders its own UI, opens apps when you tap them, dims and locks the screen when idle, and wakes when you press Home.
 
-![Music app opened by a mouse tap in the live VNC window](docs/images/music-app-vnc.png)
-- ⬜ Boot-to-Home-screen with real disk content
-- ⬜ macOS build
+<p align="center">
+  <img src="docs/images/music-app-vnc.png" width="240" alt="Music app opened by a mouse tap">
+</p>
 
-![First home screen, rendered by the emulated OS](docs/images/home-screen-clean.png)
+<p align="center"><i>The Music app, opened by a mouse tap in the live window.</i></p>
 
-*Above: the actual nano 7G home screen rendered by RetailOS inside NanoEmu with its real homebrew apps, live clock and battery indicator.*
+## Feature status
 
-![Stock home page](docs/images/home-page1.png)
+| Subsystem | Status |
+|---|---|
+| CPU / RAM / IRAM | ✅ Complete (Cortex-A5, 64 MB) |
+| Interrupts (dual VIC) + timers | ✅ Complete |
+| NAND flash (FMC + FMSS sequencer) | ✅ With sparse backing store; FTL accepts read-after-write |
+| Display (blitter + LCD, 60 Hz) | ✅ OS-rendered frames |
+| Live window (VNC) + touch + keys | ✅ Working |
+| PMU (battery, charger, RTC) | ✅ Working |
+| Audio (I2S + codec) | 📍 Reverse-engineered, not implemented |
+| GPU (PowerVR MBX Lite) | 📍 Reverse-engineered, not implemented |
+| H.264 decoder (Apple M2) | 📍 Reverse-engineered, not implemented |
+| Bluetooth (classic + BLE) | 📍 Stack mapped, not implemented |
+| Cold boot from IPSW | ⬜ Planned (needs one-time on-device decryption) |
+| macOS build | ⬜ Planned |
 
-*And the stock Apple home page: Music, Videos, Fitness, Podcasts, Photos, Radio. The PMU emulation reports a full battery and USB power, so the OS runs happily.*
-
-## Repository layout
-
-- `emulator/` - the QEMU machine (`machine/hw/arm/nano7*.c`), `build.sh` (self-contained: downloads QEMU 9.1.2, installs the machine, builds), `run.sh` (boot/resume wrapper), `fixups/` (snapshot analysis/repair tools), `boot-progress.md` (full development journal, session by session)
-- `probe/` - on-device homebrew apps used to capture the machine state (DumpROM: bootrom capture; DumpRAM v6: near-atomic 64 MB RAM + IRAM + register-context capture with tear detection), plus packaging tools
-- `docs/research/` - reverse-engineering notes: NAND/FMC protocol, PPN flash detection, LCD controller, touch input, bootrom analysis
-- `docs/images/` - screenshots
-
-**No Apple firmware is included or needed in this repo.** You supply your own dumps from your own device (the probe apps in `probe/` do exactly that).
+Full hardware reverse-engineering notes live in [`docs/research/`](docs/research/). The session-by-session development journal is [`emulator/boot-progress.md`](emulator/boot-progress.md).
 
 ## Building
 
 ```sh
 cd emulator
-./build.sh    # downloads QEMU 9.1.2, installs the nano7 machine, builds qemu-system-arm
+./build.sh   # downloads QEMU 9.1.2, installs the nano7 machine, builds qemu-system-arm
 ```
 
 ## Running
 
-Resuming a captured device snapshot (see `probe/` for how to capture one):
+Resuming a captured device snapshot (see [`probe/`](probe/) for how to capture one from your own device):
 
 ```sh
 ./run.sh --ramfull <snap>/ram-full.bin --iram <snap>/iram.bin \
          --ctx fixups/<snap>-ctx.bin --overlay <snap>/overlay.bin \
          --os-poke-file <fixups>.poke --torn-map <snap>/torn-map.bin \
-         --nand-miss oracle --disp-dump screens/out \
-         -M nano7,mmu=<L1-table-addr>
+         --nand-miss oracle --vnc 5
 ```
 
-See `emulator/boot-progress.md` for the canonical commands and what each flag does.
+Then point any VNC viewer at `HOST:5905`. Mouse clicks are touch input; `h`, `p` and `space` are the Home, Power and Play/Pause buttons.
 
 ## On-device probes
 
-`probe/` contains the NanoApps-SDK homebrew apps used to dump the bootrom and capture consistent full-RAM snapshots of a running device (including an interrupts-masked atomic capture of volatile kernel regions). See `probe/INSTALL.md`.
+[`probe/`](probe/) contains homebrew apps (NanoApps SDK) used to capture the state of a real device: DumpROM (bootrom) and DumpRAM v6 (near-atomic 64 MB RAM + registers capture with tear detection and an interrupt-masked overlay). See [`probe/INSTALL.md`](probe/INSTALL.md).
+
+**No Apple firmware is included in this repository.** You capture dumps from your own device with the probe apps.
+
+## Roadmap
+
+1. Homebrew app support from real disk content (disk image already cloned)
+2. Audio output (spec ready)
+3. GPU + H.264 emulation (specs ready)
+4. Classic Bluetooth channel + HID gamepad (mini-handheld project)
+5. Cold boot from an original IPSW (via one-time on-device AES decryption)
+6. macOS build
+
+See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
 ## Credits
 
-- The jailbreak/app ecosystem this builds on: **wInd3x** and the **NanoApps** SDK community
-- QEMU © its contributors
-- All device firmware/dumps remain the property of Apple and are not distributed here
+- The jailbreak and homebrew ecosystem this builds on: **wInd3x** and the **NanoApps** SDK community
+- QEMU © its contributors (GPLv2)
+- All device firmware remains the property of Apple and is not distributed here
 
 ## Disclaimer
 
-Research and interoperability work on hardware owned by the authors. Not affiliated with Apple. "iPod" is a trademark of Apple Inc.
+Independent research and interoperability work on hardware owned by the authors. Not affiliated with Apple Inc. "iPod" is a trademark of Apple Inc.
