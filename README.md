@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/icon-256.png" width="128" alt="NanoEmu icon">
+  <img src="docs/images/icon-v2-256.png" width="128" alt="NanoEmu icon">
 </p>
 
 <h1 align="center">NanoEmu</h1>
