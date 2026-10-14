@@ -1,0 +1,31 @@
+4/+0x28`; `P=(v>>23)&63`, `M=(v>>3)&1023`, `S=v&7`.
+- Reader `0x083c9d8c` computes **fPLL=24 MHz × M/(P×2^S)**: strong firmware evidence for **24 MHz**, not 27 MHz.
+- With bit29 set, that reader uses alternate M bits `[22:13]`; preserve this mode bit.
+- Lock counters: `+0x30/+0x34/+0x38`; lock status: `+0x40`, bits0–2.
+- PLL control `+0x44`: bits0–2 enable PLLs; bits16–18 control output selection.
+- IRAM `0x220007d8` clears output/enable, writes PMS and lock count `0x1c20`, enables output/PLL, then polls lock.
+- IRAM **`0x22000896` changes S alone** and checks readback; the observed `0x220008a8` belongs to this routine.
+- System source/divider: `+0x00[13:12]` selects oscillator/PLL0/PLL1/PLL2; `[3:0]` encodes divisor−1.
+- CPU divider: **`+0x04[29:25]`, enable bit30**; divisor is `2×(field+1)` when enabled, otherwise 1.
+- Other system dividers at `+0x04`: fields `[5:1]/[21:17]/[13:9]`, enables bits6/22/14; same divisor formula.
+- Likely HCLK/PCLK are the latter two fields; the exact role of the low field needs hardware confirmation.
+- Memory-related domain6: **`+0x1c[13:12]` source, `[3:0]` and `[7:4]` product dividers**; setter also writes `0x38501000`. DRAM-clock attribution remains inferred.
+- Graphics-output initialization `0x08252fa8` selects **PLL0=486 MHz**, domain7 **`+0x08` upper half /9 =54 MHz**.
+- That is the `0x391/392/393` graphics-output subsystem; **it does not establish the MBX 3D core clock**. No verified independent MBX PLL offset emerged.
+- PLL table **`0x220037e4`**, ten `{MHz,P,M,S}` entries; count at `0x0890c0cc`.
+- Computed outputs: **684, 680, 532, 432, 266, 264, 216, 486, 112.909, 123 MHz**; the 113 entry is rounded.
+- Runtime mode table **`0x22003884`**, six 9-byte records; transition routine **`0x083f7e20`**.
+- Selected configuration decodes CPU modes **6, 24, 66.5, 133, 266, 342 MHz**; this is dynamic frequency scaling, with voltage scaling unproven.
+- `0x080bcdc0` manages client requests; `0x08401b08` aggregates them; `0x0800117a` explicitly requests mode5.
+- Snapshot **`0x0890c521=5`**, PLL variant flags `+3/+4=0`: inferred PLL0 **`+0x20=0x03000558` →684 MHz**, PLL1 **`+0x24=0x03000429` →266 MHz**.
+- Mode5 implies system /2, CPU /1: **342 MHz**; likely HCLK/PCLK **171/85.5 MHz**, memory-domain6 **66.5 MHz**.
+- These are reconstructed settings, **not captured MMIO values**. Separate [probe report](/home/pavliukov/ipodwork/NanoRework/dumps/report.txt) has `+0x00=0x40009001`, consistent with PLL0 /2.
+- First experiment: read live `+0x00…+0x44` during idle/load/display-off; compare PMU temperature and CPU PMU cycles against the verified 1 MHz timer.
+- Conditional small bump: if live mode5 matches, **PLL0 M171→176**, `+0x20=0x03000580`: **704 MHz PLL, 352 MHz CPU (+2.92%)**; likely buses also rise to **176/88 MHz**.
+- Execute the complete firmware transition from IRAM with serialized clock control, protected stack, barriers and bounded lock waits; a lone live PMS write is insufficient.
+- Preserve voltage, RAM timing and refresh; prevent governor races and arrange stock restoration plus verified watchdog recovery.
+- Test CPU arithmetic/CRC, allocated-RAM patterns, GPU rendering, audio and sleep/wake; begin briefly, then extend while monitoring temperature and errors.
+- PMU slave **`0x73`** supplies temperature, but its relationship to die temperature and automatic thermal shutdown is unverified; no dependable overclocking safeguard was established.
+- **Headroom:** 3–5% is an exploratory increment, not a safe rating; no verified S5L8747 characterization supports a larger claim.
+- **Risk:** PLL unlock usually recovers after reset; bad RAM/bus timing can corrupt NAND writes. Excess voltage or sustained overheating can permanently damage silicon, PMU or battery.
+- Older [Rockbox S5L register definitions](https://raw.githubusercontent.com/Rockbox/rockbox/master/firmware/export/s5l87xx.h) corroborate block offsets but use different PMS field positions—do not transplant their encodings.

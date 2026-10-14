@@ -912,3 +912,26 @@ NEXT: find the block-read cache (who maps FAT LBA 0x223d onto the 0xc0a8 buffer;
   wrapper 0x0854db60 with the FAT-get on the stack) and invalidate its tags at resume; or take a fresh
   DumpRAM snapshot + dd pair with no writes in between.
 CMD (with disk): Session 21 CMD + --nand-disk ../dumps/ipod-disk.dd --nand-disk-offset 8661.
+
+## Session 23 (2026-10-14): the "read cache" was a wrong disk offset -> Lines (GBA emulator) and Music run off the real disk
+TRACE (tools/rsp_trace.py, new RSP_STACK=lo:hi lists return addresses in another thread's stack):
+  requester stack at the bad FTL read: FAT get 0x084F510A <- FAT lookup 0x084f51cd -> block read
+  0x083d4e98(dev, 512 B sector, buf, n) -> 0x08543f04 -> 0x084df730 -> (FTL thread) s_read_real.
+  Arguments: FAT refill = sector 0x14b (FAT1 sector 75, volume-relative, 512 B units) into FAT-cache
+  slot 11 (0x08b16cac) -> FTL LBA 0xc0a8; the data read = sector 0x4f4a0 x8 -> FTL 0x15f13.
+  (sector + 504 partition sectors) / 8 = image block 104 resp. 40659, so BOTH reads are image block +
+  49216. There is no faulty cache: Session 22's offset 8661 was inferred from 0xc0a8 = "the file's
+  first block", but 0xc0a8 was the FAT read. With 8661 the FAT refill got the Lines data block
+  (0x32013346 = its bytes at offset 1824) and the chain went astray.
+FIX: --nand-disk-offset 49216 (0xc040): FTL LBA = image block + 49216 (the dd = MBR + FAT32 partition at
+  block 63; 49216 x 4 KB = 192 MB of FTL space before it). Snapshot check: the read in flight at T0
+  (LBA 0xc0cf) is image block 143 = FAT1, i.e. DumpRAM allocating clusters - consistent.
+RESULTS (snap6 CMD + --nand-disk ../dumps/ipod-disk.dd --nand-disk-offset 49216 --vnc 5):
+  tap Lines -> the homebrew GBA emulator starts, loads a ROM from disk (Pokemon FireRed), 62 FPS, game
+  advancing (Pallet Town at +3 s, Gary's dialogue at +20 s). Music opens and Songs lists the real
+  library ("Maladie"). No panics. PNGs: screens/session23/. The image is still hours newer than snap6;
+  no inconsistency visible yet, but writes from the emulated OS land on the NAND store only.
+CMD: ./run.sh --ramfull ../dumps/snap6/ram-full.bin --iram ../dumps/snap6/iram.bin --ctx fixups/snap6-ctx.bin
+  --overlay ../dumps/snap6/overlay.bin --os-poke-file fixups/snap6-resume.poke --torn-map
+  ../dumps/snap6/torn-map.bin --nand-miss oracle --nand-disk ../dumps/ipod-disk.dd --nand-disk-offset
+  49216 --vnc 5 [--buttons "60:home:100"] -M nano7,mmu=0x08b28000,torn-ignore-pc=0x093d2a80:0x093d4100
