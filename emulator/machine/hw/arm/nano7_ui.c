@@ -10,7 +10,10 @@
  *       coordinates follow)
  *   F9  integer zoom 1x / 2x / 3x (nearest neighbour, no blur)
  *   F12 screenshot: the panel frame as PNG into screens-dir
- *   F5 / Pause  pause / resume the guest
+ *   F5 / Pause  pause / resume the guest (a "soft" pause: vCPUs paused and
+ *       the virtual clock stopped, but the run state stays "running",
+ *       because QEMU drops all input while the VM is stopped - a real
+ *       vm_stop() could never be undone from the keyboard)
  *   F6  fast-forward 1x / 2x / 4x (cycle)   Tab (held)  4x while held
  *       (guest time base, nano7_clock.c; the RTC runs fast too)
  * Actions run from a bottom half in the main loop, not inside the input
@@ -49,6 +52,8 @@
 #include "exec/tb-flush.h"
 #include "hw/core/cpu.h"
 #include "sysemu/runstate.h"
+#include "sysemu/cpus.h"
+#include "sysemu/cpu-timers.h"
 #include "ui/input.h"
 #include "ui/console.h"
 #include "nano7_lcd.h"
@@ -82,6 +87,7 @@ typedef struct Nano7UiState {
     int zoom;                   /* 1..3 */
     int out_w, out_h;
     int ff_speed;               /* F6 setting; Tab overrides while held */
+    bool paused;                /* soft pause (F5 / Pause) */
 } Nano7UiState;
 
 static Nano7UiState *ui;
@@ -93,6 +99,19 @@ void nano7_ui_add_ram(MemoryRegion *mr, const char *name)
         ui->ram[ui->nram].name = g_strdup(name);
         ui->nram++;
     }
+}
+
+/* ------------------------------------------------------------ soft pause --- */
+static void ui_set_paused(bool on)
+{
+    if (on) {
+        pause_all_vcpus();
+        cpu_disable_ticks();    /* no guest time passes while paused */
+    } else {
+        cpu_enable_ticks();
+        resume_all_vcpus();
+    }
+    ui->paused = on;
 }
 
 /* ------------------------------------------------------------ save state --- */
@@ -133,6 +152,9 @@ static bool ui_save_state(const char *slot)
     ok = ok && nano7_fmc_store_save(nand);
     if (running) {
         vm_start();
+        if (ui->paused) {
+            ui_set_paused(true);    /* vm_start lifted the soft pause */
+        }
     }
     fprintf(stderr, "[nano7-ui] save state '%s' -> %s: %s (%.0f ms)\n", slot,
             dir, ok ? "ok" : "FAILED", (g_get_monotonic_time() - t0) / 1e3);
@@ -202,6 +224,9 @@ static bool ui_load_state(const char *slot)
     }
     if (ok) {
         vm_start();
+        if (ui->paused) {
+            ui_set_paused(true);
+        }
     }
     fprintf(stderr, "[nano7-ui] load state '%s' <- %s: %s (%.0f ms)%s\n",
             slot, dir, ok ? "ok" : "FAILED",
@@ -436,11 +461,9 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
     case Q_KEY_CODE_F5:
     case Q_KEY_CODE_PAUSE:
         if (runstate_is_running()) {
-            vm_stop(RUN_STATE_PAUSED);
-            fprintf(stderr, "[nano7-ui] paused\n");
-        } else if (runstate_check(RUN_STATE_PAUSED)) {
-            vm_start();
-            fprintf(stderr, "[nano7-ui] resumed\n");
+            ui_set_paused(!ui->paused);
+            fprintf(stderr, "[nano7-ui] %s\n", ui->paused ? "paused" :
+                    "resumed");
         }
         break;
     case Q_KEY_CODE_F6:
