@@ -2,6 +2,17 @@
 
 All notable milestones of NanoEmu, in reverse order. This project uses semantic-ish versioning: every guest-visible capability bump is a minor version.
 
+## [v1.2.1] - 2026-10-15
+### Added
+- **NanoSync Mac**: a small Mac app that sends music to a real iPod nano 7G for the NanoSync homebrew app to add to the library. Drag songs or folders onto its window, plug the iPod in over USB (it shows up as a drive), click Sync, eject, then tap Importar in NanoSync on the iPod
+  - MP3 files are copied as they are; M4A, AAC, WAV, AIFF, FLAC, OGG, Opus and WMA are converted to MP3 with ffmpeg, keeping tags and cover art
+  - Short, FAT-safe file names; files already waiting on the iPod are never overwritten
+  - Shows free space, how many songs are waiting and NanoSync's last report; warns when NanoSync is missing or in rehearsal mode
+  - Removes the hidden "._" files macOS leaves on the iPod's drive
+  - Videos are listed but not sent: NanoSync imports music only
+  - Also a command line: `"NanoSync Mac.app/Contents/MacOS/NanoSyncMac" --cli FILES...`
+- The `.dmg` now contains both NanoEmu and NanoSync Mac
+
 ## [v1.2.0] - 2026-10-15
 ### Added
 - NanoEmu.app for macOS: a real desktop app, 780 x 836 points on a 13" MacBook (1.5x), with the iPod nano 7G drawn around the screen and clickable Sleep/Wake, Volume Up/Down, Play/Pause and Home buttons

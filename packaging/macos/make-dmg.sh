@@ -22,17 +22,23 @@ DMG="$ROOT/emulator/dist/NanoEmu-$VERSION.dmg"
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 cp -R "$APP" "$STAGE/"
+SYNC="$ROOT/emulator/dist/NanoSync Mac.app"     # sync/macos/build.sh
+[ -d "$SYNC" ] && cp -R "$SYNC" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 cat > "$STAGE/READ ME.txt" <<TXT
 NanoEmu $VERSION - iPod nano 7G emulator
 
-1. Drag NanoEmu to Applications.
-2. First launch: right-click NanoEmu > Open (the app is not notarized).
+1. Drag NanoEmu (and NanoSync Mac, for sending music to a real iPod) to
+   Applications.
+2. First launch: right-click the app > Open (the apps are not notarized).
 3. NanoEmu ships no Apple firmware. Put your own DumpRAM capture in
    ~/Library/Application Support/NanoEmu/snapshot
    (ram-full.bin, iram.bin, overlay.bin, torn-map.bin), and optionally
    ipod-disk.dd and rsrc.img1 next to it for music and apps.
    Details: docs/MACOS.md in the NanoEmu repository.
+4. NanoSync Mac: drag songs onto its window, connect the iPod by USB,
+   click Sync, eject, then tap Importar in NanoSync on the iPod.
+   Details: docs/NANOSYNC-MAC.md.
 TXT
 
 rm -f "$DMG"
