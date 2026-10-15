@@ -1,4 +1,4 @@
-ACCELEROMETER SPEC — iPod nano 7G (Samsung S5L8747); verified from snap6 ram-full.bin / iram.bin.
+ACCELEROMETER SPEC, iPod nano 7G (Samsung S5L8747); verified from snap6 ram-full.bin / iram.bin.
 1. Sensor HW: STMicroelectronics LIS3DH (WHO_AM_I reg 0x0F == 0x33, probe 0x08147ff0; active vtable 0x089177a4 at ptr 0x0890c0c4). Alternate driver: Bosch BMA250 (CHIP_ID reg 0x00 == 0x03, vtable 0x0891781c, probe 0x0814809c).
 2. Bus: I2C1 (0x3c900000), 7-bit slave address 0x18. Read: 0x083ff2a8 (registers 0x20-0x33, FIFO 0x2E/0x2F); Write: 0x083dc198 / iram 0x22000652.
 3. Driver Task 68 (0x44): "Accelerometer" (string 0x08004080, entry Thumb 0x08006429 / 0x08006428). Periodic timer sampling thread (10ms/100Hz, sleep 0x0842b1dc), reads sensor via 0x0800c5dc.

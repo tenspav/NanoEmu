@@ -1,9 +1,9 @@
 /*
- * DumpRAM — full-RAM snapshot companion to DumpROM.
+ * DumpRAM, full-RAM snapshot companion to DumpROM.
  *
  * Raw-surface homebrew app (HBAppKind 1, no LVGL): one big "DUMPRAM" button.
- * On tap it runs the WHOLE dump inside a SINGLE frame — no per-stage UI
- * redraws — so the time skew between the register capture and the RAM read is
+ * On tap it runs the WHOLE dump inside a SINGLE frame, no per-stage UI
+ * redraws, so the time skew between the register capture and the RAM read is
  * as small as the device allows (the previous 300 s staged dump came out
  * internally inconsistent). Order, tightest-skew-first:
  *
@@ -264,7 +264,7 @@ static uint32_t g_fmc_status;              /* v3: +0x48 at capture            */
 /* Wait until the FMC reports no pending completions, bounded; then settle.
  * The SDK has no fsync: hb_fs_write flushes before returning, and nothing
  * has been written to the stream file yet at this point, so the only
- * in-flight NAND work can be the driver's own tail — hence the poll. */
+ * in-flight NAND work can be the driver's own tail, hence the poll. */
 static void nand_wait_idle(void)
 {
     uint32_t start = hb_time_uptime_ms();
@@ -392,7 +392,7 @@ static void ovl_copy_verified(void)
             ok = h1 == h2 && blk_hash(dst, BLK_BYTES) == h1;
         }
         if (!ok) {
-            /* v6: never drop it — one short masked copy instead */
+            /* v6: never drop it, one short masked copy instead */
             g_ovl_unverified++;
             g_ovl_fallback++;
             uint32_t m = irq_save();

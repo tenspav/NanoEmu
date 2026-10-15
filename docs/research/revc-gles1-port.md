@@ -21,4 +21,4 @@ der.cpp` equivalent: fixed-function matrix, light, material, texture and vertex-
 - M0: validate the supplied hardware assumptions through the actual device API; obtain GLES1 context, clear/present, log limits/extensions and memory.
 - M1: standalone rotating indexed cube with depth/culling and fixed matrices; then add one RGB565 texture.
 - M2: wire librw Device/Driver lifecycle and Im3D; render the same cube through librw, checking coordinate conventions and state restoration.
-- M3: default atomic pipeline plus raster upload; load one small non-native DFF/TXD and rotate it—**first asset render**, before game startup, skinning or world streaming.
+- M3: default atomic pipeline plus raster upload; load one small non-native DFF/TXD and rotate it-**first asset render**, before game startup, skinning or world streaming.

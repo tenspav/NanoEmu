@@ -1,19 +1,19 @@
-1 MMU table `08b28000–08b2c000` |
-| `08b30e5c–08cdc25c` | 1.669 | Secondary heap; control object `0b3e1d38`, singleton slot `0895c530` |
-| `08cdc25c–08d184b8` | 0.235 | Outside both examined heaps; ownership unresolved—no safe-steal claim |
-| `08d184b8–0b564e80` | 40.299 | Shared main heap: OS objects, caches, stacks, homebrew, capture buffers |
-| `0b564e80–0b890f40` | 3.172 | Graphics/video reservation: `2 × 00196060` bytes |
-| `0b890f40–0ba5efa0` | 1.805 | Graphics/video reservation: `001ce060` bytes |
-| `0ba5efa0–0c000000` | 5.629 | Graphics/video reservation: `005a1060` bytes; contains framebuffers |
+1 MMU table `08b28000-08b2c000` |
+| `08b30e5c-08cdc25c` | 1.669 | Secondary heap; control object `0b3e1d38`, singleton slot `0895c530` |
+| `08cdc25c-08d184b8` | 0.235 | Outside both examined heaps; ownership unresolved-no safe-steal claim |
+| `08d184b8-0b564e80` | 40.299 | Shared main heap: OS objects, caches, stacks, homebrew, capture buffers |
+| `0b564e80-0b890f40` | 3.172 | Graphics/video reservation: `2 × 00196060` bytes |
+| `0b890f40-0ba5efa0` | 1.805 | Graphics/video reservation: `001ce060` bytes |
+| `0ba5efa0-0c000000` | 5.629 | Graphics/video reservation: `005a1060` bytes; contains framebuffers |
 
-**Free subranges—allocate through their owner, never overwrite directly:**
+**Free subranges-allocate through their owner, never overwrite directly:**
 
 | Snapshot range / aggregate | Size | Evidence |
 |---|---:|---|
 | Main heap: 167 scattered free blocks | 2.653 | Complete block-header walk; bit 0 marks free |
-| `08d188ac–08efd444` | 1.893 | Largest main-heap free block, including allocator overhead |
-| `08b30e5c–08b87d10` | 347.676 KiB | Secondary heap’s only free block |
-| `0bec3f00–0bf29300`, `0bf29380–0bf8e780` | 405 KiB each | Known framebuffer spans; reserved, overlapping the table above |
+| `08d188ac-08efd444` | 1.893 | Largest main-heap free block, including allocator overhead |
+| `08b30e5c-08b87d10` | 347.676 KiB | Secondary heap’s only free block |
+| `0bec3f00-0bf29300`, `0bf29380-0bf8e780` | 405 KiB each | Known framebuffer spans; reserved, overlapping the table above |
 
 The main-heap walk agrees between raw RAM and the overlay applied **in memory**. Zero-filled pages occur inside allocated blocks; this snapshot proves neither “never referenced” nor safe ownership of those pages.
 
@@ -34,23 +34,23 @@ Addresses below are physical; ranges are **[start,end)**. Sizes are MiB unless s
 
 | Range | Size | Status / owner |
 |---|---:|---|
-| `08000000–08971704` | 9.443 | Reserved: firmware code, constants, initialized data |
-| `08971704–08b30e5c` | 1.748 | Reserved: BSS/kernel/driver tables; includes L1 MMU table `08b28000–08b2c000` |
-| `08b30e5c–08cdc25c` | 1.669 | Secondary heap; control object `0b3e1d38`, singleton slot `0895c530` |
-| `08cdc25c–08d184b8` | 0.235 | Outside both examined heaps; ownership unresolved—no safe-steal claim |
-| `08d184b8–0b564e80` | 40.299 | Shared main heap: OS objects, caches, stacks, homebrew, capture buffers |
-| `0b564e80–0b890f40` | 3.172 | Graphics/video reservation: `2 × 00196060` bytes |
-| `0b890f40–0ba5efa0` | 1.805 | Graphics/video reservation: `001ce060` bytes |
-| `0ba5efa0–0c000000` | 5.629 | Graphics/video reservation: `005a1060` bytes; contains framebuffers |
+| `08000000-08971704` | 9.443 | Reserved: firmware code, constants, initialized data |
+| `08971704-08b30e5c` | 1.748 | Reserved: BSS/kernel/driver tables; includes L1 MMU table `08b28000-08b2c000` |
+| `08b30e5c-08cdc25c` | 1.669 | Secondary heap; control object `0b3e1d38`, singleton slot `0895c530` |
+| `08cdc25c-08d184b8` | 0.235 | Outside both examined heaps; ownership unresolved-no safe-steal claim |
+| `08d184b8-0b564e80` | 40.299 | Shared main heap: OS objects, caches, stacks, homebrew, capture buffers |
+| `0b564e80-0b890f40` | 3.172 | Graphics/video reservation: `2 × 00196060` bytes |
+| `0b890f40-0ba5efa0` | 1.805 | Graphics/video reservation: `001ce060` bytes |
+| `0ba5efa0-0c000000` | 5.629 | Graphics/video reservation: `005a1060` bytes; contains framebuffers |
 
-**Free subranges—allocate through their owner, never overwrite directly:**
+**Free subranges-allocate through their owner, never overwrite directly:**
 
 | Snapshot range / aggregate | Size | Evidence |
 |---|---:|---|
 | Main heap: 167 scattered free blocks | 2.653 | Complete block-header walk; bit 0 marks free |
-| `08d188ac–08efd444` | 1.893 | Largest main-heap free block, including allocator overhead |
-| `08b30e5c–08b87d10` | 347.676 KiB | Secondary heap’s only free block |
-| `0bec3f00–0bf29300`, `0bf29380–0bf8e780` | 405 KiB each | Known framebuffer spans; reserved, overlapping the table above |
+| `08d188ac-08efd444` | 1.893 | Largest main-heap free block, including allocator overhead |
+| `08b30e5c-08b87d10` | 347.676 KiB | Secondary heap’s only free block |
+| `0bec3f00-0bf29300`, `0bf29380-0bf8e780` | 405 KiB each | Known framebuffer spans; reserved, overlapping the table above |
 
 The main-heap walk agrees between raw RAM and the overlay applied **in memory**. Zero-filled pages occur inside allocated blocks; this snapshot proves neither “never referenced” nor safe ownership of those pages.
 

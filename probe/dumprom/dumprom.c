@@ -1,21 +1,21 @@
 /*
- * DumpROM — visible version of the headless VROM probe.
+ * DumpROM, visible version of the headless VROM probe.
  *
  * Raw-surface homebrew app (HBAppKind 1, no LVGL): one big "DUMP ROM" button.
  * On tap it runs the staged dump from the headless probe, one stage per frame
  * (each frame stays short; progress is visible):
- *   1. /Apps/Data/probe/report.txt — CPSR + regs 0x3C500000, 0x3C500048,
+ *   1. /Apps/Data/probe/report.txt, CPSR + regs 0x3C500000, 0x3C500048,
  *      0x38900000, 0x22000000 (gate untouched)
  *   2. write 0 to 0x3C500048 (ungate VROM clock), settle, re-read ->
  *      /Apps/Data/probe/gate.txt (before/after)
- *   3. /Apps/Data/probe/vrom0.bin .. vrom3.bin — 256 KB from 0x20000000
+ *   3. /Apps/Data/probe/vrom0.bin .. vrom3.bin, 256 KB from 0x20000000
  *      as 4 x 64 KB files, each closed before the next chunk is read
  *   4. report.txt rewritten with ALL_DONE appended
- * Then the app just sits showing "OK - REBOOT ME" (or "FAIL <stage>") — no
+ * Then the app just sits showing "OK - REBOOT ME" (or "FAIL <stage>"), no
  * spin; the user reboots manually.
  *
  * Text is rendered straight into the surface framebuffer with a 3x5 font
- * (same approach as apps/memprobe — hb_draw_str draws via MIPI and would be
+ * (same approach as apps/memprobe, hb_draw_str draws via MIPI and would be
  * overwritten by the composited surface).
  */
 #include "hb_raw_surface.h"

@@ -1,18 +1,18 @@
 /*
- * probe — one-shot hardware probe for the iPod nano 7G, installed as
+ * probe, one-shot hardware probe for the iPod nano 7G, installed as
  * /Apps/Startup/ab.hbapp so the jailbreak runs it at Home screen render.
  *
  * STAGED writes so partial progress survives a fault partway through:
- *   1. /Apps/Data/probe/report.txt — CPSR + regs 0x3C500000, 0x3C500048,
+ *   1. /Apps/Data/probe/report.txt, CPSR + regs 0x3C500000, 0x3C500048,
  *      0x38900000, 0x22000000, written BEFORE touching the clock gate.
  *   2. write 0 to 0x3C500048 (ungate VROM clock), settle, re-read, then
  *      /Apps/Data/probe/gate.txt with before/after values.
  *   3. dump 256 KB from 0x20000000 as 4 x 64 KB files
  *      /Apps/Data/probe/vrom0.bin .. vrom3.bin, each fully written and
- *      closed before the next chunk is read — a fault in chunk N leaves
+ *      closed before the next chunk is read, a fault in chunk N leaves
  *      chunks 0..N-1 on disk.
  *   4. rewrite report.txt with an ALL_DONE line appended.
- *   5. spin forever — the watchdog reboots the iPod back to disk mode.
+ *   5. spin forever, the watchdog reboots the iPod back to disk mode.
  *
  * hb_fs_write is create/truncate + write + sync + close in one call (no
  * append mode in the SDK), so "append ALL_DONE" = rewrite the whole report

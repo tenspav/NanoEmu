@@ -59,29 +59,29 @@ Piece 3 is the assembly bridge between orderly hardware shutdown (`hw_shutdown_a
 
 ## 2. Memory Map Used
 
-### A. Internal SRAM (`0x22000000` – `0x22040000`, 256 KiB)
+### A. Internal SRAM (`0x22000000`, `0x22040000`, 256 KiB)
 
 Internal SRAM is on-chip volatile memory that is independent of the external DRAM controller and FMC NAND bus. Its physical address is `0x22000000` and it is identity-mapped (Virtual Address = Physical Address = `0x22000000`, L1 descriptor `0x22084c02` in RetailOS).
 
 | Address Range | Size | Component | Description |
 |---|---|---|---|
-| `0x22000000` – `0x22000124` | 292 B | Takeover Trampoline (`_trampoline_src`) | Position-independent ARM code: cache clean, MMU off, payload copy, ABI setup, branch. |
-| `0x22000124` – `0x22008100` | ~32 KiB | Free SRAM | Reserved / unused headroom. |
-| `0x22008100` – `0x2200812c` | 44 B | Warm Reset Stub (`_reset_stub_src`) | Trap handler targeted by payload `lr`; reloads watchdog and triggers PMGR reset on return. |
-| `0x2200812c` – `0x22009000` | ~3.7 KiB | Free SRAM | Headroom. |
-| `0x22009000` – `0x22009028` | 40 B | Handoff Block (`struct n7_handoff`) | ABI structure passed in `r2` (magic `"N7CL"`, DRAM base, size, entry, MMIO pointers). |
-| `0x22009028` – `0x22010000` | ~28 KiB | Private Takeover Stack | Grows downwards from `0x22010000`. |
-| `0x22010000` – `0x22040000` | 192 KiB | Upper SRAM | Available for future secondary stages (e.g. ATAGS / devicetree). |
+| `0x22000000`, `0x22000124` | 292 B | Takeover Trampoline (`_trampoline_src`) | Position-independent ARM code: cache clean, MMU off, payload copy, ABI setup, branch. |
+| `0x22000124`, `0x22008100` | ~32 KiB | Free SRAM | Reserved / unused headroom. |
+| `0x22008100`, `0x2200812c` | 44 B | Warm Reset Stub (`_reset_stub_src`) | Trap handler targeted by payload `lr`; reloads watchdog and triggers PMGR reset on return. |
+| `0x2200812c`, `0x22009000` | ~3.7 KiB | Free SRAM | Headroom. |
+| `0x22009000`, `0x22009028` | 40 B | Handoff Block (`struct n7_handoff`) | ABI structure passed in `r2` (magic `"N7CL"`, DRAM base, size, entry, MMIO pointers). |
+| `0x22009028`, `0x22010000` | ~28 KiB | Private Takeover Stack | Grows downwards from `0x22010000`. |
+| `0x22010000`, `0x22040000` | 192 KiB | Upper SRAM | Available for future secondary stages (e.g. ATAGS / devicetree). |
 
-### B. System DRAM (`0x08000000` – `0x0c000000`, 64 MiB)
+### B. System DRAM (`0x08000000`, `0x0c000000`, 64 MiB)
 
 DRAM is 1:1 identity-mapped across all 64 1-megabyte sections in RetailOS.
 
 | Address Range | Size | Component | Description |
 |---|---|---|---|
-| `0x08000000` – `0x08000130` | 304 B | Payload Code/Data | Target destination where payload binary is relocated. |
-| `0x08000130` – `0x08004130` | 16 KiB | Payload BSS / Stack | Private stack established by `start.S`. |
-| `0x08200000` – `0x08265400` | 405 KiB | Fallback Framebuffer | 240x432x4 ARGB8888 panel buffer. |
+| `0x08000000`, `0x08000130` | 304 B | Payload Code/Data | Target destination where payload binary is relocated. |
+| `0x08000130`, `0x08004130` | 16 KiB | Payload BSS / Stack | Private stack established by `start.S`. |
+| `0x08200000`, `0x08265400` | 405 KiB | Fallback Framebuffer | 240x432x4 ARGB8888 panel buffer. |
 | `0x08917714` | 4 B | SVC Dispatcher Table Slot 0 | Original target of `svc #70, r12=0` (`0x080e04c7`). Hooked with `0x22000000`. |
 | `0x09280000` | ~2.5 KiB | Chainloader Binary | Launcher code in RetailOS high-RAM app window. |
 | `0x09500000`+ | 1 MiB | `s_staging_buffer` | DRAM staging buffer holding the loaded `payload.bin` prior to takeover. |

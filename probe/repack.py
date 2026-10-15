@@ -47,7 +47,7 @@ def main():
         assert bytes(out)[o:o + chk[i]["bundle_len"]] == blobs[i], f"bundle {i} changed"
     ids = [a["app_id"] for a in chk]
     assert len(set(ids)) == len(ids), "app_id collision"
-    print(f"OK: {OUT} — {n} apps, {len(out)} bytes; order: {names}")
+    print(f"OK: {OUT}, {n} apps, {len(out)} bytes; order: {names}")
     print(f"    DumpROM app_id=0x{chk[8]['app_id']:08x} kind={chk[8]['kind']}")
 
 if __name__ == "__main__":

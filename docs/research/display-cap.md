@@ -63,7 +63,7 @@ QUESTION 1: PANEL PART, VENDOR SOURCING & NATIVE MAX RESOLUTION / REFRESH
 
 2. Driver Architecture:
    - Panel Type: Command-Mode MIPI DSI TFT-LCD.
-   - Driver Packaging: Chip-on-Glass (COG) — the driver IC is bonded directly
+   - Driver Packaging: Chip-on-Glass (COG), the driver IC is bonded directly
      onto the glass ledge of the panel.
    - Internal On-Glass GRAM:
      * Resolution: 240 columns x 432 rows.
@@ -167,7 +167,7 @@ QUESTION 3: CAN REFRESH RATE GO ABOVE 60HZ? (TIMINGS, PORCHES, DSI LIMITS)
      (746,496 bits) across the physical DSI differential link in ~1.5 to 1.8 ms.
    - The data is written into the panel's static GRAM.
    - Reducing the SoC porches merely causes the DMA to finish 50 microseconds
-     sooner into the FIFO. The panel itself doesn't care — it is reading from
+     sooner into the FIFO. The panel itself doesn't care, it is reading from
      GRAM at its own hard-wired 60 Hz rate.
 
 2. The TE (Tearing Effect) Feedback Loop:
@@ -197,7 +197,7 @@ QUESTION 3: CAN REFRESH RATE GO ABOVE 60HZ? (TIMINGS, PORCHES, DSI LIMITS)
    - The iPod nano 7G firmware does not contain or expose any vendor unlock
      routines or frame-rate adjustment registers.
    - Furthermore, a-Si TFT liquid crystal molecules have physical rise/fall
-     response times of 15–25 ms. Even if the internal scan-out could be hacked
+     response times of 15-25 ms. Even if the internal scan-out could be hacked
      to 75 Hz (13.3 ms), the liquid crystals would not fully transition between
      frames, causing severe ghosting, reduced contrast, and visual blur.
 
@@ -222,12 +222,12 @@ The performance bottleneck depends on the complexity of the 3D scene:
            in driver submission!
          - Software vertex transform & lighting (T&L), game physics, and audio
            run on the same 342 MHz Cortex-A5 core, quickly pushing frame times
-           to 25–33 ms.
+           to 25-33 ms.
      [2] GPU GEOMETRY & FILLRATE (PowerVR MBX Lite @ 133 MHz):
          - While MBX Lite features Tile-Based Deferred Rendering (TBDR) with
            hardware hidden-surface removal, its Tile Accelerator (TA) has strict
            limits:
-           * Driver hard-panics if active texture count exceeds 72–80.
+           * Driver hard-panics if active texture count exceeds 72-80.
            * Small/degenerate triangles (< 0.25 px) cause division-by-zero crashes.
            * 32bpp textures saturate the 133 MHz mDDR memory bus; games must use
              16bpp (RGBA5551/RGB565) exclusively.
@@ -267,7 +267,7 @@ QUESTION 5: RISKS OF PANEL DAMAGE FROM OVERCLOCKING DISPLAY TIMINGS
    - The lithium-polymer (LiPo) battery pouch is glued directly against the
      rear metal shield of the LCD panel.
    - Overclocking the CPU (684 MHz) or GPU (266 MHz) raises internal die temps.
-   - If case temperatures exceed 60–65°C, the adjacent LiPo battery pouch will
+   - If case temperatures exceed 60-65°C, the adjacent LiPo battery pouch will
      swell, physically exerting pressure against the back of the LCD, cracking
      the glass or destroying the TFT subpixel matrix from the inside.
 

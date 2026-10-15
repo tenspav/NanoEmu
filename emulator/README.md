@@ -13,13 +13,13 @@ Our QEMU files also live in `machine/` so they survive vendor/ deletion.
 Run: `./run.sh` (boots bootrom-vrom.bin at 0x20000000; if absent/short the
 VROM is padded with an ARM `b .` loop). Flags: `--stub`, `--os [file]`
 (preload RetailOS @0x08000000), `--os-entry [file]` (preload + jump there),
-`--iram` (IRAM snapshot + vectors), `--iram-protect` (vector page read-only —
+`--iram` (IRAM snapshot + vectors), `--iram-protect` (vector page read-only -
 needed!), `--ramfull` (64MB live DRAM dump), `--ctx`/`--cpsr`, `--pcsample N`.
 
 Works: RetailOS direct-boot runs the FULL init-task sequence cleanly
 (session 3), AND the real bootrom (../dumps/bootrom-vrom.bin, 64KB valid
 ARM code) boots: VIC/CLKCON/PLL/watchdog/FMC-init all run, then it parks
-in the boot-media detection loop — see boot-progress.md "Session 4".
+in the boot-media detection loop, see boot-progress.md "Session 4".
 Blocked at: media engine @0x3C400000/0x38400000 needs semantic status
 sequences (busy flag in bootrom state struct never clears).
 Next: RE 0x3C400000 identify semantics; or force USB/DFU path; or take

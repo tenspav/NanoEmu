@@ -15,7 +15,7 @@ tokens used
 11. Their pointer table is **`0x0bc31e94`**; UTF-16 `diag` is at **`0x0bc31d1e`**. Normal boot names `osos` at **`0x0bc2ec6c`**.
 12. Thus diagnostics selection occurs in the **later UEFI bootloader**; the traced ROM NAND path loads an authenticated first stage.
 13. **ROM path:** reset **`0x200000a8`** → **`0x20003aa0`** → **`0x20003778`**; medium selection **`0x20003544`** dispatches NAND to **`0x2000336c`**.
-14. NAND tries CE **0–3**, then repeats at row base **`0x100`**; each candidate reads rows **0,1,2** or **`0x100,0x101,0x102`**.
+14. NAND tries CE **0-3**, then repeats at row base **`0x100`**; each candidate reads rows **0,1,2** or **`0x100,0x101,0x102`**.
 15. Each read returns **`0xc00` useful bytes** via **`0x20009388`**, using FMC **`0x38a00000`**, NAND commands `0x00/0x30`, and ECC processing.
 16. The last prefix row leaves the header at **`0x22025000`**; its first **`0x800` body bytes** move from **`0x22025400`** to **`0x22000000`**.
 17. Remaining body comes from rows **3 onward**, or **`0x103` onward**, in `0xc00` increments; header body length must be **≤ `0x24c00`**.
@@ -32,5 +32,5 @@ tokens used
 28. **Next:** dump reserved FTL LBAs **`0..0xc03f`**, plus raw bootstrap pages/OOB and geometry; identify image directory, diagnostics extent, replicas and checksums.
 29. Trace **`0x0bc2e56c` → `0x0bc2f488` → `0x0bc2fc98`**, recording selected image, storage reads, validation calls and final entry.
 30. Prototype a diagnostics-only jump through the existing untethered loader; keep `osos` bytes intact and first demonstrate execution without replacing NAND images.
-31. For **64 MB**, take ownership of **`0x08000000–0x0bffffff`** after DRAM initialization, quiesce DMA/IRQs/watchdog, handle caches/MMU, and relocate any live loader before reclaiming its RAM.
+31. For **64 MB**, take ownership of **`0x08000000-0x0bffffff`** after DRAM initialization, quiesce DMA/IRQs/watchdog, handle caches/MMU, and relocate any live loader before reclaiming its RAM.
 32. Once allocation is proven, write through the firmware storage layer or reproduce its erase/ECC/OOB/replica rules via FMC; verify readback before enabling persistent dual boot.

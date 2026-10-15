@@ -31,7 +31,7 @@ On execution:
 | `REG_LCD_WIN0_DST` | `0x38900034` | `0` | Destination position on panel `(dx << 16) \| dy` |
 
 **Where found:**
-- `emulator/machine/hw/arm/nano7_lcd.c`: Lines 6–16 (reverse engineering header comment describing register map per window w), lines 114–162 (`lcd_window()` scanout logic), and lines 196–225 (`lcd_scanout()`).
+- `emulator/machine/hw/arm/nano7_lcd.c`: Lines 6-16 (reverse engineering header comment describing register map per window w), lines 114-162 (`lcd_window()` scanout logic), and lines 196-225 (`lcd_scanout()`).
 - `docs/research/direct-display-path.md`: Documents how the RetailOS commit routine `0x08080b70` programs `0x38900024` and `0x38900004 |= 0x10`.
 - `docs/research/dualboot-chainloader-plan.md`: Section 4 (Phase 3.3).
 
@@ -59,8 +59,8 @@ On execution:
   - Pressed: Bit 6 reads `0`
 
 **Where found:**
-- `emulator/machine/hw/arm/nano7_gpio.c`: Lines 16–20 and line 197 show that input levels for GPIO $n$ read at `0x3cf00000 + b * 0x20 + 4`, bit $p$. Pin 0x56 is modeled at `0x3cf00144` bit 6.
-- `emulator/machine/hw/arm/nano7_pmu.c`: Line 13 and lines 102–107 (`pmu_line()`) demonstrate that when `regs[3]` has any event bit set (e.g. Home button), `NANO7_GPIO_PMU_IRQ` (0x56) is driven to level 0.
+- `emulator/machine/hw/arm/nano7_gpio.c`: Lines 16-20 and line 197 show that input levels for GPIO $n$ read at `0x3cf00000 + b * 0x20 + 4`, bit $p$. Pin 0x56 is modeled at `0x3cf00144` bit 6.
+- `emulator/machine/hw/arm/nano7_pmu.c`: Line 13 and lines 102-107 (`pmu_line()`) demonstrate that when `regs[3]` has any event bit set (e.g. Home button), `NANO7_GPIO_PMU_IRQ` (0x56) is driven to level 0.
 - `docs/research/dualboot-chainloader-plan.md`: Section 3.B (Tier 1) lists hardware button registers.
 - `docs/research/touch-input.md`: Section on Home and Power buttons.
 
@@ -76,7 +76,7 @@ On execution:
 | `LR` Return | `0x22008100` | Return via `bx lr` | Chainloader handoff warm reset trap stub |
 
 **Where found:**
-- `dumps/snap6/ram-full.bin`: Disassembly of the RetailOS shutdown/reset sequence at `0x08417c9c`–`0x08417cb6`:
+- `dumps/snap6/ram-full.bin`: Disassembly of the RetailOS shutdown/reset sequence at `0x08417c9c`-`0x08417cb6`:
   ```arm
   8417c9c: ldr  r0, =0x00104a00
   8417c9e: mov  r1, #0x3c800000
@@ -88,7 +88,7 @@ On execution:
   8417cae: nop
   8417cb6: b    0x8417cae
   ```
-- `dumps/bootrom-vrom.bin`: BootROM initialization at `0x200000e4`–`0x200000ec` unlocks/resets watchdog with `0xa5`.
+- `dumps/bootrom-vrom.bin`: BootROM initialization at `0x200000e4`-`0x200000ec` unlocks/resets watchdog with `0xa5`.
 - `docs/research/sleep.md`: Line 7 ("Shutdown unlock: Write 0xa5 to [CLKCON + 0x50] (0x3c500050) after configuring 0x3c800000=0x00104a00").
 - `docs/research/bootrom.md`: Table of hardware MMIO blocks (Line 52: Watchdog Timer `0x3c800000`).
 - `docs/research/dualboot-chainloader-plan.md`: Section 4 (Phase 6.3: LR convention `0x22008100` for warm reset return).
@@ -116,7 +116,7 @@ On execution:
 0x0c000000 +----------------------------------+
 ```
 
-- Raw binary output: `payload.bin` (contains only `.text` and `.data` — 304 bytes total).
+- Raw binary output: `payload.bin` (contains only `.text` and `.data`, 304 bytes total).
 - Stack and BSS are marked `NOLOAD` and do not bloat the binary file.
 - The stack grows downwards from `_stack_top` (`0x08004130`), safely below the fallback framebuffer at `0x08200000`.
 

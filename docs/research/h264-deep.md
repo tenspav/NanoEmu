@@ -4,7 +4,7 @@ Surface getters 0x084132cc read surface+0x60/+0x6c; auxiliary comes from surface
 B+0x125c+4*i=chroma>>10; B+0x12ac+4*i=auxiliary>>10.
 H.264 input parser: B+0x1200=input>>10; B+0x180c=input&0x3ff; B+0x1810=offset+NAL_length.
 3. SPS/PPS and parser behavior
-0x08232df2 accepts profiles 66/77/100, level<=31; avcC supplies 1–4-byte NAL lengths.
+0x08232df2 accepts profiles 66/77/100, level<=31; avcC supplies 1-4-byte NAL lengths.
 SPS/PPS initialization reads big-endian 16-bit lengths; decodeFrame 0x082328f8 reads sample NAL lengths.
 0x08493b10 resets parser, writes input bounds, then B+0x1804|=1 and B+0x1600 low12=0x801.
 B+0x1628 bit8 must become ready; bits[4:0]=NAL type, bits[6:5]=header error.
@@ -41,7 +41,7 @@ The claimed vtable 0x0879e9d0 is a stream/file wrapper: methods 0x081d7638/7660 
 2. Submission and descriptors
 Neither path passes a RAM descriptor to 0x39630110: 0x0812ebee writes command 2 or 0x102.
 0x39660018=input+truncated_signed(header_bits/8); 0x3966001c=input+length+0x103.
-Both mask bit31; +0x1c is an end address, not a size (0x0812ebc4–ebe2).
+Both mask bit31; +0x1c is an end address, not a size (0x0812ebc4-ebe2).
 The 0x0814e6e8 setup record has five u32 fields: +0 Y/input, +4 chroma, +8 plane separation,
 +0xc/+0x10 auxiliary pointers; writes 0x39660018/20/24/78/7c; 0x39660080=0.
 H.264 software surface record at 0x08232f9a is 0x1c bytes:
@@ -51,7 +51,7 @@ Surface getters 0x084132cc read surface+0x60/+0x6c; auxiliary comes from surface
 B+0x125c+4*i=chroma>>10; B+0x12ac+4*i=auxiliary>>10.
 H.264 input parser: B+0x1200=input>>10; B+0x180c=input&0x3ff; B+0x1810=offset+NAL_length.
 3. SPS/PPS and parser behavior
-0x08232df2 accepts profiles 66/77/100, level<=31; avcC supplies 1–4-byte NAL lengths.
+0x08232df2 accepts profiles 66/77/100, level<=31; avcC supplies 1-4-byte NAL lengths.
 SPS/PPS initialization reads big-endian 16-bit lengths; decodeFrame 0x082328f8 reads sample NAL lengths.
 0x08493b10 resets parser, writes input bounds, then B+0x1804|=1 and B+0x1600 low12=0x801.
 B+0x1628 bit8 must become ready; bits[4:0]=NAL type, bits[6:5]=header error.

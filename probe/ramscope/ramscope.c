@@ -1,5 +1,5 @@
 /*
- * RAMScope — does this iPod nano 7G physically have more than the visible 64 MB
+ * RAMScope, does this iPod nano 7G physically have more than the visible 64 MB
  * of DRAM?  Plan: workers/agy-ram.txt.  Raw-surface homebrew app (HBAppKind 1).
  *
  * v3 (device evidence: reads of mapped PA 0x0c000000 return 0 without a fault,
@@ -27,7 +27,7 @@
  * handler. If 0x0c000000 has no bus decode and the interconnect raises an
  * external abort, the OS handler reboots the device (no damage, nothing
  * persisted). report.txt then ends at the last "stage=" breadcrumb, which says
- * exactly which access did it — that outcome is itself the "no RAM" signal.
+ * exactly which access did it, that outcome is itself the "no RAM" signal.
  *
  * Output: /Apps/Data/probe/ramscope/report.txt (own dir: does not clobber the
  * DumpRAM/DumpBoot reports).
@@ -164,7 +164,7 @@ static inline uint32_t cpsr_read(void)
     return r;
 }
 
-/* OS irq-save/restore (svc 0x46 selector 0/1) — same as DumpRAM v6. */
+/* OS irq-save/restore (svc 0x46 selector 0/1), same as DumpRAM v6. */
 static inline uint32_t irq_save(void)
 {
     register uint32_t r12 __asm__("r12") = 0;

@@ -1,6 +1,6 @@
 ================================================================================
 N31 / S5L8740 APPLICATION PROCESSOR: DEEP CPU ARCHITECTURAL INVESTIGATION
-iPod nano 7th Generation — Hardware, Microarchitecture & Missed Opportunities
+iPod nano 7th Generation, Hardware, Microarchitecture & Missed Opportunities
 Target File: /home/pavliukov/ipodwork/NanoRework/workers/agy-cpudeep.txt
 Author: Antigravity Deep Investigation Unit
 Date: 2026-10-15
@@ -27,7 +27,7 @@ EXECUTIVE SUMMARY & CORE IDENTITY RESOLUTION:
        inherited from Apple's legacy S5L8720 BootROM codebase.
      * Samsung Peripheral Remap: At 0x0862b5b0, the kernel writes 0x38000012 to
        implementation-defined register CP15 `c15, c2, 4`, remapping the 128 MB
-       peripheral aperture (0x38000000–0x3fffffff) into the core's private bus.
+       peripheral aperture (0x38000000-0x3fffffff) into the core's private bus.
 
 ================================================================================
 SECTION 1: CACHE CONFIGURATION & MICROARCHITECTURE
@@ -54,7 +54,7 @@ SECTION 1: CACHE CONFIGURATION & MICROARCHITECTURE
        The S5L8740 silicon was synthesized without an external PL310 or internal L2C.
 
 1.2 System Control Register (SCTLR, CP15 c1, c0, 0):
-   - Configured at 0x0862acbc–0x0862acec:
+   - Configured at 0x0862acbc-0x0862acec:
      * Bit 0 (M): 1 (MMU enabled).
      * Bit 1 (A): 0 (Strict alignment fault checking disabled; unaligned access supported).
      * Bit 2 (C): 1 (Data and unified caches enabled).
@@ -64,7 +64,7 @@ SECTION 1: CACHE CONFIGURATION & MICROARCHITECTURE
    - Verdict: The stock OS fully enables L1 I-cache, L1 D-cache, MMU, and branch predictor.
 
 1.3 Auxiliary Control Register (ACTLR, CP15 c1, c0, 1) & Major Missed Opportunity:
-   - Configured at 0x0862acf0–0x0862acf8:
+   - Configured at 0x0862acf0-0x0862acf8:
      * OS reads ACTLR (`mrc p15, 0, r0, c1, c0, 1`).
      * OS executes `orr r0, r0, #7` and writes it back (`mcr p15, 0, r0, c1, c0, 1`).
      * Bits [2:0] set:
@@ -88,7 +88,7 @@ SECTION 1: CACHE CONFIGURATION & MICROARCHITECTURE
 SECTION 2: NEON / VFP VECTOR UNIT INVESTIGATION
 ================================================================================
 2.1 Vector Unit Hardware Variant:
-   - Silicon Core: ARM Cortex-A5 with VFPv4-D16 (scalar FPU with 16 64-bit registers d0–d15).
+   - Silicon Core: ARM Cortex-A5 with VFPv4-D16 (scalar FPU with 16 64-bit registers d0-d15).
    - Advanced SIMD (NEON):
      * At 0x0862ad78, the OS kernel explicitly sets bits 31 and 30 of CPACR (CP15 c1, c0, 2):
          0x0862ad7c: orr r0, r0, #0x00f00000  ; Full access to CP10/CP11 (FPU)
@@ -96,11 +96,11 @@ SECTION 2: NEON / VFP VECTOR UNIT INVESTIGATION
          0x0862ad84: mcr p15, 0, r0, c1, c0, 2
          0x0862ad88: isb sy
      * `ASEDIS = 1`: Advanced SIMD (NEON) instructions are forced to UNDEFINE.
-     * `D32DIS = 1`: Upper register access (d16–d31) is forced to UNDEFINE.
+     * `D32DIS = 1`: Upper register access (d16-d31) is forced to UNDEFINE.
      * Lazy Context Switch (`0x083143c0`):
        - On lazy VFP ownership switch, the kernel allocates and preserves only
-         16 double-precision registers (d0–d15 = 128 bytes) plus FPSCR and FPEXC.
-       - The OS thread control block has no storage for d16–d31.
+         16 double-precision registers (d0-d15 = 128 bytes) plus FPSCR and FPEXC.
+       - The OS thread control block has no storage for d16-d31.
    - Can Games Use NEON Freely?
      * Stock User Mode: NO. CPACR is a privileged PL1 register; attempting to clear
        ASEDIS/D32DIS from user mode triggers a Privilege Violation / Undefined Instruction.
@@ -110,12 +110,12 @@ SECTION 2: NEON / VFP VECTOR UNIT INVESTIGATION
            (standard for sub-50mW audio SoC designs), the NEON execution pipeline
            physically does not exist; ASEDIS/D32DIS are RAO/WI (Read-As-One / Writes-Ignored).
        (b) Even if NEON silicon were present, running multi-threaded code would cause
-           silent register corruption because RetailOS context switches do not save d16–d31.
+           silent register corruption because RetailOS context switches do not save d16-d31.
        (c) For single-threaded homebrew running bare-metal or cooperatively, scalar VFPv4
-           (d0–d15) is fully usable and provides hardware single/double-precision math.
+           (d0-d15) is fully usable and provides hardware single/double-precision math.
 
 2.2 Fast-Mode & Flush-to-Zero Configuration (FPSCR):
-   - At 0x0862ad98–0x0862ada0, the kernel initializes FPSCR:
+   - At 0x0862ad98-0x0862ada0, the kernel initializes FPSCR:
        0x0862ad98: mov  r1, #0x03000000
        0x0862ad9c: add  r1, r1, #0x00000f00
        0x0862ada0: vmsr fpscr, r1
@@ -148,13 +148,13 @@ SECTION 3: BRANCH PREDICTOR, TCM & PREFETCH UNIT
    - TCM Hardware: Cortex-A5 does not implement traditional ARM11 TCM (TCM registers
      in CP15 c9 are absent).
    - Internal SRAM (IRAM): The SoC integrates 256 KB of zero-wait-state on-chip SRAM
-     mapped at 0x22000000–0x2203ffff.
+     mapped at 0x22000000-0x2203ffff.
    - IRAM Allocation Profile:
-     * 0x22000000–0x22003884: Hardware exception vectors, DVFS P-state table, clock switcher.
-     * 0x22001168–0x22001560: Audio DMA ISR trampolines and deep sleep suspend routines.
-     * 0x2202c000–0x22030000: Exception mode stacks (SVC, ABT, UND, IRQ, FIQ).
-     * 0x22038100–0x2203ffff: MP3/AAC audio DSP DMA mailboxes and PCM ring buffers.
-   - Missed Opportunity: The range 0x22020000–0x2202c000 (~48 KB) is unallocated by
+     * 0x22000000-0x22003884: Hardware exception vectors, DVFS P-state table, clock switcher.
+     * 0x22001168-0x22001560: Audio DMA ISR trampolines and deep sleep suspend routines.
+     * 0x2202c000-0x22030000: Exception mode stacks (SVC, ABT, UND, IRQ, FIQ).
+     * 0x22038100-0x2203ffff: MP3/AAC audio DSP DMA mailboxes and PCM ring buffers.
+   - Missed Opportunity: The range 0x22020000-0x2202c000 (~48 KB) is unallocated by
      the OS during active playback/UI states. High-frequency inner loops (matrix ops,
      vertex transforms, software rasterizer spans) can be copied into IRAM to bypass
      external DRAM bus contention entirely.
@@ -164,7 +164,7 @@ SECTION 4: BUS & MEMORY CONTROLLER (DMC 0x3d700000)
 ================================================================================
 4.1 Dynamic Memory Controller (DMC):
    - Base Address: 0x3d700000 (Samsung PL340 / DMC-340 mobile DDR controller).
-   - Physical Memory: 64 MB mobile DDR (mDDR / LPDDR-266), mapped at 0x08000000–0x0bffffff.
+   - Physical Memory: 64 MB mobile DDR (mDDR / LPDDR-266), mapped at 0x08000000-0x0bffffff.
    - RAMScope Verification: Probing CS1 (MEMCONFIG1 at 0x3d70000c) confirmed no second
      die responds; physical memory is strictly capped at 64 MB.
    - Memory Self-Refresh / Sleep Engine:
@@ -199,7 +199,7 @@ SECTION 5: VOLTAGE/FREQUENCY PAIRS (DVFS) & CEILING ANALYSIS
      * P2: 66.5 MHz (PLL2 266 MHz / 4)
      * P3: 133.0 MHz (PLL2 266 MHz / 2)
      * P4: 266.0 MHz (PLL2 266 MHz / 1)
-     * P5: 342.0 MHz (PLL1 684 MHz / 2) — Active stock performance mode.
+     * P5: 342.0 MHz (PLL1 684 MHz / 2), Active stock performance mode.
    - Transition Routine Disassembly (0x083f7e20):
      * The handler reads P-state records and executes divider writes via IRAM trampolines
        (0x83351ec, 0x8335244, 0x833523c).
@@ -282,14 +282,14 @@ RANK 4: IRAM SCRATCHPAD CODE / DATA RELOCATION
 --------------------------------------------------------------------------------
 - Opportunity: Move inner performance loops to zero-wait-state on-chip SRAM.
 - Evidence:
-  * 256 KB IRAM at 0x22000000–0x2203ffff is mapped on internal high-speed bus.
-  * Snapshot analysis shows range 0x22020000–0x2202c000 (~48 KB) is unreserved by
+  * 256 KB IRAM at 0x22000000-0x2203ffff is mapped on internal high-speed bus.
+  * Snapshot analysis shows range 0x22020000-0x2202c000 (~48 KB) is unreserved by
     active OS tasks.
 - Impact: Eliminates DRAM bus contention with MBX GPU, LCD controller, and FMC DMA.
   Critical algorithms execute at full CPU clock without memory bus wait states.
 - Risk Level: **MEDIUM**.
-  * Must strictly respect OS IRAM boundaries: avoid 0x22000000–0x22003884 (vectors/P-states),
-    0x2202c000–0x22030000 (stacks), and 0x22038100–0x2203ffff (audio buffers).
+  * Must strictly respect OS IRAM boundaries: avoid 0x22000000-0x22003884 (vectors/P-states),
+    0x2202c000-0x22030000 (stacks), and 0x22038100-0x2203ffff (audio buffers).
 
 --------------------------------------------------------------------------------
 RANK 5: OS P-STATE GOVERNOR LOCKING
@@ -311,10 +311,10 @@ RANK 6: SUPERVISOR-LEVEL NEON / D32 CAPABILITY PROBE
     MVFR0 (`mrc p15, 0, r0, c0, c3, 0`).
   * If MVFR0 bits [3:0] (A_SIMD registers) return non-zero, Advanced SIMD is physically
     present and can be used in single-threaded/bare-metal execution.
-- Impact: 2x–4x vector throughput for audio mixing, DSP, and 4x4 matrix ops.
+- Impact: 2x-4x vector throughput for audio mixing, DSP, and 4x4 matrix ops.
 - Risk Level: **HIGH**.
   * If silicon is VFPv4-D16 only, executing NEON will trigger Undefined Instruction.
-  * In multi-threaded OS environment, context switches do not save d16–d31.
+  * In multi-threaded OS environment, context switches do not save d16-d31.
 
 ================================================================================
 CONCLUSION:

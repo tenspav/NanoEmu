@@ -60,7 +60,7 @@ def main():
         assert bytes(packed)[o:o + chk[i]["bundle_len"]] == blobs[i], f"bundle {i} changed"
     ids = [a["app_id"] for a in chk]
     assert len(set(ids)) == len(ids), f"app_id collision: {[hex(x) for x in ids]}"
-    print(f"OK: {out} — {n} apps, {len(packed)} bytes; order: {names}")
+    print(f"OK: {out}, {n} apps, {len(packed)} bytes; order: {names}")
     print(f"    DumpRAM app_id=0x{chk[old_n]['app_id']:08x} kind={chk[old_n]['kind']}")
 
 if __name__ == "__main__":

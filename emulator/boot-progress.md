@@ -15,26 +15,26 @@ IRAM vector page 0x1000 bytes read-only, VBAR=0x22000000 at reset).
 - **pmgr**   @ 0x3D100000 (4KB, ff-fill): +0x04/+0x08 status reads.
 - **tmr**    @ 0x3C700000 (4KB, ff-fill): PLL config at +0x88; **+0x84 is a
   free-running counter** used for busy-wait delays (two reads, wait for
-  delta >= N) — implemented as a live counter off QEMU_CLOCK_VIRTUAL.
+  delta >= N), implemented as a live counter off QEMU_CLOCK_VIRTUAL.
 - **vic**    @ 0x39700000 (4KB, **0-fill**): interrupt-controller-like;
-  polls wait for channel bits in +0x14 to clear/match +0x08 — 0-fill passes.
+  polls wait for channel bits in +0x14 to clear/match +0x08, 0-fill passes.
 - **b3e0** @ 0x3E000000, **b38e** @ 0x38E00000, **b3c8** @ 0x3C800000,
   **b3cf** @ 0x3CF00000 (4KB, ff-fill): init-time touches.
 - **fmc**    @ 0x38A00000 (4KB, ff-fill): NAND controller probe (8 chip
-  selects, +0x48 status bit1 = ready) — probe now passes instantly.
+  selects, +0x48 status bit1 = ready), probe now passes instantly.
 
 ## Machine features added this session
 
 - VBAR set to 0x22000000 at reset (hardware bootrom behavior).
 - `iram-image` property: preload IRAM snapshot (has live vector table,
   `ldr pc,[pc,#56]` vectors → handlers in the OS image, e.g. SVC→0x082f3828).
-- `iram-protect` property: first 0x1000 of IRAM read-only — CRITICAL, the
+- `iram-protect` property: first 0x1000 of IRAM read-only, CRITICAL, the
   OS's early resume-style code memcpy's a 256-byte data struct over
   0x22000000..0x220000FF which otherwise destroys the vectors and the first
   SVC 0x46 (mutex lock syscall, in the clock-enable loop) undef-loops.
 - `ctx=<file>` + `cpsr=<val>` properties: restore 16 u32 regs from ctx.bin
   and force CPSR; with `--ramfull` (64MB live DRAM dump) + `--iram` this
-  resumes the live system — but ctx.bin layout is guessed and it derails
+  resumes the live system, but ctx.bin layout is guessed and it derails
   (see below). Banked exception SPs + CPACR(VFP on) are set for ctx boots.
 - `pcsample-ms=<N>`: host-clock timer logging PC/CPSR/SP/LR + IRAM[0..0x40];
   the essential "where is it stuck" tool.
@@ -45,8 +45,8 @@ IRAM vector page 0x1000 bytes read-only, VBAR=0x22000000 at reset).
 
 - round 0 (no periphs): 2 lines, stuck after CLKCON bit15 write.
 - +clkcon: SVC 0x46 → undef loop (vectors clobbered by OS struct memcpy).
-- +iram image + VBAR + iram-protect: 38 lines — clocks, PLL, VIC, PMGR init.
-- +tmr counter, vic 0-fill, extra blocks, fmc: 48+ lines — full clock init,
+- +iram image + VBAR + iram-protect: 38 lines, clocks, PLL, VIC, PMGR init.
+- +tmr counter, vic 0-fill, extra blocks, fmc: 48+ lines, full clock init,
   delay loops work, FMC probes 8 NAND chip selects, syscall machinery runs.
 
 ## Current blocker
@@ -56,13 +56,13 @@ clkcon+0x50=0xa5, then an intentional infinite NOP loop at 0x08417cae,
 CPU in ABT mode). Trigger chain: after the FMC/NAND probe, a delay/syscall
 path (call @0x08010bb4, r0=10000) leads via a table dispatch @0x083a3240
 into power-off. Prime suspect: NAND FTL/ID init failure (FMC is only a
-dumb regfile; ID reads return 0xffffffff) — or a power/battery check.
+dumb regfile; ID reads return 0xffffffff), or a power/battery check.
 Next: implement FMC READID semantics (command 0x90 + ID bytes) or find the
 power-off predicate via a trace of 0x842aa80 (syscall dispatcher, r0=27).
 
 ## Bootrom status
 
-../dumps/bootrom-vrom.bin is now 256KB but **all zeros** — the SCSI peek
+../dumps/bootrom-vrom.bin is now 256KB but **all zeros**, the SCSI peek
 currently returns zeros (VROM access is likely clock-gated off via
 CLKCON 0x3C500048 at dump time). Bootrom path untested, waiting on a
 nonzero dump.
@@ -78,7 +78,7 @@ pointers 0x20000010/0x20000030) needs ground-truth before this works.
 ## Open questions
 
 - The struct the OS memcpy's over 0x22000000 contains a thumb pointer
-  0x2208ffc2 — suggests a trampoline in **IRAM above 256KB** (real IRAM
+  0x2208ffc2, suggests a trampoline in **IRAM above 256KB** (real IRAM
   may be 512KB-1MB; our dump only covers the low 256KB). Worth dumping
   0x22040000..0x22100000 on hardware.
 - The OS likely switches VBAR to its own trampoline (0x2208ff00-ish) later
@@ -134,10 +134,10 @@ provides (registers r0-r2 at entry are all zero in our machine!).
    machinery exists: "[NAND] VFL_Init [Failed]" etc.).
 4. Wait for a valid (nonzero) bootrom dump; boot the real chain.
 
-## Session 4 (REAL bootrom boot — dumps/bootrom-vrom.bin is valid now)
+## Session 4 (REAL bootrom boot, dumps/bootrom-vrom.bin is valid now)
 
 Config: plain `./run.sh` (bootrom @0x20000000, entry 0x20000000 = reset
-vector `b 0x200000a8`). NOTE: the 256KB dump is the same 64KB repeated 4x —
+vector `b 0x200000a8`). NOTE: the 256KB dump is the same 64KB repeated 4x -
 real VROM is 64KB.
 
 ### Bootrom peripheral touch sequence (in order)
@@ -181,9 +181,9 @@ real VROM is 64KB.
 ### Stall
 
 Detection never starts: busy flag (+0x28) is set before polling
-0x3c400028 (bit5 — satisfied by ff-fill) but NEVER cleared afterwards;
+0x3c400028 (bit5, satisfied by ff-fill) but NEVER cleared afterwards;
 the only clear site (0x2000ab34, in vtable fn 0x2000aad0) requires the
-0x3c400000-block driver struct (RAM) flags bit2 — which is set from
+0x3c400000-block driver struct (RAM) flags bit2, which is set from
 hardware status we don't model. So the bootrom parks in the main loop
 exactly as a real device with dead NAND and no USB would.
 
@@ -193,9 +193,9 @@ exactly as a real device with dead NAND and no USB would.
    clear busy and what the identify result must look like. This block runs
    BEFORE NAND proper and gates everything.
 2. Alternatively force the DFU path: find what sets struct+0x47 (USB
-   attached) — then watch it init the USB core (likely 0x3A000000).
+   attached), then watch it init the USB core (likely 0x3A000000).
 3. Bootrom warm-boot branch (PMGR+4 bit18): check whether it hands off to
-   0x08000000 with boot-args regs — could fix the RetailOS direct-boot
+   0x08000000 with boot-args regs, could fix the RetailOS direct-boot
    power-off from session 3.
 
 ## Session 5 (2026-10-13): stateful FMC + why NAND init is never reached
@@ -346,7 +346,7 @@ NEXT WALL: the snapshot itself. Three independent torn kernel structures so far 
   Display: 0x38900000 literals in ~30 functions (e.g. 0x80443e4, 0x8049f44, 0x80526cc, 0x8053xxx) not yet
   traced to a thread; the resume never gets there before panicking.
 
-## 2026-10-13 — DumpRAM app built (on-device atomic-ish RAM snapshot)
+## 2026-10-13, DumpRAM app built (on-device atomic-ish RAM snapshot)
 
 Built `probe/dumpram/` (sibling of DumpROM; raw-surface HBAppKind-1, SDK
 `make -C dumpram` → `probe/dumpram/build/dumpram.hbapp`, 3956 bytes).
@@ -489,7 +489,7 @@ NEXT WALL: thread 34 is caught between "sequence armed" and "kick". Options: (a)
   that kick as complete with status 1 (the program already ran on the device); (c) DumpRAM v3: capture
   with NAND idle (e.g. wait until FMSS +0xc0c shows idle before T0).
 
-## Session 11b (2026-10-13): option 2 — complete the pre-capture FMSS kick
+## Session 11b (2026-10-13): option 2, complete the pre-capture FMSS kick
 `fmss-resume=2` (nano7_fmc.c): the next kick with no sequence base (+0xc04 armed before capture) is
   reported complete: status bit0, mailbox d00 = 0, and +0xc10 = 1 (every program enables it first;
   without it IRQ 54 never fired and the driver sat in its 2000 ms wait). fmss-resume=1 is unchanged.
@@ -505,7 +505,7 @@ OPEN: why svc 0x46 ip=0 from thr 34 panics. Suspects: thr 34's stack between 0x0
   frames is itself torn (the 0x0b400000 block was read while 34 ran), so the code it returns into has
   stale locals (r2=0x0b408a60). The ip=0 handler entry is in torn block 0x08910000 (svc table 0x08917714).
 
-## Session 12 (2026-10-13): snap4 (DumpRAM v3, NAND idle at T0) — vector-smash fixed, FTL skew wall again
+## Session 12 (2026-10-13): snap4 (DumpRAM v3, NAND idle at T0), vector-smash fixed, FTL skew wall again
 SNAP4: L1 still 0x08b28000 (L1[0]=0x2208c402: VA 0 aliases IRAM!). ctx.bin == in-RAM g_ctx (v3 app base
   0x09482a90, pc 0x09482e60 = mrs); snap_ctx.py got a v3 fallback -> fixups/snap4-ctx.bin. Pokes STILL needed:
   kernel block torn exactly as snap3 (cur = thr 34, app thr 36 waiting on 0x7f), timer list cyclic again
@@ -523,14 +523,14 @@ RUN 1 (thr 34 TCB sp 0x0b408a40 -> coherent frame 0x0b408a20, as in snap3): 17 S
 RUN 2 (fixed, 90 s): 58 SVC / 142 IRQ / 1 undef (VFP lazy, OK) / 0 aborts. Kick #1 reported complete ->
   IRQ 54 -> driver fills mailbox, kicks phase-2 program 0x0896f620: VM 7205 steps, 185280 B DMA'd out, d00=0
   = NAND page program SUCCEEDS (past the 11/11b wall, = Session 10 level). Then thr 34 svc 0x47:
-  `WMR_ASSERT vba == s_g_addr_to_vba(wr->sb, wr->nextVbaOfs)` s_btoc_add_data:230 — vba 0x000f6b9c vs
+  `WMR_ASSERT vba == s_g_addr_to_vba(wr->sb, wr->nextVbaOfs)` s_btoc_add_data:230, vba 0x000f6b9c vs
   cursor 0x003ae1c4 (wr 0x08d0b3f8) -> CMD 0xff -> power-off 0x08417cae (89/89 samples).
   Torn: 33/54 blocks hit, 118k stale / 655k reads; the PPN loop reads stale 0x08ca9bxx (request) and
   0x08d0d4xx (FTL) words. MMIO: VIC/tmr/0x3de00000 (resume-hw), clkcon, I2C1 0x3c900000, 0x3cf00000, PMGR,
   0x3c800000/FMC CMD 0xff (shutdown). LCD 0x38900000 / panel 0x3d800000: NOT touched; no thread nears display.
 VERDICT: the snapshot is still inconsistent for the NAND/FTL thread. The NAND thread's stack, request and FTL
   cursor are each read mid-stream (~1.4 s / ~5.6 s) while that thread writes the dump itself. Poking the
-  cursor is whack-a-mole. NEXT: DumpRAM v4 — at T0, inside an IRQ-off section (svc 0x46 ip=0 save / ip=1
+  cursor is whack-a-mole. NEXT: DumpRAM v4, at T0, inside an IRQ-off section (svc 0x46 ip=0 save / ip=1
   restore = 0x080e04c6/0x080e04dc), memcpy the volatile set (the 54 torn blocks, ~3.4 MB: kernel 0x0890xxxx,
   sync/TCB 0x08a6-0x08ac, PPN/FTL 0x08c0-0x08d2, stacks 0x0b3a-0x0b46) into a buffer allocated before T0;
   write it as overlay.bin and have the emulator overlay it on ram-full.bin. Alternative: synthesize thr 34
@@ -1045,7 +1045,7 @@ NEXT (real sound): host-side MP3 decode in nano7_adsp - compressed bytes come fr
   aligned -> buffer + minimp3 (no decoder lib installed here), h1 = 2 until a full frame is ready.
 TOOLS: rsp_trace.py RSP_REGMEM=reg:len dumps memory at registers, importable (main guarded).
 
-## 2026-10-14 — RAMScope v3 validated in the emulator (bare-metal harness) + extra-dram= property
+## 2026-10-14, RAMScope v3 validated in the emulator (bare-metal harness) + extra-dram= property
 nano7.c: new machine property `extra-dram=N` (what answers at PA 0x0c000000+): 1 open bus
 (reads 0 / writes dropped, matches the device's read behaviour), 2 independent 64 MB RAM, 3 alias of
 DRAM. Default 0 = unchanged. `tools/ramscope_harness/` runs probe/ramscope/ramscope.c unmodified

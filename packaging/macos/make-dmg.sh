@@ -26,7 +26,7 @@ SYNC="$ROOT/emulator/dist/NanoSync Mac.app"     # sync/macos/build.sh
 [ -d "$SYNC" ] && cp -R "$SYNC" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 cat > "$STAGE/READ ME.txt" <<TXT
-NanoEmu $VERSION - iPod nano 7G emulator
+NanoEmu $VERSION, iPod nano 7G emulator
 
 1. Drag NanoEmu (and NanoSync Mac, for sending music to a real iPod) to
    Applications.

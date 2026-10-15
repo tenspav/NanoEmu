@@ -18,7 +18,7 @@ H.264 driver. Do not alias it onto 0x38f00000.
 ## Lines to add (by the integrating agent)
 
 In `hw/arm/nano7.c`, beside the other device includes (currently near lines
-43–44), add:
+43-44), add:
 
 ```c
 #include "nano7_mbx.h"
@@ -26,7 +26,7 @@ In `hw/arm/nano7.c`, beside the other device includes (currently near lines
 ```
 
 In machine initialization, after VIC creation and the display attach
-(currently near lines 536–538), add:
+(currently near lines 536-538), add:
 
 ```c
 nano7_mbx_attach(get_system_memory(), s->vic_in[NANO7_IRQ_MBX]);

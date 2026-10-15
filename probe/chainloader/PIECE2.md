@@ -20,7 +20,7 @@ Before step a, the routine reads CPSR and runs `CPSID if` for the whole sequence
 | a. Display | Sets the OS quiesce flag, masks and acks the TE interrupt, waits out an in-flight DSI push, waits out a running blit, then masks and acks the blitter IRQ. | 50 ms + 50 ms |
 | b. FMC/NAND | Masks the FMSS IRQ, then lets in-flight work settle (it exits early once the controller reads idle). Then it aborts polling, deselects the chips and W1C-acks both status registers. | 20 ms |
 | c. DMA | For both engines and all 8 channels: NEXT=0, wait for the run bit to drop, abort any channel still running, then W1C-ack. | 50 ms total |
-| d. Timers | For all 8 channels: CMD=0, clear the IRQ enables, clear pending (in CON for channels A–D, in TSTAT for E–H). | none |
+| d. Timers | For all 8 channels: CMD=0, clear the IRQ enables, clear pending (in CON for channels A-D, in TSTAT for E-H). | none |
 | e. VIC | Saves INTENABLE, then INTENCLEAR all lines, SOFTINTCLEAR, EOI and clear the glue latches. It reads INTENABLE back and runs `CPSID if` again. | none |
 
 **Timeouts.** All timeouts use the timer block's free-running 1 MHz counter (`0x3c700084`). Step d does not stop that counter. If the counter is frozen, a loop-count backstop ends the wait and sets `HW_SD_NO_CLOCK`.
@@ -87,16 +87,16 @@ The DMA block has no mask register and no global enable (`nano7_dma.c`). The IRQ
 | Address | Value | Purpose | Source |
 |---|---|---|---|
 | `0x3c700000 + c + 0x04` (CMD) | `0` | Stops the channel. The OS tick is channel B (`+0x20`, 500 Hz). | Plan; `nano7_timer.c:234-249`, header lines 16-18 |
-| `0x3c700000 + c + 0x00` (CON), channels A–D | `(CON & ~0x77000) \| 0x70000` | Clears IRQ enables 14:12 and W1C-clears pending 18:16. | `nano7_timer.c:224-233`. **≠ plan**, which only clears 0x7000. Pending bits for A–D live in CON, not TSTAT, and `CMD=0` does not drop them. |
-| `0x3c700000 + c + 0x00` (CON), channels E–H | `CON & ~0x7000` | Clears the IRQ enables. | Plan; `nano7_timer.c:224-233` |
-| `0x3c700118` (TSTAT) | `0x07070707` | W1C: pending for channels E–H. | Plan; `nano7_timer.c:100-103,208-212` |
+| `0x3c700000 + c + 0x00` (CON), channels A-D | `(CON & ~0x77000) \| 0x70000` | Clears IRQ enables 14:12 and W1C-clears pending 18:16. | `nano7_timer.c:224-233`. **≠ plan**, which only clears 0x7000. Pending bits for A-D live in CON, not TSTAT, and `CMD=0` does not drop them. |
+| `0x3c700000 + c + 0x00` (CON), channels E-H | `CON & ~0x7000` | Clears the IRQ enables. | Plan; `nano7_timer.c:224-233` |
+| `0x3c700118` (TSTAT) | `0x07070707` | W1C: pending for channels E-H. | Plan; `nano7_timer.c:100-103,208-212` |
 
 **Timers, read only**
 | Address | Read for | Source |
 |---|---|---|
 | `0x3c700084` | free-running 1 MHz counter, used for timeouts | `nano7_timer.c:167-172` |
 
-**VIC** (VIC0 `0x38e00000` for IRQ 0–31, VIC1 `0x38e01000` for IRQ 32–63)
+**VIC** (VIC0 `0x38e00000` for IRQ 0-31, VIC1 `0x38e01000` for IRQ 32-63)
 | Address | Value | Purpose | Source |
 |---|---|---|---|
 | `0x38e00014`, `0x38e01014` (INTENCLEAR) | `0xffffffff` | Masks every line, IRQ and FIQ. | Plan; `nano7_vic.c:201` |
@@ -123,5 +123,5 @@ The DMA block has no mask register and no global enable (`nano7_dma.c`). The IRQ
 7. **Blocks the plan names but the spec leaves out:** MBX GPU (`0x3b000000`), ADSP (`0x38500000`), USB OTG (`0x38400000`), and the watchdog (`0x3c800000`).
    - The GPU and ADSP are bus masters. If a render job or audio DSP is active at hand-over, they could write DRAM after relocation. The launcher should exit GL apps and stop playback first, or a later piece should add those steps.
    - The watchdog is left as the OS set it. The payload must kick it or rely on it, as `payload_hello` does.
-8. **Interrupts are masked at entry, not only at the end.** The spec says the routine "returns with CPSID if". It also masks at entry, so no ISR can run between steps. Steps a–d do not depend on any ISR.
+8. **Interrupts are masked at entry, not only at the end.** The spec says the routine "returns with CPSID if". It also masks at entry, so no ISR can run between steps. Steps a-d do not depend on any ISR.
 9. **Untested in NanoEmu.** This piece is compile-checked only. The flag word and `hw_shutdown_last` are there for the integration run, for example dumping 80 bytes at `&hw_shutdown_last` via QMP after the hand-over.

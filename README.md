@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.2.0-blue">
+  <img alt="version" src="https://img.shields.io/badge/version-1.2.1-blue">
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey">
   <img alt="guest" src="https://img.shields.io/badge/guest-RetailOS%2037A40005-green">
   <img alt="license" src="https://img.shields.io/badge/code-GPLv2%20(QEMU)-orange">
@@ -37,6 +37,7 @@ Boots the **real RetailOS** from a live device snapshot into a clickable window,
 - ⚡ Clock profiles: Stock, Safe or Max, one click each
 - 🎮 Homebrew apps: GBA emulator at 60 FPS, 3D games on the emulated GPU
 - 💾 Save states, reset, pause, rotate, full screen and screenshots
+- 🎶 NanoSync Mac: send your music to a real iPod nano 7G
 
 <table align="center">
   <tr>
@@ -57,7 +58,7 @@ Boots the **real RetailOS** from a live device snapshot into a clickable window,
 
 ## Download (macOS)
 
-Get **NanoEmu-1.2.0.dmg** from the [Releases page](https://github.com/tenspav/NanoEmu/releases/latest).
+Get **NanoEmu-1.2.1.dmg** from the [Releases page](https://github.com/tenspav/NanoEmu/releases/latest).
 
 1. Open the `.dmg` and drag **NanoEmu** to **Applications**.
 2. The first time, right-click NanoEmu and choose **Open** (the app is not notarized yet).
@@ -65,7 +66,7 @@ Get **NanoEmu-1.2.0.dmg** from the [Releases page](https://github.com/tenspav/Na
 
 Requires an Apple Silicon Mac.
 
-## NanoGL - the GPU renderer
+## NanoGL, the GPU renderer
 
 <p align="center">
   <img src="assets/nanogl-logo-256.png" width="128" alt="NanoGL logo">
@@ -141,6 +142,7 @@ Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 | Bluetooth (classic + BLE) | ✅ HID gamepad host working: pairing with security (L2CAP + bonding), HID descriptor over SDP, live reports drive an on-screen app ([research](docs/research/bluetooth-stack.md)) |
 | Cold boot (zero device) | 🟡 Route confirmed: rebuild Type 4 plaintext images from dumps we already have + bypass signature checks in the emulated boot chain ([`docs/research/coldboot-zero-device.md`](docs/research/coldboot-zero-device.md), milestone plan in [`coldboot-plan.md`](docs/research/coldboot-plan.md)) |
 | macOS build | ✅ Working: NanoEmu.app bundle (Dock icon, integer-zoom window, Mac key mapping, Cmd-S/L/R save/load/reset); see [`docs/MACOS.md`](docs/MACOS.md) |
+| Music sync to a real iPod | ✅ NanoSync Mac: drag songs, sync over USB, NanoSync adds them to the library ([`docs/NANOSYNC-MAC.md`](docs/NANOSYNC-MAC.md)) |
 | Windows build | ⬜ Planned (native window; the browser/noVNC route proved unreliable for keyboard+touch input) |
 
 Full hardware specs live in [`docs/HARDWARE.md`](docs/HARDWARE.md); reverse-engineering notes live in [`docs/research/`](docs/research/). The session-by-session development journal is [`emulator/boot-progress.md`](emulator/boot-progress.md).
@@ -152,7 +154,7 @@ cd emulator
 ./build.sh   # downloads QEMU 9.1.2, installs the nano7 machine, builds qemu-system-arm
 ```
 
-On macOS, `macos/make-app.sh` packages a self-contained `NanoEmu.app`; see [`docs/MACOS.md`](docs/MACOS.md).
+On macOS, `macos/make-app.sh` packages a self-contained `NanoEmu.app` (see [`docs/MACOS.md`](docs/MACOS.md)), `../sync/macos/build.sh` builds NanoSync Mac, and `../packaging/macos/make-dmg.sh` puts both in a `.dmg`.
 
 ## Running
 
@@ -203,6 +205,10 @@ If the snapshot is missing, NanoEmu tells you and opens that folder for you.
 | Save / load state | File menu | `Cmd-S` / `Cmd-L` |
 | Full screen | View menu | `Ctrl-Cmd-F` |
 | Show / hide the side panel | View menu | `Cmd-U` |
+
+## Send music to your real iPod
+
+The `.dmg` also has **NanoSync Mac**, for the real iPod: drag songs or folders onto its window, plug the iPod in by USB, click **Sync**, eject, then open **NanoSync** on the iPod and tap **Importar**. The songs land in the iPod's music library with their tags and cover art. MP3 goes straight in; M4A, AAC, WAV, AIFF, FLAC and OGG are converted to MP3 (with [ffmpeg](https://ffmpeg.org) installed). Details: [`docs/NANOSYNC-MAC.md`](docs/NANOSYNC-MAC.md).
 
 ## On-device probes
 

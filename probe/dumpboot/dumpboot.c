@@ -1,5 +1,5 @@
 /*
- * DumpBoot — extract the reserved NAND region (logical 4 KB blocks 0..0xc03f:
+ * DumpBoot, extract the reserved NAND region (logical 4 KB blocks 0..0xc03f:
  * boot chain + diagnostics partition + the rest of the "Part 2" firmware area)
  * to files on the data partition.
  *

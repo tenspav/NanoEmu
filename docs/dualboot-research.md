@@ -11,7 +11,7 @@ Directly flashing a custom homebrew payload into the diagnostic boot slot (`NAND
 
 ### 1.1 Entering Diagnostic Mode
 * **Hardware Button Sequence:**
-  1. Force reset the device: Press and hold **Sleep/Wake (Power) + Home** simultaneously for approximately 8–10 seconds until the Apple logo disappears and reappears (or the display blanks).
+  1. Force reset the device: Press and hold **Sleep/Wake (Power) + Home** simultaneously for approximately 8-10 seconds until the Apple logo disappears and reappears (or the display blanks).
   2. Immediately upon reboot/Apple logo display, press and hold the diagnostic chord: **Sleep/Wake + Home + Volume Down**.
 * **Pre-OS Selector Mechanism (`BdsN31.dll`):**
   * Diagnostic mode is **not** selected in BootROM (BootROM only checks warm boot status and USB DFU pin).
@@ -25,7 +25,7 @@ Directly flashing a custom homebrew payload into the diagnostic boot slot (`NAND
   * RetailOS contains a `DiagnosticMode` preference flag (at `0x08016abc` / `/var/mobile/Library/Preferences`), but the hardware button chord evaluated by BDS is the true pre-OS gateway.
 
 ### 1.2 Exiting Diagnostic Mode
-* **Hardware Forced Reset:** Press and hold **Sleep/Wake + Home** for 8–10 seconds. The PMU / PMGR resets the SoC into a clean cold boot back to standard RetailOS.
+* **Hardware Forced Reset:** Press and hold **Sleep/Wake + Home** for 8-10 seconds. The PMU / PMGR resets the SoC into a clean cold boot back to standard RetailOS.
 * **DiagOS Menu Reset:** If the stock DiagOS menu is loaded, selecting "Reset" or "Reboot" issues a watchdog or PMGR reboot command.
 * **Power Drain / Recovery:** If the device freezes in diagnostic mode, allowing the battery to drain or performing a Sleep+Home hard reset restores normal boot.
 

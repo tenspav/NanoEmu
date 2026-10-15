@@ -1,4 +1,4 @@
-# NanoGL — the PowerVR MBX Lite renderer
+# NanoGL, the PowerVR MBX Lite renderer
 
 NanoGL is NanoEmu's reimplementation of the iPod nano 7G's GPU pipeline (PowerVR MBX Lite, OpenGL ES 1.1 class, fixed function). It lives in `emulator/machine/hw/arm/nano7_mbx.c` (register/FIFO front-end) and `nano7_mbxr.c` (the renderer).
 

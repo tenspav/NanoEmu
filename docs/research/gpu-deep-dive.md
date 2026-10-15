@@ -26,7 +26,7 @@ combination of:
      (A_OS_WAITSEM) on EVERY draw call, causing context switch storms.
   3. Unused Silicon Capabilities: The stock RetailOS driver contains full,
      native hardware support for PVRTC 2bpp/4bpp compressed textures, 4bpp/8bpp
-     paletted textures, multi-draw arrays, and VGP microcode execution—none of
+     paletted textures, multi-draw arrays, and VGP microcode execution-none of
      which are being leveraged by homebrew ports.
   4. Driver Clock Clamp: RetailOS hardcodes a 4-entry GPU timing table capped
      at 171 MHz (Entry 3); exceeding 171 MHz without patching triggers a kernel
