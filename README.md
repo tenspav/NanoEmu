@@ -49,9 +49,10 @@ NanoGL is our reimplementation of the iPod nano 7G's PowerVR MBX Lite (GLES 1.1 
 
 | Supported | In progress |
 |---|---|
-| Geometry (IoU 1.000 vs analytic reference) | PVRTC / paletted textures ([spec ready](docs/research/gpu-deep-dive.md)) |
-| Full VGP interpreter (custom microcode path) | MK64 as the final stress test |
+| Geometry (IoU 1.000 vs analytic reference) | MK64 as the final stress test |
+| Full VGP interpreter (custom microcode path) | |
 | Textures (wrap + clamp), depth, alpha blending/test | |
+| PVRTC 2bpp/4bpp and paletted 4bpp/8bpp textures | |
 | Back-face culling, bilinear, mipmaps | |
 | Near-plane + user clip planes, glColorMask | |
 | Fixed-function lighting, normals, points, lines, sprites | |
