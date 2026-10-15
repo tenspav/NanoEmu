@@ -1,0 +1,2508 @@
+[build] installing nano7 machine files
+[build] configuring
+python determined to be '/usr/bin/python3'
+python version: Python 3.10.12
+mkvenv: Creating non-isolated virtual environment at 'pyvenv'
+mkvenv: checking for meson>=1.1.0
+mkvenv: installing meson==1.2.3
+The Meson build system
+Version: 1.2.3
+Source dir: /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2
+Build dir: /home/pavliukov/ipodwork/NanoRework/emulator/build
+Build type: native build
+Project name: qemu
+Project version: 9.1.2
+C compiler for the host machine: cc -m64 (gcc 11.4.0 "cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0")
+C linker for the host machine: cc -m64 ld.bfd 2.38
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Program scripts/symlink-install-tree.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/symlink-install-tree.py)
+Program sh found: YES (/usr/bin/sh)
+Program python3 found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3)
+Program iasl found: NO
+Program bzip2 found: YES (/usr/bin/bzip2)
+Compiler for C supports link arguments -Wl,-z,relro: YES 
+Compiler for C supports link arguments -Wl,-z,now: YES 
+Checking if "-fzero-call-used-regs=used-gpr" compiles: YES 
+Compiler for C supports arguments -ftrivial-auto-var-init=zero: NO 
+Compiler for C supports arguments -fzero-call-used-regs=used-gpr: YES 
+Compiler for C supports arguments -Wempty-body: YES 
+Compiler for C supports arguments -Wendif-labels: YES 
+Compiler for C supports arguments -Wexpansion-to-defined: YES 
+Compiler for C supports arguments -Wformat-security: YES 
+Compiler for C supports arguments -Wformat-y2k: YES 
+Compiler for C supports arguments -Wignored-qualifiers: YES 
+Compiler for C supports arguments -Wimplicit-fallthrough=2: YES 
+Compiler for C supports arguments -Winit-self: YES 
+Compiler for C supports arguments -Wmissing-format-attribute: YES 
+Compiler for C supports arguments -Wmissing-prototypes: YES 
+Compiler for C supports arguments -Wnested-externs: YES 
+Compiler for C supports arguments -Wold-style-declaration: YES 
+Compiler for C supports arguments -Wold-style-definition: YES 
+Compiler for C supports arguments -Wredundant-decls: YES 
+Compiler for C supports arguments -Wshadow=local: YES 
+Compiler for C supports arguments -Wstrict-prototypes: YES 
+Compiler for C supports arguments -Wtype-limits: YES 
+Compiler for C supports arguments -Wundef: YES 
+Compiler for C supports arguments -Wvla: YES 
+Compiler for C supports arguments -Wwrite-strings: YES 
+Compiler for C supports arguments -Wno-gnu-variable-sized-type-not-at-end: NO 
+Compiler for C supports arguments -Wno-initializer-overrides: NO 
+Compiler for C supports arguments -Wno-missing-include-dirs: YES 
+Compiler for C supports arguments -Wno-psabi: YES 
+Compiler for C supports arguments -Wno-shift-negative-value: YES 
+Compiler for C supports arguments -Wno-string-plus-int: NO 
+Compiler for C supports arguments -Wno-tautological-type-limit-compare: NO 
+Compiler for C supports arguments -Wno-typedef-redefinition: NO 
+Program cgcc found: NO
+Library m found: YES
+Run-time dependency threads found: YES
+Library util found: YES
+Run-time dependency appleframeworks found: NO (tried framework)
+Found pkg-config: /home/pavliukov/ipodwork/NanoRework/emulator/tools/pkg-config (0.29.2)
+Run-time dependency glib-2.0 found: YES 2.72.4
+Run-time dependency gmodule-no-export-2.0 found: YES 2.72.4
+Run-time dependency gio-2.0 found: NO (tried pkgconfig)
+Program scripts/xml-preprocess.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/xml-preprocess.py)
+Run-time dependency pixman-1 found: YES 0.40.0
+Run-time dependency zlib found: YES 1.2.11
+Has header "libaio.h" : NO 
+Run-time dependency liburing found: NO (tried pkgconfig)
+Run-time dependency libnfs found: NO (tried pkgconfig)
+Run-time dependency appleframeworks found: NO (tried framework)
+Run-time dependency appleframeworks found: NO (tried framework)
+Run-time dependency libseccomp found: NO (tried pkgconfig)
+Has header "cap-ng.h" : NO 
+Run-time dependency xkbcommon found: NO (tried pkgconfig)
+Dependency slirp skipped: feature slirp disabled
+Has header "libvdeplug.h" : NO 
+Run-time dependency libpulse found: NO (tried pkgconfig)
+Run-time dependency alsa found: NO (tried pkgconfig)
+Run-time dependency jack found: NO (tried pkgconfig)
+Run-time dependency libpipewire-0.3 found: NO (tried pkgconfig)
+Run-time dependency sndio found: NO (tried pkgconfig)
+Run-time dependency spice-protocol found: NO (tried pkgconfig)
+Run-time dependency spice-server found: NO (tried pkgconfig)
+Library rt found: YES
+Run-time dependency libiscsi found: NO (tried pkgconfig)
+Run-time dependency libzstd found: NO (tried pkgconfig)
+Run-time dependency qpl found: NO (tried pkgconfig)
+Run-time dependency libwd found: NO (tried pkgconfig)
+Run-time dependency libwd_comp found: NO (tried pkgconfig)
+Dependency virglrenderer skipped: feature virglrenderer disabled
+Run-time dependency rutabaga_gfx_ffi found: NO (tried pkgconfig)
+Run-time dependency blkio found: NO (tried pkgconfig)
+Run-time dependency libcurl found: YES 7.81.0
+Run-time dependency libudev found: NO (tried pkgconfig)
+Library mpathpersist found: YES
+Library multipath found: YES
+../vendor/qemu-9.1.2/meson.build:1351: WARNING: Dependencies missing for libmpathpersist, disabling
+Run-time dependency ncursesw found: NO (tried pkgconfig)
+Has header "curses.h" : NO 
+Message: Trying with /usr/include/ncursesw
+Has header "curses.h" : NO 
+Has header "brlapi.h" : NO 
+Dependency sdl2 skipped: feature sdl disabled
+Library rados found: NO
+Has header "rbd/librbd.h" : NO 
+Run-time dependency glusterfs-api found: NO (tried pkgconfig)
+Run-time dependency libssh found: NO (tried pkgconfig)
+Has header "bzlib.h" : NO 
+Has header "lzfse.h" : NO 
+Has header "sys/soundcard.h" : YES 
+Dependency epoxy skipped: feature opengl disabled
+Has header "epoxy/egl.h" with dependency epoxy: NO 
+Run-time dependency gnutls found: NO (tried pkgconfig)
+Run-time dependency gnutls found: NO (tried pkgconfig)
+libgcrypt-config found: NO need ['>=1.8']
+Run-time dependency libgcrypt found: NO (tried pkgconfig and config-tool)
+Run-time dependency nettle found: NO (tried pkgconfig)
+Run-time dependency capstone found: NO (tried pkgconfig)
+Run-time dependency gmp found: NO (tried pkgconfig)
+Run-time dependency libpng found: NO (tried pkgconfig)
+Run-time dependency libjpeg found: NO (tried pkgconfig)
+Has header "sasl/sasl.h" : NO 
+Has header "security/pam_appl.h" : NO 
+Has header "snappy-c.h" : NO 
+Has header "lzo/lzo1x.h" : NO 
+Has header "numa.h" : NO 
+Library fdt found: NO
+
+Executing subproject dtc 
+
+dtc| Project name: dtc
+dtc| Project version: 1.6.0
+dtc| C compiler for the host machine: cc -m64 (gcc 11.4.0 "cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0")
+dtc| C linker for the host machine: cc -m64 ld.bfd 2.38
+dtc| Compiler for C supports arguments -Wpointer-arith: YES
+dtc| Compiler for C supports arguments -Wcast-qual: YES
+dtc| Compiler for C supports arguments -Wnested-externs: YES (cached)
+dtc| Compiler for C supports arguments -Wstrict-prototypes: YES (cached)
+dtc| Compiler for C supports arguments -Wmissing-prototypes: YES (cached)
+dtc| Compiler for C supports arguments -Wredundant-decls: YES (cached)
+dtc| Compiler for C supports arguments -Wshadow: YES
+dtc| Dependency yaml-0.1 skipped: feature yaml disabled
+dtc| Run-time dependency valgrind found: NO (tried pkgconfig)
+dtc| Program python found: NO (disabled by: python )
+dtc| Program swig skipped: feature python disabled
+dtc| Found git repository at /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/subprojects/dtc
+dtc| Compiler for C supports link arguments -Wl,--version-script=/home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/subprojects/dtc/libfdt/version.lds: YES
+dtc| Build targets in project: 2
+dtc| Subproject dtc finished.
+
+Has header "rdma/rdma_cma.h" : NO 
+Library ibverbs found: NO
+Run-time dependency libcacard found: NO (tried pkgconfig)
+Run-time dependency u2f-emu found: NO (tried pkgconfig)
+Run-time dependency canokey-qemu found: NO (tried pkgconfig)
+Run-time dependency libusbredirparser-0.5 found: NO (tried pkgconfig)
+Run-time dependency libusb-1.0 found: NO (tried pkgconfig)
+Run-time dependency libpmem found: NO (tried pkgconfig)
+Run-time dependency libdaxctl found: NO (tried pkgconfig)
+Run-time dependency libkeyutils found: NO (tried pkgconfig)
+Checking for function "gettid" : YES 
+Run-time dependency libselinux found: NO (tried pkgconfig)
+Checking for function "malloc_trim" : YES 
+Header "sys/stat.h" has symbol "STATX_BASIC_STATS" : YES 
+Header "sys/stat.h" has symbol "STATX_MNT_ID" : YES 
+Run-time dependency fuse3 found: NO (tried pkgconfig)
+Run-time dependency libbpf found: NO (tried pkgconfig)
+Run-time dependency libdw found: NO (tried pkgconfig)
+Header "linux/fs.h" has symbol "FIFREEZE" : YES 
+Header "linux/fs.h" has symbol "FITRIM" : YES 
+Has header "sys/epoll.h" : YES 
+Has header "linux/magic.h" : YES 
+Has header "valgrind/valgrind.h" : NO 
+Has header "linux/btrfs.h" : YES 
+Has header "libdrm/drm.h" : NO 
+Has header "pty.h" : YES 
+Has header "sys/disk.h" : NO 
+Has header "sys/ioccom.h" : NO 
+Has header "sys/kcov.h" : NO 
+Checking for function "close_range" : YES 
+Checking for function "accept4" : YES 
+Checking for function "clock_adjtime" : YES 
+Checking for function "dup3" : YES 
+Checking for function "fallocate" : YES 
+Checking for function "posix_fallocate" : YES 
+Checking for function "getcpu" : YES 
+Checking for function "sched_getcpu" : NO 
+Checking for function "posix_memalign" : YES 
+Checking for function "_aligned_malloc" : NO 
+Checking for function "valloc" : YES 
+Checking for function "memalign" : YES 
+Checking for function "ppoll" : YES 
+Checking for function "preadv" : YES 
+Checking for function "pthread_fchdir_np" : NO 
+Checking for function "sendfile" : YES 
+Checking for function "setns" : YES 
+Checking for function "unshare" : YES 
+Checking for function "syncfs" : YES 
+Checking for function "sync_file_range" : YES 
+Checking for function "timerfd_create" : YES 
+Checking for function "copy_file_range" : YES 
+Checking for function "getifaddrs" : YES 
+Checking for function "openpty" with dependency -lutil: YES 
+Checking for function "strchrnul" : YES 
+Checking for function "system" : YES 
+Header "sys/inotify.h" has symbol "inotify_init" : YES 
+Header "sys/inotify.h" has symbol "inotify_init1" : YES 
+Header "linux/blkzoned.h" has symbol "BLKOPENZONE" : YES 
+Header "sys/epoll.h" has symbol "epoll_create1" : YES 
+Header "linux/falloc.h" has symbol "FALLOC_FL_PUNCH_HOLE" : YES 
+Header "linux/falloc.h" has symbol "FALLOC_FL_KEEP_SIZE" : YES 
+Header "linux/falloc.h" has symbol "FALLOC_FL_ZERO_RANGE" : YES 
+Has header "linux/fiemap.h" : YES 
+Header "linux/fs.h" has symbol "FS_IOC_FIEMAP" : YES 
+Checking for function "getrandom" : YES 
+Header "sys/random.h" has symbol "GRND_NONBLOCK" : YES 
+Header "sys/prctl.h" has symbol "PR_SET_TIMERSLACK" : YES 
+Header "linux/rtnetlink.h" has symbol "IFLA_PROTO_DOWN" : YES 
+Header "sys/sysmacros.h" has symbol "makedev" : YES 
+Header "getopt.h" has symbol "optreset" : NO 
+Header "netinet/in.h" has symbol "IPPROTO_MPTCP" : YES 
+Checking whether type "struct sigevent" has member "sigev_notify_thread_id" : NO 
+Checking whether type "struct stat" has member "st_atim" : YES 
+Checking whether type "struct blk_zone" has member "capacity" : YES 
+Checking for type "struct iovec" : YES 
+Checking for type "struct utmpx" : YES 
+Checking for type "struct mmsghdr" : YES 
+Header "asm/hwprobe.h" has symbol "RISCV_HWPROBE_EXT_ZBA" : NO 
+Header "linux/vm_sockets.h" has symbol "AF_VSOCK" : YES 
+Program scripts/minikconf.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/minikconf.py)
+Configuring arm-softmmu-config-target.h using configuration
+Configuring arm-softmmu-config-devices.mak with command
+Reading depfile: /home/pavliukov/ipodwork/NanoRework/emulator/build/meson-private/arm-softmmu-config-devices.mak.d
+Configuring arm-softmmu-config-devices.h using configuration
+Program scripts/make-config-poison.sh found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/make-config-poison.sh)
+
+Executing subproject libvhost-user 
+
+libvhost-user| Project name: libvhost-user
+libvhost-user| Project version: undefined
+libvhost-user| C compiler for the host machine: cc -m64 (gcc 11.4.0 "cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0")
+libvhost-user| C linker for the host machine: cc -m64 ld.bfd 2.38
+libvhost-user| Compiler for C supports arguments -Wsign-compare: YES
+libvhost-user| Compiler for C supports arguments -Wdeclaration-after-statement: YES
+libvhost-user| Compiler for C supports arguments -Wstrict-aliasing: YES
+libvhost-user| Dependency threads found: YES unknown (cached)
+libvhost-user| Dependency glib-2.0 found: YES 2.72.4 (overridden)
+libvhost-user| Build targets in project: 6
+libvhost-user| Subproject libvhost-user finished.
+
+
+Executing subproject libvduse 
+
+libvduse| Project name: libvduse
+libvduse| Project version: undefined
+libvduse| C compiler for the host machine: cc -m64 (gcc 11.4.0 "cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0")
+libvduse| C linker for the host machine: cc -m64 ld.bfd 2.38
+libvduse| Compiler for C supports arguments -Wsign-compare: YES (cached)
+libvduse| Compiler for C supports arguments -Wdeclaration-after-statement: YES (cached)
+libvduse| Compiler for C supports arguments -Wstrict-aliasing: YES (cached)
+libvduse| Build targets in project: 7
+libvduse| Subproject libvduse finished.
+
+Configuring config-host.h using configuration
+Program scripts/hxtool found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/hxtool)
+Program scripts/shaderinclude.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/shaderinclude.py)
+Program scripts/qapi-gen.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/qapi-gen.py)
+Program scripts/qemu-version.sh found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/qemu-version.sh)
+
+Executing subproject keycodemapdb 
+
+keycodemapdb| Project name: keycodemapdb
+keycodemapdb| Project version: undefined
+keycodemapdb| Program tools/keymap-gen found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/subprojects/keycodemapdb/tools/keymap-gen)
+keycodemapdb| Build targets in project: 268
+keycodemapdb| Subproject keycodemapdb finished.
+
+Program scripts/decodetree.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/decodetree.py)
+Program ../scripts/modules/module_block.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/block/../scripts/modules/module_block.py)
+Program ../scripts/block-coroutine-wrapper.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/block/../scripts/block-coroutine-wrapper.py)
+Program scripts/modinfo-collect.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/modinfo-collect.py)
+Program scripts/modinfo-generate.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/modinfo-generate.py)
+Program nm found: YES
+Program scripts/undefsym.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/undefsym.py)
+Program scripts/feature_to_c.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/feature_to_c.py)
+Program dtc found: NO
+Configuring 50-edk2-i386-secure.json using configuration
+Configuring 50-edk2-x86_64-secure.json using configuration
+Configuring 60-edk2-aarch64.json using configuration
+Configuring 60-edk2-arm.json using configuration
+Configuring 60-edk2-i386.json using configuration
+Configuring 60-edk2-x86_64.json using configuration
+Program qemu-keymap found: NO
+Program /home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/sphinx-build skipped: feature docs disabled
+Program bash found: YES 5.1.16 (/usr/bin/bash)
+Program /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/decodetree.py found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/decodetree.py)
+
+Executing subproject berkeley-softfloat-3 
+
+berkeley-softfloat-3| Project name: berkeley-softfloat-3
+berkeley-softfloat-3| Project version: undefined
+berkeley-softfloat-3| C compiler for the host machine: cc -m64 (gcc 11.4.0 "cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0")
+berkeley-softfloat-3| C linker for the host machine: cc -m64 ld.bfd 2.38
+berkeley-softfloat-3| Configuring platform.h using configuration
+berkeley-softfloat-3| Build targets in project: 380
+berkeley-softfloat-3| Subproject berkeley-softfloat-3 finished.
+
+
+Executing subproject berkeley-testfloat-3 
+
+berkeley-testfloat-3| Project name: berkeley-testfloat-3
+berkeley-testfloat-3| Project version: undefined
+berkeley-testfloat-3| C compiler for the host machine: cc -m64 (gcc 11.4.0 "cc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0")
+berkeley-testfloat-3| C linker for the host machine: cc -m64 ld.bfd 2.38
+berkeley-testfloat-3| Configuring platform.h using configuration
+berkeley-testfloat-3| Compiler for C supports arguments -Wno-ignored-pragmas: NO
+berkeley-testfloat-3| Build targets in project: 382
+berkeley-testfloat-3| Subproject berkeley-testfloat-3 finished.
+
+Program diff found: YES (/usr/bin/diff)
+Program dbus-daemon found: YES (/usr/bin/dbus-daemon)
+Run-time dependency gvnc-1.0 found: NO (tried pkgconfig)
+Run-time dependency sysprof-capture-4 found: NO (tried pkgconfig)
+Run-time dependency glib-2.0 found: YES 2.72.4
+Program initrd-stress.sh found: YES (/home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/tests/migration/initrd-stress.sh)
+Build targets in project: 531
+
+qemu 9.1.2
+
+  Build environment
+    Build directory                              : /home/pavliukov/ipodwork/NanoRework/emulator/build
+    Source path                                  : /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2
+    Download dependencies                        : YES
+
+  Directories
+    Build directory                              : /home/pavliukov/ipodwork/NanoRework/emulator/build
+    Source path                                  : /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2
+    Download dependencies                        : YES
+    Install prefix                               : /usr/local
+    BIOS directory                               : share/qemu
+    firmware path                                : share/qemu-firmware
+    binary directory                             : /usr/local/bin
+    library directory                            : /usr/local/lib/x86_64-linux-gnu
+    module directory                             : lib/x86_64-linux-gnu/qemu
+    libexec directory                            : /usr/local/libexec
+    include directory                            : /usr/local/include
+    config directory                             : /usr/local/etc
+    local state directory                        : /var/local
+    Manual directory                             : /usr/local/share/man
+    Doc directory                                : /usr/local/share/doc
+
+  Host binaries
+    python                                       : /home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 (version: 3.10)
+    sphinx-build                                 : NO
+    gdb                                          : 
+    iasl                                         : NO
+    genisoimage                                  : 
+
+  Configurable features
+    Documentation                                : NO
+    system-mode emulation                        : YES
+    user-mode emulation                          : NO
+    block layer                                  : YES
+    Install blobs                                : YES
+    module support                               : NO
+    fuzzing support                              : NO
+    Audio drivers                                : 
+    Trace backends                               : log
+    D-Bus display                                : NO
+    QOM debugging                                : YES
+    Relocatable install                          : YES
+    vhost-kernel support                         : YES
+    vhost-net support                            : YES
+    vhost-user support                           : YES
+    vhost-user-crypto support                    : YES
+    vhost-user-blk server support                : YES
+    vhost-vdpa support                           : YES
+    build guest agent                            : NO
+
+  Compilation
+    host CPU                                     : x86_64
+    host endianness                              : little
+    C compiler                                   : cc -m64
+    Host C compiler                              : cc -m64
+    C++ compiler                                 : NO
+    Objective-C compiler                         : NO
+    CFLAGS                                       : -g -O2
+    QEMU_CFLAGS                                  : -mcx16 -msse2 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -fno-strict-aliasing -fno-common -fwrapv -fzero-call-used-regs=used-gpr -fstack-protector-strong
+    QEMU_LDFLAGS                                 : -fstack-protector-strong -Wl,-z,relro -Wl,-z,now
+    link-time optimization (LTO)                 : NO
+    PIE                                          : YES
+    static build                                 : NO
+    malloc trim support                          : YES
+    membarrier                                   : NO
+    debug graph lock                             : NO
+    debug stack usage                            : NO
+    mutex debugging                              : NO
+    memory allocator                             : system
+    avx2 optimization                            : YES
+    avx512bw optimization                        : YES
+    gcov                                         : NO
+    thread sanitizer                             : NO
+    CFI support                                  : NO
+    strip binaries                               : NO
+    sparse                                       : NO
+    mingw32 support                              : NO
+
+  Cross compilers
+    arm                                          : /home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 -B /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/tests/docker/docker.py --engine docker cc --cc arm-linux-gnueabihf-gcc -i qemu/debian-armhf-cross -s /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2 --
+
+  Targets and accelerators
+    KVM support                                  : NO
+    HVF support                                  : NO
+    WHPX support                                 : NO
+    NVMM support                                 : NO
+    Xen support                                  : NO
+    Xen emulation                                : NO
+    TCG support                                  : YES
+    TCG backend                                  : native (x86_64)
+    TCG plugins                                  : YES
+    TCG debug enabled                            : NO
+    target list                                  : arm-softmmu
+    default devices                              : YES
+    out of process emulation                     : YES
+    vfio-user server                             : NO
+
+  Block layer support
+    coroutine backend                            : ucontext
+    coroutine pool                               : YES
+    Block whitelist (rw)                         : 
+    Block whitelist (ro)                         : 
+    Use block whitelist in tools                 : NO
+    VirtFS (9P) support                          : YES
+    VirtFS (9P) Proxy Helper support (deprecated): NO
+    replication support                          : YES
+    bochs support                                : YES
+    cloop support                                : YES
+    dmg support                                  : YES
+    qcow v1 support                              : YES
+    vdi support                                  : YES
+    vhdx support                                 : YES
+    vmdk support                                 : YES
+    vpc support                                  : YES
+    vvfat support                                : YES
+    qed support                                  : YES
+    parallels support                            : YES
+    FUSE exports                                 : NO
+    VDUSE block exports                          : YES
+
+  Crypto
+    TLS priority                                 : NORMAL
+    GNUTLS support                               : NO
+    libgcrypt                                    : NO
+    nettle                                       : NO
+    SM4 ALG support                              : NO
+    AF_ALG support                               : NO
+    rng-none                                     : NO
+    Linux keyring                                : YES
+    Linux keyutils                               : NO
+
+  User interface
+    SDL support                                  : NO
+    SDL image support                            : NO
+    GTK support                                  : NO
+    pixman                                       : YES 0.40.0
+    VTE support                                  : NO
+    PNG support                                  : NO
+    VNC support                                  : YES
+    VNC SASL support                             : NO
+    VNC JPEG support                             : NO
+    spice protocol support                       : NO
+    curses support                               : NO
+    brlapi support                               : NO
+
+  Graphics backends
+    VirGL support                                : NO
+    Rutabaga support                             : NO
+
+  Audio backends
+    OSS support                                  : YES
+    sndio support                                : NO
+    ALSA support                                 : NO
+    PulseAudio support                           : NO
+    PipeWire support                             : NO
+    JACK support                                 : NO
+
+  Network backends
+    AF_XDP support                               : NO
+    slirp support                                : NO
+    vde support                                  : NO
+    netmap support                               : NO
+    l2tpv3 support                               : YES
+
+  Dependencies
+    libtasn1                                     : NO
+    PAM                                          : NO
+    iconv support                                : YES
+    blkio support                                : NO
+    curl support                                 : YES 7.81.0
+    Multipath support                            : NO
+    Linux AIO support                            : NO
+    Linux io_uring support                       : NO
+    ATTR/XATTR support                           : YES
+    RDMA support                                 : NO
+    fdt support                                  : internal
+    libcap-ng support                            : NO
+    bpf support                                  : NO
+    rbd support                                  : NO
+    smartcard support                            : NO
+    U2F support                                  : NO
+    libusb                                       : NO
+    usb net redir                                : NO
+    OpenGL support (epoxy)                       : NO
+    GBM                                          : NO
+    libiscsi support                             : NO
+    libnfs support                               : NO
+    seccomp support                              : NO
+    GlusterFS support                            : NO
+    hv-balloon support                           : YES
+    TPM support                                  : YES
+    libssh support                               : NO
+    lzo support                                  : NO
+    snappy support                               : NO
+    bzip2 support                                : NO
+    lzfse support                                : NO
+    zstd support                                 : NO
+    Query Processing Library support             : NO
+    UADK Library support                         : NO
+    NUMA host support                            : NO
+    capstone                                     : NO
+    libpmem support                              : NO
+    libdaxctl support                            : NO
+    libudev                                      : NO
+    FUSE lseek                                   : NO
+    selinux                                      : NO
+    libdw                                        : NO
+
+  Subprojects
+    berkeley-softfloat-3                         : YES
+    berkeley-testfloat-3                         : YES
+    dtc                                          : YES
+    keycodemapdb                                 : YES
+    libvduse                                     : YES
+    libvhost-user                                : YES
+
+  User defined options
+    Native files                                 : config-meson.cross
+    werror                                       : false
+    audio_drv_list                               : 
+    docs                                         : disabled
+    gtk                                          : disabled
+    guest_agent                                  : disabled
+    kvm                                          : disabled
+    opengl                                       : disabled
+    plugins                                      : true
+    sdl                                          : disabled
+    slirp                                        : disabled
+    virglrenderer                                : disabled
+    xen                                          : disabled
+
+Found ninja-1.13.2.git.kitware.jobserver-pipe-1 at /home/pavliukov/.local/bin/ninja
+Running postconf script '/home/pavliukov/ipodwork/NanoRework/emulator/build/pyvenv/bin/python3 /home/pavliukov/ipodwork/NanoRework/emulator/vendor/qemu-9.1.2/scripts/symlink-install-tree.py'
+[build] building (ninja -j8 qemu-system-arm)
+ninja: Entering directory `/home/pavliukov/ipodwork/NanoRework/emulator/build'
+[1/1936] Generating trace/trace-root.h with a custom command
+[2/1936] Generating trace/trace-root.c with a custom command
+[3/1936] Generating config-poison.h with a custom command (wrapped by meson to capture output)
+[4/1936] Generating qemu-version.h with a custom command (wrapped by meson to capture output)
+[5/1936] Generating qemu-img-cmds.h with a custom command (wrapped by meson to capture output)
+[6/1936] Generating trace/trace-qapi.c with a custom command
+[7/1936] Generating trace/trace-crypto.h with a custom command
+[8/1936] Generating trace/trace-qapi.h with a custom command
+[9/1936] Generating hmp-commands.h with a custom command (wrapped by meson to capture output)
+[10/1936] Generating trace/trace-qom.h with a custom command
+[11/1936] Generating trace/trace-crypto.c with a custom command
+[12/1936] Generating trace/trace-qom.c with a custom command
+[13/1936] Generating hmp-commands-info.h with a custom command (wrapped by meson to capture output)
+[14/1936] Generating trace/trace-monitor.h with a custom command
+[15/1936] Generating trace/trace-monitor.c with a custom command
+[16/1936] Generating trace/trace-util.c with a custom command
+[17/1936] Generating trace/trace-util.h with a custom command
+[18/1936] Generating trace/trace-gdbstub.c with a custom command
+[19/1936] Generating trace/trace-gdbstub.h with a custom command
+[20/1936] Generating trace/trace-authz.h with a custom command
+[21/1936] Generating trace/trace-authz.c with a custom command
+[22/1936] Generating trace/trace-chardev.h with a custom command
+[23/1936] Generating trace/trace-chardev.c with a custom command
+[24/1936] Generating trace/trace-block.c with a custom command
+[25/1936] Generating trace/trace-io.c with a custom command
+[26/1936] Generating trace/trace-io.h with a custom command
+[27/1936] Generating trace/trace-scsi.h with a custom command
+[28/1936] Generating trace/trace-nbd.c with a custom command
+[29/1936] Generating trace/trace-scsi.c with a custom command
+[30/1936] Generating trace/trace-block.h with a custom command
+[31/1936] Generating trace/trace-nbd.h with a custom command
+[32/1936] Generating trace/trace-accel_kvm.h with a custom command
+[33/1936] Generating qemu-options.def with a custom command (wrapped by meson to capture output)
+[34/1936] Generating trace/trace-audio.c with a custom command
+[35/1936] Generating trace/trace-accel_kvm.c with a custom command
+[36/1936] Generating trace/trace-audio.h with a custom command
+[37/1936] Generating trace/trace-backends.h with a custom command
+[38/1936] Generating trace/trace-backends.c with a custom command
+[39/1936] Generating trace/trace-backends_tpm.c with a custom command
+[40/1936] Generating trace/trace-ebpf.c with a custom command
+[41/1936] Generating trace/trace-ebpf.h with a custom command
+[42/1936] Generating trace/trace-backends_tpm.h with a custom command
+[43/1936] Generating trace/trace-hw_9pfs.c with a custom command
+[44/1936] Generating trace/trace-hw_9pfs.h with a custom command
+[45/1936] Generating trace/trace-hw_acpi.h with a custom command
+[46/1936] Generating trace/trace-hw_adc.h with a custom command
+[47/1936] Generating trace/trace-hw_acpi.c with a custom command
+[48/1936] Generating trace/trace-hw_adc.c with a custom command
+[49/1936] Generating trace/trace-hw_alpha.h with a custom command
+[50/1936] Generating trace/trace-hw_alpha.c with a custom command
+[51/1936] Generating trace/trace-hw_arm.c with a custom command
+[52/1936] Generating trace/trace-hw_arm.h with a custom command
+[53/1936] Generating trace/trace-hw_audio.c with a custom command
+[54/1936] Generating trace/trace-hw_audio.h with a custom command
+[55/1936] Generating trace/trace-hw_block.c with a custom command
+[56/1936] Generating trace/trace-hw_block.h with a custom command
+[57/1936] Generating trace/trace-hw_char.c with a custom command
+[58/1936] Generating trace/trace-hw_char.h with a custom command
+[59/1936] Generating trace/trace-hw_display.c with a custom command
+[60/1936] Generating trace/trace-hw_dma.h with a custom command
+[61/1936] Generating trace/trace-hw_dma.c with a custom command
+[62/1936] Generating trace/trace-hw_fsi.h with a custom command
+[63/1936] Generating trace/trace-hw_fsi.c with a custom command
+[64/1936] Generating trace/trace-hw_display.h with a custom command
+[65/1936] Generating trace/trace-hw_hyperv.h with a custom command
+[66/1936] Generating trace/trace-hw_hyperv.c with a custom command
+[67/1936] Generating trace/trace-hw_i2c.c with a custom command
+[68/1936] Generating trace/trace-hw_i2c.h with a custom command
+[69/1936] Generating trace/trace-hw_i386.c with a custom command
+[70/1936] Generating trace/trace-hw_i386_xen.h with a custom command
+[71/1936] Generating trace/trace-hw_i386_xen.c with a custom command
+[72/1936] Generating trace/trace-hw_i386_kvm.c with a custom command
+[73/1936] Generating trace/trace-hw_i386_kvm.h with a custom command
+[74/1936] Generating trace/trace-hw_i386.h with a custom command
+[75/1936] Generating trace/trace-hw_ide.c with a custom command
+[76/1936] Generating trace/trace-hw_input.c with a custom command
+[77/1936] Generating trace/trace-hw_input.h with a custom command
+[78/1936] Generating trace/trace-hw_ide.h with a custom command
+[79/1936] Generating trace/trace-hw_isa.h with a custom command
+[80/1936] Generating trace/trace-hw_isa.c with a custom command
+[81/1936] Generating trace/trace-hw_intc.c with a custom command
+[82/1936] Generating trace/trace-hw_mem.h with a custom command
+[83/1936] Generating trace/trace-hw_mips.h with a custom command
+[84/1936] Generating trace/trace-hw_mem.c with a custom command
+[85/1936] Generating trace/trace-hw_mips.c with a custom command
+[86/1936] Generating trace/trace-hw_misc_macio.c with a custom command
+[87/1936] Generating trace/trace-hw_intc.h with a custom command
+[88/1936] Generating trace/trace-hw_misc_macio.h with a custom command
+[89/1936] Generating trace/trace-hw_misc.c with a custom command
+[90/1936] Generating trace/trace-hw_net_can.h with a custom command
+[91/1936] Generating trace/trace-hw_net_can.c with a custom command
+[92/1936] Generating trace/trace-hw_nubus.h with a custom command
+[93/1936] Generating trace/trace-hw_net.c with a custom command
+[94/1936] Generating trace/trace-hw_nubus.c with a custom command
+[95/1936] Generating trace/trace-hw_misc.h with a custom command
+[96/1936] Generating trace/trace-hw_nvram.c with a custom command
+[97/1936] Generating trace/trace-hw_pci.h with a custom command
+[98/1936] Generating trace/trace-hw_nvme.c with a custom command
+[99/1936] Generating trace/trace-hw_nvram.h with a custom command
+[100/1936] Generating trace/trace-hw_pci.c with a custom command
+[101/1936] Generating trace/trace-hw_pci_host.c with a custom command
+[102/1936] Generating trace/trace-hw_nvme.h with a custom command
+[103/1936] Generating trace/trace-hw_pci_host.h with a custom command
+[104/1936] Generating trace/trace-hw_rtc.h with a custom command
+[105/1936] Generating trace/trace-hw_net.h with a custom command
+[106/1936] Generating trace/trace-hw_rtc.c with a custom command
+[107/1936] Generating trace/trace-hw_ppc.c with a custom command
+[108/1936] Generating trace/trace-hw_s390x.h with a custom command
+[109/1936] Generating trace/trace-hw_s390x.c with a custom command
+[110/1936] Generating trace/trace-hw_ppc.h with a custom command
+[111/1936] Generating trace/trace-hw_sd.c with a custom command
+[112/1936] Generating trace/trace-hw_sh4.h with a custom command
+[113/1936] Generating trace/trace-hw_sh4.c with a custom command
+[114/1936] Generating trace/trace-hw_sd.h with a custom command
+[115/1936] Generating trace/trace-hw_scsi.c with a custom command
+[116/1936] Generating trace/trace-hw_sparc.h with a custom command
+[117/1936] Generating trace/trace-hw_sparc.c with a custom command
+[118/1936] Generating trace/trace-hw_sparc64.c with a custom command
+[119/1936] Generating trace/trace-hw_sparc64.h with a custom command
+[120/1936] Generating trace/trace-hw_ssi.c with a custom command
+[121/1936] Generating trace/trace-hw_ssi.h with a custom command
+[122/1936] Generating trace/trace-hw_scsi.h with a custom command
+[123/1936] Generating trace/trace-hw_timer.c with a custom command
+[124/1936] Generating trace/trace-hw_timer.h with a custom command
+[125/1936] Generating trace/trace-hw_tpm.c with a custom command
+[126/1936] Generating trace/trace-hw_tpm.h with a custom command
+[127/1936] Generating trace/trace-hw_ufs.c with a custom command
+[128/1936] Generating trace/trace-hw_ufs.h with a custom command
+[129/1936] Generating trace/trace-hw_usb.c with a custom command
+[130/1936] Generating trace/trace-hw_vfio.c with a custom command
+[131/1936] Generating trace/trace-hw_watchdog.h with a custom command
+[132/1936] Generating trace/trace-hw_virtio.c with a custom command
+[133/1936] Generating trace/trace-hw_virtio.h with a custom command
+[134/1936] Generating trace/trace-hw_watchdog.c with a custom command
+[135/1936] Generating trace/trace-hw_vfio.h with a custom command
+[136/1936] Generating trace/trace-hw_xen.c with a custom command
+[137/1936] Generating trace/trace-hw_gpio.h with a custom command
+[138/1936] Generating trace/trace-hw_gpio.c with a custom command
+[139/1936] Generating trace/trace-hw_usb.h with a custom command
+[140/1936] Generating trace/trace-hw_xen.h with a custom command
+[141/1936] Generating trace/trace-net.h with a custom command
+[142/1936] Generating trace/trace-migration.c with a custom command
+[143/1936] Generating trace/trace-net.c with a custom command
+[144/1936] Generating trace/trace-system.c with a custom command
+[145/1936] Generating trace/trace-system.h with a custom command
+[146/1936] Generating trace/trace-ui.c with a custom command
+[147/1936] Generating trace/trace-hw_remote.h with a custom command
+[148/1936] Generating trace/trace-hw_remote.c with a custom command
+[149/1936] Generating trace/trace-accel_tcg.c with a custom command
+[150/1936] Generating trace/trace-ui.h with a custom command
+[151/1936] Generating trace/trace-accel_tcg.h with a custom command
+[152/1936] Generating trace/trace-migration.h with a custom command
+[153/1936] Generating trace/trace-target_arm.h with a custom command
+[154/1936] Generating trace/trace-hw_core.h with a custom command
+[155/1936] Generating trace/trace-hw_core.c with a custom command
+[156/1936] Generating trace/trace-target_arm.c with a custom command
+[157/1936] Generating trace/trace-target_arm_hvf.h with a custom command
+[158/1936] Generating trace/trace-target_hppa.h with a custom command
+[159/1936] Generating trace/trace-target_arm_hvf.c with a custom command
+[160/1936] Generating trace/trace-target_hppa.c with a custom command
+[161/1936] Generating trace/trace-target_i386.h with a custom command
+[162/1936] Generating trace/trace-target_i386.c with a custom command
+[163/1936] Generating trace/trace-target_i386_kvm.c with a custom command
+[164/1936] Generating trace/trace-target_loongarch.c with a custom command
+[165/1936] Generating trace/trace-target_loongarch.h with a custom command
+[166/1936] Generating trace/trace-target_i386_kvm.h with a custom command
+[167/1936] Generating trace/trace-target_mips_tcg.h with a custom command
+[168/1936] Generating trace/trace-target_mips_tcg.c with a custom command
+[169/1936] Generating trace/trace-target_ppc.c with a custom command
+[170/1936] Generating trace/trace-target_ppc.h with a custom command
+[171/1936] Generating trace/trace-target_riscv.h with a custom command
+[172/1936] Generating trace/trace-target_s390x.h with a custom command
+[173/1936] Generating trace/trace-target_s390x.c with a custom command
+[174/1936] Generating trace/trace-target_riscv.c with a custom command
+[175/1936] Generating trace/trace-target_s390x_kvm.h with a custom command
+[176/1936] Generating trace/trace-target_s390x_kvm.c with a custom command
+[177/1936] Generating trace/trace-target_sparc.c with a custom command
+[178/1936] Generating trace/trace-target_sparc.h with a custom command
+[179/1936] Generating ui/input-keymap-linux-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[180/1936] Generating ui/input-keymap-qcode-to-atset1.c.inc with a custom command (wrapped by meson to capture output)
+[181/1936] Generating ui/input-keymap-qcode-to-atset2.c.inc with a custom command (wrapped by meson to capture output)
+[182/1936] Generating ui/input-keymap-qcode-to-atset3.c.inc with a custom command (wrapped by meson to capture output)
+[183/1936] Generating ui/input-keymap-qcode-to-qnum.c.inc with a custom command (wrapped by meson to capture output)
+[184/1936] Generating ui/input-keymap-qcode-to-linux.c.inc with a custom command (wrapped by meson to capture output)
+[185/1936] Generating ui/input-keymap-qcode-to-sun.c.inc with a custom command (wrapped by meson to capture output)
+[186/1936] Generating ui/input-keymap-qnum-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[187/1936] Generating ui/input-keymap-atset1-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[188/1936] Generating ui/input-keymap-usb-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[189/1936] Generating ui/input-keymap-win32-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[190/1936] Generating ui/input-keymap-xorgevdev-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[191/1936] Generating ui/shader/texture-blit-frag.h with a custom command (wrapped by meson to capture output)
+[192/1936] Generating ui/shader/texture-blit-vert.h with a custom command (wrapped by meson to capture output)
+[193/1936] Generating ui/input-keymap-xorgxquartz-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[194/1936] Generating ui/input-keymap-xorgxwin-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[195/1936] Generating ui/input-keymap-osx-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[196/1936] Generating ui/input-keymap-xorgkbd-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[197/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_empty_tree.c.o
+[198/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_check.c.o
+[199/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_addresses.c.o
+[200/1936] Generating ui/shader/texture-blit-flip-vert.h with a custom command (wrapped by meson to capture output)
+[201/1936] Generating ui/input-keymap-x11-to-qcode.c.inc with a custom command (wrapped by meson to capture output)
+[202/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_strerror.c.o
+[203/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt.c.o
+[204/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_wip.c.o
+[205/1936] Generating qapi/shared QAPI source files with a custom command
+[206/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_overlay.c.o
+[207/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_rw.c.o
+[208/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_sw.c.o
+[209/1936] Compiling C object subprojects/libvhost-user/libvhost-user-glib.a.p/libvhost-user-glib.c.o
+[210/1936] Generating trace/trace-qapi_commands_block_trace_events.c with a custom command
+[211/1936] Generating trace/trace-qapi_commands_authz_trace_events.c with a custom command
+[212/1936] Generating trace/trace-qapi_commands_authz_trace_events.h with a custom command
+[213/1936] Generating trace/trace-qapi_commands_block_trace_events.h with a custom command
+[214/1936] Generating trace/trace-qapi_commands_block_core_trace_events.c with a custom command
+[215/1936] Generating trace/trace-qapi_commands_block_export_trace_events.h with a custom command
+[216/1936] Generating trace/trace-qapi_commands_block_export_trace_events.c with a custom command
+[217/1936] Generating trace/trace-qapi_commands_char_trace_events.h with a custom command
+[218/1936] Generating trace/trace-qapi_commands_block_core_trace_events.h with a custom command
+[219/1936] Compiling C object subprojects/dtc/libfdt/libfdt.a.p/fdt_ro.c.o
+[220/1936] Generating trace/trace-qapi_commands_char_trace_events.c with a custom command
+[221/1936] Generating trace/trace-qapi_commands_common_trace_events.c with a custom command
+[222/1936] Generating trace/trace-qapi_commands_common_trace_events.h with a custom command
+[223/1936] Generating trace/trace-qapi_commands_compat_trace_events.h with a custom command
+[224/1936] Generating trace/trace-qapi_commands_compat_trace_events.c with a custom command
+[225/1936] Generating trace/trace-qapi_commands_control_trace_events.h with a custom command
+[226/1936] Generating trace/trace-qapi_commands_control_trace_events.c with a custom command
+[227/1936] Generating trace/trace-qapi_commands_crypto_trace_events.c with a custom command
+[228/1936] Generating trace/trace-qapi_commands_crypto_trace_events.h with a custom command
+[229/1936] Generating trace/trace-qapi_commands_dump_trace_events.h with a custom command
+[230/1936] Generating trace/trace-qapi_commands_cxl_trace_events.h with a custom command
+[231/1936] Generating trace/trace-qapi_commands_cxl_trace_events.c with a custom command
+[232/1936] Generating trace/trace-qapi_commands_dump_trace_events.c with a custom command
+[233/1936] Generating trace/trace-qapi_commands_ebpf_trace_events.h with a custom command
+[234/1936] Generating trace/trace-qapi_commands_error_trace_events.c with a custom command
+[235/1936] Generating trace/trace-qapi_commands_ebpf_trace_events.c with a custom command
+[236/1936] Generating trace/trace-qapi_commands_introspect_trace_events.h with a custom command
+[237/1936] Generating trace/trace-qapi_commands_error_trace_events.h with a custom command
+[238/1936] Generating trace/trace-qapi_commands_introspect_trace_events.c with a custom command
+[239/1936] Generating trace/trace-qapi_commands_job_trace_events.h with a custom command
+[240/1936] Generating trace/trace-qapi_commands_machine_common_trace_events.c with a custom command
+[241/1936] Generating trace/trace-qapi_commands_job_trace_events.c with a custom command
+[242/1936] Generating trace/trace-qapi_commands_machine_common_trace_events.h with a custom command
+[243/1936] Generating trace/trace-qapi_commands_machine_trace_events.c with a custom command
+[244/1936] Generating trace/trace-qapi_commands_machine_trace_events.h with a custom command
+[245/1936] Generating trace/trace-qapi_commands_migration_trace_events.c with a custom command
+[246/1936] Generating trace/trace-qapi_commands_migration_trace_events.h with a custom command
+[247/1936] Generating trace/trace-qapi_commands_misc_trace_events.h with a custom command
+[248/1936] Generating trace/trace-qapi_commands_misc_trace_events.c with a custom command
+[249/1936] Generating trace/trace-qapi_commands_net_trace_events.h with a custom command
+[250/1936] Generating trace/trace-qapi_commands_net_trace_events.c with a custom command
+[251/1936] Generating trace/trace-qapi_commands_pragma_trace_events.h with a custom command
+[252/1936] Generating trace/trace-qapi_commands_pragma_trace_events.c with a custom command
+[253/1936] Generating trace/trace-qapi_commands_qom_trace_events.h with a custom command
+[254/1936] Generating trace/trace-qapi_commands_qom_trace_events.c with a custom command
+[255/1936] Generating trace/trace-qapi_commands_replay_trace_events.h with a custom command
+[256/1936] Generating trace/trace-qapi_commands_replay_trace_events.c with a custom command
+[257/1936] Generating trace/trace-qapi_commands_run_state_trace_events.h with a custom command
+[258/1936] Generating trace/trace-qapi_commands_run_state_trace_events.c with a custom command
+[259/1936] Generating trace/trace-qapi_commands_sockets_trace_events.h with a custom command
+[260/1936] Generating trace/trace-qapi_commands_sockets_trace_events.c with a custom command
+[261/1936] Generating trace/trace-qapi_commands_stats_trace_events.h with a custom command
+[262/1936] Generating trace/trace-qapi_commands_stats_trace_events.c with a custom command
+[263/1936] Generating trace/trace-qapi_commands_trace_trace_events.c with a custom command
+[264/1936] Generating trace/trace-qapi_commands_trace_trace_events.h with a custom command
+[265/1936] Generating trace/trace-qapi_commands_transaction_trace_events.h with a custom command
+[266/1936] Generating trace/trace-qapi_commands_transaction_trace_events.c with a custom command
+[267/1936] Generating trace/trace-qapi_commands_vfio_trace_events.c with a custom command
+[268/1936] Generating trace/trace-qapi_commands_vfio_trace_events.h with a custom command
+[269/1936] Generating trace/trace-qapi_commands_virtio_trace_events.h with a custom command
+[270/1936] Generating trace/trace-qapi_commands_yank_trace_events.h with a custom command
+[271/1936] Generating trace/trace-qapi_commands_virtio_trace_events.c with a custom command
+[272/1936] Generating trace/trace-qapi_commands_yank_trace_events.c with a custom command
+[273/1936] Generating trace/trace-qapi_commands_acpi_trace_events.h with a custom command
+[274/1936] Generating trace/trace-qapi_commands_audio_trace_events.h with a custom command
+[275/1936] Generating trace/trace-qapi_commands_acpi_trace_events.c with a custom command
+[276/1936] Generating trace/trace-qapi_commands_audio_trace_events.c with a custom command
+[277/1936] Generating trace/trace-qapi_commands_cryptodev_trace_events.c with a custom command
+[278/1936] Generating trace/trace-qapi_commands_cryptodev_trace_events.h with a custom command
+[279/1936] Generating trace/trace-qapi_commands_qdev_trace_events.h with a custom command
+[280/1936] Generating trace/trace-qapi_commands_qdev_trace_events.c with a custom command
+[281/1936] Generating trace/trace-qapi_commands_pci_trace_events.c with a custom command
+[282/1936] Generating trace/trace-qapi_commands_pci_trace_events.h with a custom command
+[283/1936] Compiling C object subprojects/libvduse/libvduse.a.p/libvduse.c.o
+[284/1936] Generating trace/trace-qapi_commands_rocker_trace_events.h with a custom command
+[285/1936] Generating trace/trace-qapi_commands_rocker_trace_events.c with a custom command
+[286/1936] Generating trace/trace-qapi_commands_tpm_trace_events.c with a custom command
+[287/1936] Generating trace/trace-qapi_commands_tpm_trace_events.h with a custom command
+[288/1936] Generating trace/trace-qapi_commands_ui_trace_events.c with a custom command
+[289/1936] Generating trace/trace-qapi_commands_ui_trace_events.h with a custom command
+[290/1936] Generating trace/trace-qapi_commands_machine_target_trace_events.h with a custom command
+[291/1936] Generating trace/trace-qapi_commands_machine_target_trace_events.c with a custom command
+[292/1936] Generating trace/trace-qapi_commands_misc_target_trace_events.h with a custom command
+[293/1936] Generating block/module_block.h with a custom command
+[294/1936] Generating trace/trace-qapi_commands_misc_target_trace_events.c with a custom command
+[295/1936] Generating block/block-gen.c with a custom command
+[296/1936] Generating 'libqemu-arm-softmmu.a.p/decode-neon-shared.c.inc'
+[297/1936] Generating arm-softmmu-gdbstub-xml.c with a custom command (wrapped by meson to capture output)
+[298/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-authz.c.o
+[299/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-authz.c.o
+[300/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-builtin-types.c.o
+[301/1936] Generating 'libcommon.a.p/decode-insns.c.inc'
+[302/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-authz.c.o
+[303/1936] Compiling C object subprojects/libvhost-user/libvhost-user.a.p/libvhost-user.c.o
+[304/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-builtin-visit.c.o
+[305/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-authz.c.o
+[306/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-block.c.o
+[307/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-block.c.o
+[308/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-block.c.o
+[309/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-block-export.c.o
+[310/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-block-core.c.o
+[311/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-block.c.o
+[312/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-block-export.c.o
+[313/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-block-export.c.o
+[314/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-char.c.o
+[315/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-block-core.c.o
+[316/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-char.c.o
+[317/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-block-export.c.o
+[318/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-common.c.o
+[319/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-common.c.o
+[320/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-common.c.o
+[321/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-common.c.o
+[322/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-compat.c.o
+[323/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-compat.c.o
+[324/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-char.c.o
+[325/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-compat.c.o
+[326/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-compat.c.o
+[327/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-char.c.o
+[328/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-control.c.o
+[329/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-control.c.o
+[330/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-crypto.c.o
+[331/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-control.c.o
+[332/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-control.c.o
+[333/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-crypto.c.o
+[334/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-crypto.c.o
+[335/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-cxl.c.o
+[336/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-cxl.c.o
+[337/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-block-core.c.o
+[338/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-dump.c.o
+[339/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-cxl.c.o
+[340/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-dump.c.o
+[341/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-dump.c.o
+[342/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-crypto.c.o
+[343/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-ebpf.c.o
+[344/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-cxl.c.o
+[345/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-ebpf.c.o
+[346/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-ebpf.c.o
+[347/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-dump.c.o
+[348/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-ebpf.c.o
+[349/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-error.c.o
+[350/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-error.c.o
+[351/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-error.c.o
+[352/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-error.c.o
+[353/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-introspect.c.o
+[354/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-introspect.c.o
+[355/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-introspect.c.o
+[356/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-job.c.o
+[357/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-job.c.o
+[358/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-job.c.o
+[359/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-machine-common.c.o
+[360/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-machine-common.c.o
+[361/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-machine-common.c.o
+[362/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-introspect.c.o
+[363/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-machine-common.c.o
+[364/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-job.c.o
+[365/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-machine.c.o
+[366/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-machine.c.o
+[367/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-migration.c.o
+[368/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-misc.c.o
+[369/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-migration.c.o
+[370/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-misc.c.o
+[371/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-misc.c.o
+[372/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-net.c.o
+[373/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-migration.c.o
+[374/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-misc.c.o
+[375/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-machine.c.o
+[376/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-machine.c.o
+[377/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-net.c.o
+[378/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-pragma.c.o
+[379/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-pragma.c.o
+[380/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-pragma.c.o
+[381/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-net.c.o
+[382/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-migration.c.o
+[383/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-pragma.c.o
+[384/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-net.c.o
+[385/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-replay.c.o
+[386/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-replay.c.o
+[387/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-replay.c.o
+[388/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-qom.c.o
+[389/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-qom.c.o
+[390/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-block-core.c.o
+[391/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-run-state.c.o
+[392/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-replay.c.o
+[393/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-qom.c.o
+[394/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-run-state.c.o
+[395/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-sockets.c.o
+[396/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-run-state.c.o
+[397/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-run-state.c.o
+[398/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-sockets.c.o
+[399/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-sockets.c.o
+[400/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-stats.c.o
+[401/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-stats.c.o
+[402/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-trace.c.o
+[403/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-sockets.c.o
+[404/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-stats.c.o
+[405/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-trace.c.o
+[406/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-trace.c.o
+[407/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-stats.c.o
+[408/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-qom.c.o
+[409/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-trace.c.o
+[410/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-transaction.c.o
+[411/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-vfio.c.o
+[412/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-transaction.c.o
+[413/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-vfio.c.o
+[414/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-vfio.c.o
+[415/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-transaction.c.o
+[416/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-vfio.c.o
+[417/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-transaction.c.o
+[418/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-virtio.c.o
+[419/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-virtio.c.o
+[420/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-yank.c.o
+[421/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-yank.c.o
+[422/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-yank.c.o
+[423/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-acpi.c.o
+[424/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-yank.c.o
+[425/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-virtio.c.o
+[426/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-acpi.c.o
+[427/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-acpi.c.o
+[428/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-acpi.c.o
+[429/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-virtio.c.o
+[430/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-audio.c.o
+[431/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-audio.c.o
+[432/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-cryptodev.c.o
+[433/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-audio.c.o
+[434/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-cryptodev.c.o
+[435/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-cryptodev.c.o
+[436/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-cryptodev.c.o
+[437/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-qdev.c.o
+[438/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-qdev.c.o
+[439/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-pci.c.o
+[440/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-pci.c.o
+[441/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-qdev.c.o
+[442/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-qdev.c.o
+[443/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-pci.c.o
+[444/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-audio.c.o
+[445/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-rocker.c.o
+[446/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-pci.c.o
+[447/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-rocker.c.o
+[448/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-tpm.c.o
+[449/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-tpm.c.o
+[450/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-rocker.c.o
+[451/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-rocker.c.o
+[452/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-tpm.c.o
+[453/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-tpm.c.o
+[454/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-events-ui.c.o
+[455/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-types-ui.c.o
+[456/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-root.c.o
+[457/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-crypto.c.o
+[458/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qom.c.o
+[459/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi.c.o
+[460/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-monitor.c.o
+[461/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-util.c.o
+[462/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-gdbstub.c.o
+[463/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-authz.c.o
+[464/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-chardev.c.o
+[465/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-block.c.o
+[466/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-io.c.o
+[467/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-scsi.c.o
+[468/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-nbd.c.o
+[469/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-accel_kvm.c.o
+[470/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-commands-ui.c.o
+[471/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-audio.c.o
+[472/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-backends.c.o
+[473/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-backends_tpm.c.o
+[474/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-ebpf.c.o
+[475/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_9pfs.c.o
+[476/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_adc.c.o
+[477/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_acpi.c.o
+[478/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_alpha.c.o
+[479/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_arm.c.o
+[480/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_audio.c.o
+[481/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_block.c.o
+[482/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_char.c.o
+[483/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_dma.c.o
+[484/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_fsi.c.o
+[485/1936] Compiling C object libqemuutil.a.p/meson-generated_.._qapi_qapi-visit-ui.c.o
+[486/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_display.c.o
+[487/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_hyperv.c.o
+[488/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_i2c.c.o
+[489/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_i386_xen.c.o
+[490/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_i386.c.o
+[491/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_i386_kvm.c.o
+[492/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_input.c.o
+[493/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_ide.c.o
+[494/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_isa.c.o
+[495/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_mem.c.o
+[496/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_intc.c.o
+[497/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_mips.c.o
+[498/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_misc_macio.c.o
+[499/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_nubus.c.o
+[500/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_misc.c.o
+[501/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_net_can.c.o
+[502/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_nvram.c.o
+[503/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_nvme.c.o
+[504/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_net.c.o
+[505/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_pci.c.o
+[506/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_pci_host.c.o
+[507/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_rtc.c.o
+[508/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_s390x.c.o
+[509/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_ppc.c.o
+[510/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_sd.c.o
+[511/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_sh4.c.o
+[512/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_sparc64.c.o
+[513/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_ssi.c.o
+[514/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_sparc.c.o
+[515/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_scsi.c.o
+[516/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_timer.c.o
+[517/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_tpm.c.o
+[518/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_ufs.c.o
+[519/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_watchdog.c.o
+[520/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_virtio.c.o
+[521/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_vfio.c.o
+[522/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_xen.c.o
+[523/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_usb.c.o
+[524/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_gpio.c.o
+[525/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-net.c.o
+[526/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-migration.c.o
+[527/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-system.c.o
+[528/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-accel_tcg.c.o
+[529/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_remote.c.o
+[530/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-ui.c.o
+[531/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_arm.c.o
+[532/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-hw_core.c.o
+[533/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_arm_hvf.c.o
+[534/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_hppa.c.o
+[535/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_i386.c.o
+[536/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_loongarch.c.o
+[537/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_mips_tcg.c.o
+[538/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_i386_kvm.c.o
+[539/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_ppc.c.o
+[540/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_riscv.c.o
+[541/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_s390x.c.o
+[542/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_s390x_kvm.c.o
+[543/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-target_sparc.c.o
+[544/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_authz_trace_events.c.o
+[545/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_block_trace_events.c.o
+[546/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_block_export_trace_events.c.o
+[547/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_block_core_trace_events.c.o
+[548/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_char_trace_events.c.o
+[549/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_common_trace_events.c.o
+[550/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_compat_trace_events.c.o
+[551/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_control_trace_events.c.o
+[552/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_crypto_trace_events.c.o
+[553/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_dump_trace_events.c.o
+[554/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_cxl_trace_events.c.o
+[555/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_ebpf_trace_events.c.o
+[556/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_error_trace_events.c.o
+[557/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_introspect_trace_events.c.o
+[558/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_job_trace_events.c.o
+[559/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_machine_common_trace_events.c.o
+[560/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_machine_trace_events.c.o
+[561/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_misc_trace_events.c.o
+[562/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_net_trace_events.c.o
+[563/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_migration_trace_events.c.o
+[564/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_pragma_trace_events.c.o
+[565/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_qom_trace_events.c.o
+[566/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_replay_trace_events.c.o
+[567/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_run_state_trace_events.c.o
+[568/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_sockets_trace_events.c.o
+[569/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_stats_trace_events.c.o
+[570/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_transaction_trace_events.c.o
+[571/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_vfio_trace_events.c.o
+[572/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_trace_trace_events.c.o
+[573/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_virtio_trace_events.c.o
+[574/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_yank_trace_events.c.o
+[575/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_acpi_trace_events.c.o
+[576/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_audio_trace_events.c.o
+[577/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_cryptodev_trace_events.c.o
+[578/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_pci_trace_events.c.o
+[579/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_qdev_trace_events.c.o
+[580/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_tpm_trace_events.c.o
+[581/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_rocker_trace_events.c.o
+[582/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_ui_trace_events.c.o
+[583/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_machine_target_trace_events.c.o
+[584/1936] Compiling C object libqemuutil.a.p/meson-generated_.._trace_trace-qapi_commands_misc_target_trace_events.c.o
+[585/1936] Compiling C object libqemuutil.a.p/qapi_qapi-dealloc-visitor.c.o
+[586/1936] Compiling C object libqemuutil.a.p/qapi_qapi-clone-visitor.c.o
+[587/1936] Compiling C object libqemuutil.a.p/qapi_qapi-util.c.o
+[588/1936] Compiling C object libqemuutil.a.p/qapi_qapi-forward-visitor.c.o
+[589/1936] Compiling C object libqemuutil.a.p/qapi_opts-visitor.c.o
+[590/1936] Compiling C object libqemuutil.a.p/qapi_qobject-output-visitor.c.o
+[591/1936] Compiling C object libqemuutil.a.p/qapi_qapi-type-helpers.c.o
+[592/1936] Compiling C object libqemuutil.a.p/qapi_string-input-visitor.c.o
+[593/1936] Compiling C object libqemuutil.a.p/qapi_qmp-event.c.o
+[594/1936] Compiling C object libqemuutil.a.p/qapi_string-output-visitor.c.o
+[595/1936] Compiling C object libqemuutil.a.p/qobject_qnull.c.o
+[596/1936] Compiling C object libqemuutil.a.p/qapi_qobject-input-visitor.c.o
+[597/1936] Compiling C object libqemuutil.a.p/qapi_qapi-visit-core.c.o
+[598/1936] Compiling C object libqemuutil.a.p/qapi_qmp-dispatch.c.o
+[599/1936] Compiling C object libqemuutil.a.p/qapi_qmp-registry.c.o
+[600/1936] Compiling C object libqemuutil.a.p/qobject_qnum.c.o
+[601/1936] Compiling C object libqemuutil.a.p/qobject_qstring.c.o
+[602/1936] Compiling C object libqemuutil.a.p/qobject_qbool.c.o
+[603/1936] Compiling C object libqemuutil.a.p/qobject_qlist.c.o
+[604/1936] Compiling C object libqemuutil.a.p/qobject_qlit.c.o
+[605/1936] Compiling C object libqemuutil.a.p/qobject_qobject.c.o
+[606/1936] Compiling C object libqemuutil.a.p/qobject_qdict.c.o
+[607/1936] Compiling C object libqemuutil.a.p/qobject_qjson.c.o
+[608/1936] Compiling C object libqemuutil.a.p/qobject_json-lexer.c.o
+[609/1936] Compiling C object libqemuutil.a.p/qobject_json-writer.c.o
+[610/1936] Compiling C object libqemuutil.a.p/qobject_json-streamer.c.o
+[611/1936] Compiling C object libqemuutil.a.p/util_qemu-timer-common.c.o
+[612/1936] Compiling C object libqemuutil.a.p/util_unicode.c.o
+[613/1936] Compiling C object libqemuutil.a.p/qobject_json-parser.c.o
+[614/1936] Compiling C object libqemuutil.a.p/util_osdep.c.o
+[615/1936] Compiling C object libqemuutil.a.p/qobject_block-qdict.c.o
+[616/1936] Compiling C object libqemuutil.a.p/util_fdmon-poll.c.o
+[617/1936] Compiling C object libqemuutil.a.p/util_thread-context.c.o
+[618/1936] Compiling C object libqemuutil.a.p/util_fdmon-epoll.c.o
+[619/1936] Compiling C object libqemuutil.a.p/util_compatfd.c.o
+[620/1936] Compiling C object libqemuutil.a.p/util_event_notifier-posix.c.o
+[621/1936] Compiling C object libqemuutil.a.p/util_cutils.c.o
+[622/1936] Compiling C object libqemuutil.a.p/util_mmap-alloc.c.o
+[623/1936] Compiling C object libqemuutil.a.p/util_aio-posix.c.o
+[624/1936] Compiling C object libqemuutil.a.p/util_drm.c.o
+[625/1936] Compiling C object libqemuutil.a.p/util_memfd.c.o
+[626/1936] Compiling C object libqemuutil.a.p/util_defer-call.c.o
+[627/1936] Compiling C object libqemuutil.a.p/util_path.c.o
+[628/1936] Compiling C object libqemuutil.a.p/util_envlist.c.o
+[629/1936] Compiling C object libqemuutil.a.p/util_module.c.o
+[630/1936] Compiling C object libqemuutil.a.p/util_qemu-thread-posix.c.o
+[631/1936] Compiling C object libqemuutil.a.p/util_oslib-posix.c.o
+[632/1936] Compiling C object libqemuutil.a.p/util_host-utils.c.o
+[633/1936] Compiling C object libqemuutil.a.p/util_qtree.c.o
+[634/1936] Compiling C object libqemuutil.a.p/util_bitops.c.o
+[635/1936] Compiling C object libqemuutil.a.p/util_cacheflush.c.o
+[636/1936] Compiling C object libqemuutil.a.p/util_fifo8.c.o
+[637/1936] Compiling C object libqemuutil.a.p/util_id.c.o
+[638/1936] Compiling C object libqemuutil.a.p/util_error.c.o
+[639/1936] Compiling C object libqemuutil.a.p/util_qemu-print.c.o
+[640/1936] Compiling C object libqemuutil.a.p/util_bitmap.c.o
+[641/1936] Compiling C object libqemuutil.a.p/util_notify.c.o
+[642/1936] Compiling C object libqemuutil.a.p/util_error-report.c.o
+[643/1936] Compiling C object libqemuutil.a.p/util_qemu-progress.c.o
+[644/1936] Compiling C object libqemuutil.a.p/util_qemu-config.c.o
+[645/1936] Compiling C object libqemuutil.a.p/util_crc32c.c.o
+[646/1936] Compiling C object libqemuutil.a.p/util_uuid.c.o
+[647/1936] Compiling C object libqemuutil.a.p/util_getauxval.c.o
+[648/1936] Compiling C object libqemuutil.a.p/util_keyval.c.o
+[649/1936] Compiling C object libqemuutil.a.p/util_rcu.c.o
+[650/1936] Compiling C object libqemuutil.a.p/util_log.c.o
+[651/1936] Compiling C object libqemuutil.a.p/util_range.c.o
+[652/1936] Compiling C object libqemuutil.a.p/util_qdist.c.o
+[653/1936] Compiling C object libqemuutil.a.p/util_stats64.c.o
+[654/1936] Compiling C object libqemuutil.a.p/util_qemu-option.c.o
+[655/1936] Compiling C object libqemuutil.a.p/util_reserved-region.c.o
+[656/1936] Compiling C object libqemuutil.a.p/util_systemd.c.o
+[657/1936] Compiling C object libqemuutil.a.p/util_transactions.c.o
+[658/1936] Compiling C object libqemuutil.a.p/util_qsp.c.o
+[659/1936] Compiling C object libqemuutil.a.p/util_guest-random.c.o
+[660/1936] Compiling C object libqemuutil.a.p/util_int128.c.o
+[661/1936] Compiling C object libqemuutil.a.p/util_qht.c.o
+[662/1936] Compiling C object libqemuutil.a.p/util_memalign.c.o
+[663/1936] Compiling C object libqemuutil.a.p/util_crc-ccitt.c.o
+[664/1936] Compiling C object libqemuutil.a.p/util_base64.c.o
+[665/1936] Compiling C object libqemuutil.a.p/util_lockcnt.c.o
+[666/1936] Compiling C object libqemuutil.a.p/util_aiocb.c.o
+[667/1936] Compiling C object libqemuutil.a.p/util_interval-tree.c.o
+[668/1936] Compiling C object libqemuutil.a.p/util_userfaultfd.c.o
+[669/1936] Compiling C object libqemuutil.a.p/util_main-loop.c.o
+[670/1936] Compiling C object libqemuutil.a.p/util_qemu-coroutine-io.c.o
+[671/1936] Compiling C object libqemuutil.a.p/util_coroutine-ucontext.c.o
+[672/1936] Compiling C object libqemuutil.a.p/util_async.c.o
+[673/1936] Compiling C object libqemuutil.a.p/util_qemu-coroutine.c.o
+[674/1936] Compiling C object libqemuutil.a.p/util_qemu-coroutine-lock.c.o
+[675/1936] Compiling C object libqemuutil.a.p/util_thread-pool.c.o
+[676/1936] Compiling C object libqemuutil.a.p/util_aio-wait.c.o
+[677/1936] Compiling C object libqemuutil.a.p/util_buffer.c.o
+[678/1936] Compiling C object libqemuutil.a.p/util_hexdump.c.o
+[679/1936] Compiling C object libqemuutil.a.p/util_qemu-timer.c.o
+[680/1936] Compiling C object libqemuutil.a.p/util_iova-tree.c.o
+[681/1936] Compiling C object libqemuutil.a.p/util_block-helpers.c.o
+[682/1936] Compiling C object libqemuutil.a.p/util_nvdimm-utils.c.o
+[683/1936] Compiling C object libqemuutil.a.p/util_qemu-coroutine-sleep.c.o
+[684/1936] Compiling C object libqemuutil.a.p/util_qemu-co-shared-resource.c.o
+[685/1936] Compiling C object libqemuutil.a.p/util_hbitmap.c.o
+[686/1936] Compiling C object libqemuutil.a.p/util_qemu-co-timeout.c.o
+[687/1936] Compiling C object libqemuutil.a.p/util_bufferiszero.c.o
+[688/1936] Compiling C object libqemuutil.a.p/util_iov.c.o
+[689/1936] Compiling C object libqemuutil.a.p/util_qemu-sockets.c.o
+[690/1936] Compiling C object libqemuutil.a.p/util_timed-average.c.o
+[691/1936] Compiling C object libqemuutil.a.p/util_chardev_open.c.o
+[692/1936] Compiling C object libqemuutil.a.p/util_readline.c.o
+[693/1936] Compiling C object libqemuutil.a.p/util_yank.c.o
+[694/1936] Compiling C object libqemuutil.a.p/util_throttle.c.o
+[695/1936] Compiling C object libqemuutil.a.p/util_filemonitor-inotify.c.o
+[696/1936] Compiling C object libqemuutil.a.p/util_vhost-user-server.c.o
+[697/1936] Compiling C object libqemuutil.a.p/util_cpuinfo-i386.c.o
+[698/1936] Compiling C object libqemuutil.a.p/crypto_init.c.o
+[699/1936] Compiling C object libqemuutil.a.p/crypto_sm4.c.o
+[700/1936] Compiling C object libqemuutil.a.p/crypto_random-platform.c.o
+[701/1936] Compiling C object libqemuutil.a.p/trace_qmp.c.o
+[702/1936] Compiling C object libqemuutil.a.p/stubs_cpu-get-clock.c.o
+[703/1936] Compiling C object libqemuutil.a.p/util_vfio-helpers.c.o
+[704/1936] Compiling C object libqemuutil.a.p/trace_control.c.o
+[705/1936] Compiling C object libqemuutil.a.p/stubs_error-printf.c.o
+[706/1936] Compiling C object libqemuutil.a.p/stubs_iothread-lock.c.o
+[707/1936] Compiling C object libqemuutil.a.p/stubs_is-daemonized.c.o
+[708/1936] Compiling C object libqemuutil.a.p/stubs_fdset.c.o
+[709/1936] Compiling C object libqemuutil.a.p/crypto_clmul.c.o
+[710/1936] Compiling C object libqemuutil.a.p/stubs_trace-control.c.o
+[711/1936] Compiling C object libqemuutil.a.p/stubs_replay-mode.c.o
+[712/1936] Compiling C object libqemuutil.a.p/stubs_monitor-core.c.o
+[713/1936] Compiling C object libqemuutil.a.p/stubs_bdrv-next-monitor-owned.c.o
+[714/1936] Compiling C object libqemuutil.a.p/stubs_blk-exp-close-all.c.o
+[715/1936] Compiling C object libqemuutil.a.p/stubs_blk-commit-all.c.o
+[716/1936] Compiling C object libqemuutil.a.p/stubs_change-state-handler.c.o
+[717/1936] Compiling C object libqemuutil.a.p/stubs_get-vm-name.c.o
+[718/1936] Compiling C object libqemuutil.a.p/stubs_blockdev-close-all-bdrv-states.c.o
+[719/1936] Compiling C object libqemuutil.a.p/stubs_iothread-lock-block.c.o
+[720/1936] Compiling C object libqemuutil.a.p/stubs_migr-blocker.c.o
+[721/1936] Compiling C object libqemuutil.a.p/stubs_physmem.c.o
+[722/1936] Compiling C object libqemuutil.a.p/stubs_runstate-check.c.o
+[723/1936] Compiling C object libqemuutil.a.p/crypto_aes.c.o
+[724/1936] Compiling C object libqemuutil.a.p/stubs_ram-block.c.o
+[725/1936] Compiling C object libqemuutil.a.p/stubs_uuid.c.o
+[726/1936] Compiling C object libqemuutil.a.p/stubs_cpus-virtual-clock.c.o
+[727/1936] Compiling C object libqemuutil.a.p/stubs_icount.c.o
+[728/1936] Compiling C object libqemuutil.a.p/stubs_graph-lock.c.o
+[729/1936] Compiling C object libqemuutil.a.p/stubs_replay-tools.c.o
+[730/1936] Compiling C object libqemuutil.a.p/stubs_qemu-timer-notify-cb.c.o
+[731/1936] Compiling C object libqemuutil.a.p/stubs_monitor-internal.c.o
+[732/1936] Compiling C object libqemuutil.a.p/stubs_qmp-command-available.c.o
+[733/1936] Compiling C object libqemuutil.a.p/stubs_vm-stop.c.o
+[734/1936] Compiling C object libqemuutil.a.p/stubs_qtest.c.o
+[735/1936] Compiling C object libqemuutil.a.p/stubs_dump.c.o
+[736/1936] Compiling C object libqemuutil.a.p/stubs_qmp-quit.c.o
+[737/1936] Compiling C object libqemuutil.a.p/stubs_vmstate.c.o
+[738/1936] Compiling C object libqemuutil.a.p/stubs_cmos.c.o
+[739/1936] Compiling C object libqemuutil.a.p/stubs_target-get-monitor-def.c.o
+[740/1936] Compiling C object libqemuutil.a.p/stubs_target-monitor-defs.c.o
+[741/1936] Compiling C object libqemuutil.a.p/stubs_gdbstub.c.o
+[742/1936] Compiling C object libqemuutil.a.p/stubs_win32-kbd-hook.c.o
+[743/1936] Compiling C object libqemuutil.a.p/stubs_replay.c.o
+[744/1936] Generating 'libqemu-arm-softmmu.a.p/decode-neon-ls.c.inc'
+[745/1936] Generating 'libqemu-arm-softmmu.a.p/decode-vfp.c.inc'
+[746/1936] Compiling C object libqemuutil.a.p/stubs_fw_cfg.c.o
+[747/1936] Generating 'libqemu-arm-softmmu.a.p/decode-neon-dp.c.inc'
+[748/1936] Generating 'libqemu-arm-softmmu.a.p/decode-vfp-uncond.c.inc'
+[749/1936] Generating 'libqemu-arm-softmmu.a.p/decode-m-nocp.c.inc'
+[750/1936] Compiling C object libqemuutil.a.p/stubs_hotplug-stubs.c.o
+[751/1936] Linking static target subprojects/dtc/libfdt/libfdt.a
+[752/1936] Linking static target subprojects/libvhost-user/libvhost-user.a
+[753/1936] Compiling C object libqemuutil.a.p/stubs_sysbus.c.o
+[754/1936] Linking static target subprojects/libvhost-user/libvhost-user-glib.a
+[755/1936] Linking static target subprojects/libvduse/libvduse.a
+[756/1936] Generating 'libqemu-arm-softmmu.a.p/decode-a32-uncond.c.inc'
+[757/1936] Compiling C object libqemuutil.a.p/stubs_xen-hw-stub.c.o
+[758/1936] Generating 'libqemu-arm-softmmu.a.p/decode-t16.c.inc'
+[759/1936] Generating 'libqemu-arm-softmmu.a.p/decode-a32.c.inc'
+[760/1936] Generating 'libqemu-arm-softmmu.a.p/decode-t32.c.inc'
+[761/1936] Generating 'libqemu-arm-softmmu.a.p/decode-mve.c.inc'
+[762/1936] Compiling C object libqom.a.p/qom_container.c.o
+[763/1936] Linking static target libqemuutil.a
+[764/1936] Compiling C object libqom.a.p/qom_qom-qobject.c.o
+[765/1936] Compiling C object libevent-loop-base.a.p/event-loop-base.c.o
+[766/1936] Compiling C object libqom.a.p/qom_object_interfaces.c.o
+[767/1936] Compiling C object gdbstub/libgdb_system.a.p/system.c.o
+[768/1936] Compiling C object tcg/libtcg_system.a.p/tcg-common.c.o
+[769/1936] Compiling C object tcg/libtcg_system.a.p/region.c.o
+[770/1936] Compiling C object gdbstub/libgdb_system.a.p/gdbstub.c.o
+[771/1936] Compiling C object libqom.a.p/qom_object.c.o
+[772/1936] Compiling C object tcg/libtcg_system.a.p/perf.c.o
+[773/1936] Generating qemu.syms with a custom command (wrapped by meson to capture output)
+[774/1936] Generating block.syms with a custom command (wrapped by meson to capture output)
+[775/1936] Compiling C object tcg/libtcg_system.a.p/tcg-op-vec.c.o
+[776/1936] Compiling C object libauthz.a.p/authz_base.c.o
+[777/1936] Compiling C object libauthz.a.p/authz_list.c.o
+[778/1936] Compiling C object libauthz.a.p/authz_listfile.c.o
+[779/1936] Compiling C object libauthz.a.p/authz_simple.c.o
+[780/1936] Compiling C object libcrypto.a.p/crypto_afsplit.c.o
+[781/1936] Compiling C object libcrypto.a.p/crypto_akcipher.c.o
+[782/1936] Compiling C object tcg/libtcg_system.a.p/optimize.c.o
+[783/1936] Compiling C object libcrypto.a.p/crypto_block-qcow.c.o
+[784/1936] Compiling C object tcg/libtcg_system.a.p/tcg-op-ldst.c.o
+[785/1936] Compiling C object tcg/libtcg_system.a.p/tcg-op.c.o
+[786/1936] Compiling C object libcrypto.a.p/crypto_block.c.o
+[787/1936] Compiling C object libcrypto.a.p/crypto_cipher.c.o
+[788/1936] Compiling C object libcrypto.a.p/crypto_der.c.o
+[789/1936] Compiling C object libcrypto.a.p/crypto_hash.c.o
+[790/1936] Compiling C object libcrypto.a.p/crypto_hmac.c.o
+[791/1936] Compiling C object libcrypto.a.p/crypto_block-luks.c.o
+[792/1936] Compiling C object libcrypto.a.p/crypto_ivgen-plain.c.o
+[793/1936] Compiling C object libcrypto.a.p/crypto_ivgen-essiv.c.o
+[794/1936] Compiling C object libcrypto.a.p/crypto_ivgen-plain64.c.o
+[795/1936] Compiling C object libcrypto.a.p/crypto_ivgen.c.o
+[796/1936] Compiling C object libcrypto.a.p/crypto_pbkdf.c.o
+[797/1936] Compiling C object libcrypto.a.p/crypto_tlscreds.c.o
+[798/1936] Compiling C object libcrypto.a.p/crypto_secret.c.o
+[799/1936] Compiling C object libcrypto.a.p/crypto_tlscredsanon.c.o
+[800/1936] Compiling C object libcrypto.a.p/crypto_tlscredspsk.c.o
+[801/1936] Compiling C object libcrypto.a.p/crypto_secret_common.c.o
+[802/1936] Compiling C object libcrypto.a.p/crypto_tlscredsx509.c.o
+[803/1936] Compiling C object libcrypto.a.p/crypto_tlssession.c.o
+[804/1936] Compiling C object libcrypto.a.p/crypto_hash-glib.c.o
+[805/1936] Compiling C object libcrypto.a.p/crypto_hmac-glib.c.o
+[806/1936] Compiling C object libcrypto.a.p/crypto_rsakey.c.o
+[807/1936] Compiling C object libcrypto.a.p/crypto_pbkdf-stub.c.o
+[808/1936] Compiling C object tcg/libtcg_system.a.p/tcg-op-gvec.c.o
+[809/1936] Compiling C object libcrypto.a.p/crypto_secret_keyring.c.o
+[810/1936] Compiling C object libio.a.p/io_channel-buffer.c.o
+[811/1936] Compiling C object libio.a.p/io_channel-command.c.o
+[812/1936] Compiling C object libio.a.p/io_channel-null.c.o
+[813/1936] Compiling C object libio.a.p/io_channel-file.c.o
+[814/1936] Compiling C object libio.a.p/io_channel-util.c.o
+[815/1936] Compiling C object libio.a.p/io_channel-watch.c.o
+[816/1936] Compiling C object libio.a.p/io_channel-tls.c.o
+[817/1936] Compiling C object libio.a.p/io_channel-socket.c.o
+[818/1936] Compiling C object libio.a.p/io_dns-resolver.c.o
+[819/1936] Compiling C object libio.a.p/io_net-listener.c.o
+[820/1936] Compiling C object libio.a.p/io_channel.c.o
+[821/1936] Compiling C object libio.a.p/io_task.c.o
+[822/1936] Compiling C object libmigration.a.p/migration_migration-stats.c.o
+[823/1936] Compiling C object libmigration.a.p/migration_page_cache.c.o
+[824/1936] Compiling C object libmigration.a.p/migration_yank_functions.c.o
+[825/1936] Compiling C object libio.a.p/io_channel-websock.c.o
+[826/1936] Compiling C object libmigration.a.p/migration_vmstate-types.c.o
+[827/1936] Compiling C object libmigration.a.p/migration_xbzrle.c.o
+[828/1936] Compiling C object libmigration.a.p/migration_vmstate.c.o
+[829/1936] Compiling C object libmigration.a.p/migration_qemu-file.c.o
+[830/1936] Compiling C object tcg/libtcg_system.a.p/tcg.c.o
+[831/1936] Compiling C object libblock.a.p/replication.c.o
+[832/1936] Compiling C object libblock.a.p/blockjob.c.o
+[833/1936] Compiling C object libblock.a.p/nbd_client-connection.c.o
+[834/1936] Compiling C object libblock.a.p/scsi_utils.c.o
+[835/1936] Compiling C object libblock.a.p/meson-generated_.._block_block-gen.c.o
+[836/1936] Compiling C object libblock.a.p/nbd_common.c.o
+[837/1936] Compiling C object libblock.a.p/job.c.o
+[838/1936] Compiling C object libblock.a.p/block_aio_task.c.o
+[839/1936] Compiling C object libblock.a.p/scsi_pr-manager.c.o
+[840/1936] Compiling C object libblock.a.p/scsi_pr-manager-helper.c.o
+[841/1936] Compiling C object libblock.a.p/block_amend.c.o
+[842/1936] Compiling C object libblock.a.p/block_accounting.c.o
+[843/1936] Compiling C object libblock.a.p/qemu-io-cmds.c.o
+[844/1936] Compiling C object libblock.a.p/nbd_client.c.o
+[845/1936] Compiling C object libblock.a.p/block_backup.c.o
+[846/1936] Compiling C object libblock.a.p/block_blklogwrites.c.o
+[847/1936] Compiling C object libblock.a.p/block_blkverify.c.o
+[848/1936] Compiling C object libblock.a.p/block_blkdebug.c.o
+[849/1936] Compiling C object libblock.a.p/block_commit.c.o
+[850/1936] Compiling C object libblock.a.p/block_copy-before-write.c.o
+[851/1936] Compiling C object libblock.a.p/block_create.c.o
+[852/1936] Compiling C object libblock.a.p/block_copy-on-read.c.o
+[853/1936] Compiling C object libblock.a.p/block_block-copy.c.o
+[854/1936] Compiling C object libblock.a.p/block_filter-compress.c.o
+[855/1936] Compiling C object libblock.a.p/block_crypto.c.o
+[856/1936] Compiling C object libblock.a.p/block_graph-lock.c.o
+[857/1936] Compiling C object libblock.a.p/block_dirty-bitmap.c.o
+[858/1936] Compiling C object libblock.a.p/block_null.c.o
+[859/1936] Compiling C object libblock.a.p/block_progress_meter.c.o
+[860/1936] Compiling C object libblock.a.p/block_preallocate.c.o
+[861/1936] Compiling C object libblock.a.p/block_block-backend.c.o
+[862/1936] Compiling C object libblock.a.p/block.c.o
+[863/1936] Compiling C object libblock.a.p/block_mirror.c.o
+[864/1936] Compiling C object libblock.a.p/block_qapi.c.o
+[865/1936] Compiling C object libblock.a.p/block_qcow2-cache.c.o
+[866/1936] Compiling C object libblock.a.p/block_nbd.c.o
+[867/1936] Compiling C object libblock.a.p/block_io.c.o
+[868/1936] Compiling C object libblock.a.p/block_qcow2-bitmap.c.o
+[869/1936] Compiling C object libblock.a.p/block_qcow2-threads.c.o
+[870/1936] Compiling C object libblock.a.p/block_reqlist.c.o
+[871/1936] Compiling C object libblock.a.p/block_qcow2-snapshot.c.o
+[872/1936] Compiling C object libblock.a.p/block_quorum.c.o
+[873/1936] Compiling C object libblock.a.p/block_raw-format.c.o
+[874/1936] Compiling C object libblock.a.p/block_snapshot-access.c.o
+[875/1936] Compiling C object libblock.a.p/block_snapshot.c.o
+[876/1936] Compiling C object libblock.a.p/block_throttle.c.o
+[877/1936] Compiling C object libblock.a.p/block_write-threshold.c.o
+[878/1936] Compiling C object libblock.a.p/block_vhdx-endian.c.o
+[879/1936] Compiling C object libblock.a.p/block_throttle-groups.c.o
+[880/1936] Compiling C object libblock.a.p/block_qcow2-cluster.c.o
+[881/1936] Compiling C object libblock.a.p/block_vdi.c.o
+[882/1936] Compiling C object libblock.a.p/block_qcow2-refcount.c.o
+[883/1936] Compiling C object libblock.a.p/block_qcow.c.o
+[884/1936] Compiling C object libblock.a.p/block_vhdx-log.c.o
+[885/1936] Compiling C object libblock.a.p/block_qcow2.c.o
+[886/1936] Compiling C object libblock.a.p/block_cloop.c.o
+[887/1936] Compiling C object libblock.a.p/block_bochs.c.o
+[888/1936] Compiling C object libblock.a.p/block_vpc.c.o
+[889/1936] Compiling C object libblock.a.p/block_dmg.c.o
+[890/1936] Compiling C object libblock.a.p/block_qed-check.c.o
+[891/1936] Compiling C object libblock.a.p/block_vhdx.c.o
+[892/1936] Compiling C object libblock.a.p/block_qed-cluster.c.o
+[893/1936] Compiling C object libblock.a.p/block_qed-l2-cache.c.o
+[894/1936] Compiling C object libblock.a.p/block_qed-table.c.o
+[895/1936] Compiling C object libblock.a.p/block_parallels-ext.c.o
+[896/1936] Compiling C object libblock.a.p/block_vmdk.c.o
+[897/1936] Compiling C object libblock.a.p/block_replication.c.o
+[898/1936] Compiling C object libblock.a.p/block_parallels.c.o
+[899/1936] Compiling C object libblock.a.p/block_stream.c.o
+[900/1936] Compiling C object libblock.a.p/block_monitor_bitmap-qmp-cmds.c.o
+[901/1936] Compiling C object libblock.a.p/block_qed.c.o
+[902/1936] Compiling C object libblockdev.a.p/block_export_vhost-user-blk-server.c.o
+[903/1936] Compiling C object libblockdev.a.p/block_export_export.c.o
+[904/1936] Compiling C object libblockdev.a.p/block_export_virtio-blk-handler.c.o
+[905/1936] Compiling C object libblock.a.p/block_nvme.c.o
+[906/1936] Compiling C object libblock.a.p/block_file-posix.c.o
+[907/1936] Compiling C object libblock.a.p/block_curl.c.o
+[908/1936] Compiling C object libblockdev.a.p/block_export_vduse-blk.c.o
+[909/1936] Compiling C object libblockdev.a.p/blockdev-nbd.c.o
+[910/1936] Compiling C object libblock.a.p/block_vvfat.c.o
+[911/1936] Compiling C object libblockdev.a.p/job-qmp.c.o
+[912/1936] Compiling C object libblockdev.a.p/os-posix.c.o
+[913/1936] Compiling C object libblockdev.a.p/iothread.c.o
+[914/1936] Compiling C object libqmp.a.p/qom_qom-qmp-cmds.c.o
+[915/1936] Compiling C object libchardev.a.p/chardev_char-file.c.o
+[916/1936] Compiling C object libqmp.a.p/monitor_qmp-cmds-control.c.o
+[917/1936] Compiling C object libchardev.a.p/chardev_char-io.c.o
+[918/1936] Compiling C object libchardev.a.p/chardev_char-fe.c.o
+[919/1936] Compiling C object libqmp.a.p/monitor_qmp.c.o
+[920/1936] Compiling C object libqmp.a.p/monitor_monitor.c.o
+[921/1936] Compiling C object libchardev.a.p/chardev_char-null.c.o
+[922/1936] Compiling C object libchardev.a.p/chardev_char-pipe.c.o
+[923/1936] Compiling C object libchardev.a.p/chardev_char-ringbuf.c.o
+[924/1936] Compiling C object libchardev.a.p/chardev_char-mux.c.o
+[925/1936] Compiling C object libchardev.a.p/chardev_char-serial.c.o
+[926/1936] Compiling C object libchardev.a.p/chardev_char-stdio.c.o
+[927/1936] Compiling C object libchardev.a.p/chardev_char-udp.c.o
+[928/1936] Compiling C object libblockdev.a.p/blockdev.c.o
+[929/1936] Compiling C object libchardev.a.p/chardev_char-parallel.c.o
+[930/1936] Compiling C object libchardev.a.p/chardev_char-fd.c.o
+[931/1936] Compiling C object libchardev.a.p/chardev_char-pty.c.o
+[932/1936] Compiling C object libblockdev.a.p/nbd_server.c.o
+[933/1936] Compiling C object libhwcore.a.p/hw_core_resetcontainer.c.o
+[934/1936] Compiling C object libhwcore.a.p/hw_core_bus.c.o
+[935/1936] Compiling C object libhwcore.a.p/hw_core_vmstate-if.c.o
+[936/1936] Compiling C object libchardev.a.p/chardev_char.c.o
+[937/1936] Compiling C object libchardev.a.p/chardev_char-socket.c.o
+[938/1936] Compiling C object libhwcore.a.p/hw_core_qdev-properties.c.o
+[939/1936] Compiling C object libhwcore.a.p/hw_core_irq.c.o
+[940/1936] Compiling C object libhwcore.a.p/hw_core_resettable.c.o
+[941/1936] Compiling C object libhwcore.a.p/hw_core_clock.c.o
+[942/1936] Compiling C object libcommon.a.p/gdbstub_syscalls.c.o
+[943/1936] Compiling C object libhwcore.a.p/hw_core_qdev-clock.c.o
+[944/1936] Compiling C object libcommon.a.p/page-vary-common.c.o
+[945/1936] Compiling C object libhwcore.a.p/hw_core_qdev.c.o
+[946/1936] Compiling C object libcommon.a.p/disas_disas-host.c.o
+[947/1936] Compiling C object libcommon.a.p/disas_objdump.c.o
+[948/1936] Compiling C object libcommon.a.p/disas_disas-target.c.o
+[949/1936] Compiling C object libcommon.a.p/hw_core_cpu-common.c.o
+[950/1936] Compiling C object libcommon.a.p/hw_core_machine-smp.c.o
+[951/1936] Compiling C object libcommon.a.p/cpu-common.c.o
+[952/1936] Compiling C object libcommon.a.p/disas_disas-common.c.o
+[953/1936] Compiling C object libcommon.a.p/accel_tcg_cpu-exec-common.c.o
+[954/1936] Compiling C object libcommon.a.p/trace_trace-hmp-cmds.c.o
+[955/1936] Compiling C object libcommon.a.p/ui_clipboard.c.o
+[956/1936] Compiling C object libcommon.a.p/ui_input-keymap.c.o
+[957/1936] Compiling C object libcommon.a.p/ui_cursor.c.o
+[958/1936] Compiling C object libcommon.a.p/qom_qom-hmp-cmds.c.o
+[959/1936] Compiling C object libcommon.a.p/ui_dmabuf.c.o
+[960/1936] Compiling C object libcommon.a.p/ui_input-legacy.c.o
+[961/1936] Compiling C object libcommon.a.p/ui_kbd-state.c.o
+[962/1936] Compiling C object libcommon.a.p/ui_qemu-pixman.c.o
+[963/1936] Compiling C object libcommon.a.p/ui_keymaps.c.o
+[964/1936] Compiling C object libcommon.a.p/ui_input-barrier.c.o
+[965/1936] Compiling C object libcommon.a.p/ui_input.c.o
+[966/1936] Compiling C object libcommon.a.p/ui_ui-qmp-cmds.c.o
+[967/1936] Compiling C object libcommon.a.p/ui_ui-hmp-cmds.c.o
+[968/1936] Compiling C object libcommon.a.p/ui_spice-module.c.o
+[969/1936] Compiling C object libcommon.a.p/ui_console.c.o
+[970/1936] Compiling C object libcommon.a.p/ui_util.c.o
+[971/1936] Compiling C object libcommon.a.p/ui_udmabuf.c.o
+[972/1936] Compiling C object libcommon.a.p/ui_vnc-enc-zlib.c.o
+[973/1936] Compiling C object libcommon.a.p/ui_vnc-palette.c.o
+[974/1936] Compiling C object libcommon.a.p/ui_input-linux.c.o
+[975/1936] Compiling C object libcommon.a.p/ui_vnc-enc-hextile.c.o
+[976/1936] Compiling C object libcommon.a.p/ui_console-vc.c.o
+[977/1936] Compiling C object libcommon.a.p/ui_vnc-auth-vencrypt.c.o
+[978/1936] Compiling C object libcommon.a.p/ui_vnc-ws.c.o
+[979/1936] Compiling C object libcommon.a.p/ui_vnc-clipboard.c.o
+[980/1936] Compiling C object libcommon.a.p/ui_vnc-jobs.c.o
+[981/1936] Compiling C object libcommon.a.p/hw_9pfs_9p-posix-acl.c.o
+[982/1936] Compiling C object libcommon.a.p/hw_9pfs_9p-xattr-user.c.o
+[983/1936] Compiling C object libcommon.a.p/ui_vnc-enc-tight.c.o
+[984/1936] Compiling C object libcommon.a.p/hw_9pfs_9p-synth.c.o
+[985/1936] Compiling C object libcommon.a.p/hw_9pfs_9p-xattr.c.o
+[986/1936] Compiling C object libcommon.a.p/hw_9pfs_9p-local.c.o
+[987/1936] Compiling C object libcommon.a.p/hw_9pfs_9p-proxy.c.o
+[988/1936] Compiling C object libcommon.a.p/hw_9pfs_codir.c.o
+[989/1936] Compiling C object libcommon.a.p/hw_9pfs_cofile.c.o
+[990/1936] Compiling C object libcommon.a.p/hw_9pfs_coth.c.o
+[991/1936] Compiling C object libcommon.a.p/hw_9pfs_coxattr.c.o
+[992/1936] Compiling C object libcommon.a.p/hw_9pfs_9p-util-linux.c.o
+[993/1936] Compiling C object libcommon.a.p/hw_9pfs_cofs.c.o
+[994/1936] Compiling C object libcommon.a.p/hw_acpi_pci-bridge-stub.c.o
+[995/1936] Compiling C object libcommon.a.p/hw_acpi_acpi_interface.c.o
+[996/1936] Compiling C object libcommon.a.p/hw_acpi_acpi_generic_initiator.c.o
+[997/1936] Compiling C object libcommon.a.p/hw_acpi_bios-linker-loader.c.o
+[998/1936] Compiling C object libcommon.a.p/hw_acpi_utils.c.o
+[999/1936] Compiling C object libcommon.a.p/ui_vnc.c.o
+[1000/1936] Compiling C object libcommon.a.p/ui_vnc-enc-zrle.c.o
+[1001/1936] Compiling C object libcommon.a.p/hw_acpi_acpi-cpu-hotplug-stub.c.o
+[1002/1936] Compiling C object libcommon.a.p/hw_acpi_core.c.o
+[1003/1936] Compiling C object libcommon.a.p/hw_acpi_pci.c.o
+[1004/1936] Compiling C object libcommon.a.p/hw_acpi_cxl.c.o
+[1005/1936] Compiling C object libcommon.a.p/hw_acpi_hmat.c.o
+[1006/1936] Compiling C object libcommon.a.p/hw_acpi_memory_hotplug.c.o
+[1007/1936] Compiling C object libcommon.a.p/hw_acpi_generic_event_device.c.o
+[1008/1936] Compiling C object libcommon.a.p/hw_acpi_nvdimm.c.o
+[1009/1936] Compiling C object libcommon.a.p/hw_acpi_ghes.c.o
+[1010/1936] Compiling C object libcommon.a.p/hw_acpi_acpi-pci-hotplug-stub.c.o
+[1011/1936] Compiling C object libcommon.a.p/hw_acpi_ipmi-stub.c.o
+[1012/1936] Compiling C object libcommon.a.p/hw_acpi_acpi-x86-stub.c.o
+[1013/1936] Compiling C object libcommon.a.p/hw_acpi_viot.c.o
+[1014/1936] Compiling C object libcommon.a.p/hw_acpi_acpi-qmp-cmds.c.o
+[1015/1936] Compiling C object libcommon.a.p/hw_acpi_tpm.c.o
+[1016/1936] Compiling C object libcommon.a.p/hw_9pfs_9p.c.o
+[1017/1936] Compiling C object libcommon.a.p/hw_adc_stm32f2xx_adc.c.o
+[1018/1936] Compiling C object libcommon.a.p/hw_acpi_aml-build.c.o
+[1019/1936] Compiling C object libcommon.a.p/hw_adc_max111x.c.o
+[1020/1936] Compiling C object libcommon.a.p/hw_adc_npcm7xx_adc.c.o
+[1021/1936] Compiling C object libcommon.a.p/hw_adc_aspeed_adc.c.o
+[1022/1936] Compiling C object libcommon.a.p/hw_adc_zynq-xadc.c.o
+[1023/1936] Compiling C object libcommon.a.p/hw_acpi_erst.c.o
+[1024/1936] Compiling C object libcommon.a.p/hw_audio_soundhw.c.o
+[1025/1936] Compiling C object libcommon.a.p/hw_audio_lm4549.c.o
+[1026/1936] Compiling C object libcommon.a.p/hw_audio_marvell_88w8618.c.o
+[1027/1936] Compiling C object libcommon.a.p/hw_audio_pl041.c.o
+[1028/1936] Compiling C object libcommon.a.p/hw_audio_wm8750.c.o
+[1029/1936] Compiling C object libcommon.a.p/hw_audio_es1370.c.o
+[1030/1936] Compiling C object libcommon.a.p/hw_audio_ac97.c.o
+[1031/1936] Compiling C object libcommon.a.p/hw_block_block.c.o
+[1032/1936] Compiling C object libcommon.a.p/hw_audio_hda-codec.c.o
+[1033/1936] Compiling C object libcommon.a.p/hw_block_cdrom.c.o
+[1034/1936] Compiling C object libcommon.a.p/hw_audio_virtio-snd-pci.c.o
+[1035/1936] Compiling C object libcommon.a.p/hw_audio_intel-hda.c.o
+[1036/1936] Compiling C object libcommon.a.p/hw_block_ecc.c.o
+[1037/1936] Compiling C object libcommon.a.p/hw_block_hd-geometry.c.o
+[1038/1936] Compiling C object libcommon.a.p/hw_block_m25p80_sfdp.c.o
+[1039/1936] Compiling C object libcommon.a.p/hw_audio_virtio-snd.c.o
+[1040/1936] Compiling C object libcommon.a.p/hw_char_cmsdk-apb-uart.c.o
+[1041/1936] Compiling C object libcommon.a.p/hw_char_cadence_uart.c.o
+[1042/1936] Compiling C object libcommon.a.p/hw_block_onenand.c.o
+[1043/1936] Compiling C object libcommon.a.p/hw_block_nand.c.o
+[1044/1936] Compiling C object libcommon.a.p/hw_char_imx_serial.c.o
+[1045/1936] Compiling C object libcommon.a.p/hw_block_pflash_cfi01.c.o
+[1046/1936] Compiling C object libcommon.a.p/hw_block_pflash_cfi02.c.o
+[1047/1936] Compiling C object libcommon.a.p/hw_block_m25p80.c.o
+[1048/1936] Compiling C object libcommon.a.p/hw_char_ipoctal232.c.o
+[1049/1936] Compiling C object libcommon.a.p/hw_char_nrf51_uart.c.o
+[1050/1936] Compiling C object libcommon.a.p/hw_char_serial-pci.c.o
+[1051/1936] Compiling C object libcommon.a.p/hw_char_pl011.c.o
+[1052/1936] Compiling C object libcommon.a.p/hw_char_xilinx_uartlite.c.o
+[1053/1936] Compiling C object libcommon.a.p/hw_char_virtio-console.c.o
+[1054/1936] Compiling C object libcommon.a.p/hw_char_serial-pci-multi.c.o
+[1055/1936] Compiling C object libcommon.a.p/hw_char_digic-uart.c.o
+[1056/1936] Compiling C object libcommon.a.p/hw_char_serial.c.o
+[1057/1936] Compiling C object libcommon.a.p/hw_char_omap_uart.c.o
+[1058/1936] Compiling C object libcommon.a.p/hw_char_bcm2835_aux.c.o
+[1059/1936] Compiling C object libcommon.a.p/hw_char_stm32f2xx_usart.c.o
+[1060/1936] Compiling C object libcommon.a.p/hw_core_generic-loader.c.o
+[1061/1936] Compiling C object libcommon.a.p/hw_core_or-irq.c.o
+[1062/1936] Compiling C object libcommon.a.p/hw_core_guest-loader.c.o
+[1063/1936] Compiling C object libcommon.a.p/hw_char_exynos4210_uart.c.o
+[1064/1936] Compiling C object libcommon.a.p/hw_char_stm32l4x5_usart.c.o
+[1065/1936] Compiling C object libcommon.a.p/hw_core_platform-bus.c.o
+[1066/1936] Compiling C object libcommon.a.p/hw_core_stream.c.o
+[1067/1936] Compiling C object libcommon.a.p/hw_core_split-irq.c.o
+[1068/1936] Compiling C object libcommon.a.p/hw_core_ptimer.c.o
+[1069/1936] Compiling C object libcommon.a.p/hw_core_register.c.o
+[1070/1936] Compiling C object libcommon.a.p/hw_core_fw-path-provider.c.o
+[1071/1936] Compiling C object libcommon.a.p/hw_core_cpu-sysemu.c.o
+[1072/1936] Compiling C object libcommon.a.p/hw_core_hotplug.c.o
+[1073/1936] Compiling C object libcommon.a.p/hw_core_gpio.c.o
+[1074/1936] Compiling C object libcommon.a.p/hw_core_sysbus-fdt.c.o
+[1075/1936] Compiling C object libcommon.a.p/hw_core_nmi.c.o
+[1076/1936] Compiling C object libcommon.a.p/hw_core_null-machine.c.o
+[1077/1936] Compiling C object libcommon.a.p/hw_core_qdev-fw.c.o
+[1078/1936] Compiling C object libcommon.a.p/hw_core_machine-hmp-cmds.c.o
+[1079/1936] Compiling C object libcommon.a.p/hw_core_machine-qmp-cmds.c.o
+[1080/1936] Compiling C object libcommon.a.p/hw_core_reset.c.o
+[1081/1936] Compiling C object libcommon.a.p/hw_core_qdev-hotplug.c.o
+[1082/1936] Compiling C object libcommon.a.p/hw_core_vm-change-state-handler.c.o
+[1083/1936] Compiling C object libcommon.a.p/hw_core_numa.c.o
+[1084/1936] Compiling C object libcommon.a.p/hw_core_clock-vmstate.c.o
+[1085/1936] Compiling C object libcommon.a.p/hw_core_sysbus.c.o
+[1086/1936] Compiling C object libcommon.a.p/hw_cpu_cluster.c.o
+[1087/1936] Compiling C object libcommon.a.p/hw_core_machine.c.o
+[1088/1936] Compiling C object libcommon.a.p/hw_cpu_core.c.o
+[1089/1936] Compiling C object libcommon.a.p/hw_cpu_arm11mpcore.c.o
+[1090/1936] Compiling C object libcommon.a.p/hw_cpu_realview_mpcore.c.o
+[1091/1936] Compiling C object libcommon.a.p/hw_core_qdev-properties-system.c.o
+[1092/1936] Compiling C object libcommon.a.p/hw_cpu_a9mpcore.c.o
+[1093/1936] Compiling C object libcommon.a.p/hw_cxl_cxl-component-utils.c.o
+[1094/1936] Compiling C object libcommon.a.p/hw_cxl_cxl-device-utils.c.o
+[1095/1936] Compiling C object libcommon.a.p/hw_cxl_cxl-host.c.o
+[1096/1936] Compiling C object libcommon.a.p/hw_core_loader.c.o
+[1097/1936] Compiling C object libcommon.a.p/hw_cxl_switch-mailbox-cci.c.o
+[1098/1936] Compiling C object libcommon.a.p/hw_cxl_cxl-cdat.c.o
+[1099/1936] Compiling C object libcommon.a.p/hw_cxl_cxl-events.c.o
+[1100/1936] Compiling C object libcommon.a.p/hw_display_i2c-ddc.c.o
+[1101/1936] Compiling C object libcommon.a.p/hw_display_edid-region.c.o
+[1102/1936] Compiling C object libcommon.a.p/hw_display_edid-generate.c.o
+[1103/1936] Compiling C object libcommon.a.p/hw_display_ramfb-standalone.c.o
+[1104/1936] Compiling C object libcommon.a.p/hw_display_ramfb.c.o
+[1105/1936] Compiling C object libcommon.a.p/hw_display_sii9022.c.o
+[1106/1936] Compiling C object libcommon.a.p/hw_display_ssd0303.c.o
+[1107/1936] Compiling C object libcommon.a.p/hw_display_ssd0323.c.o
+[1108/1936] Compiling C object libcommon.a.p/hw_cxl_cxl-mailbox-utils.c.o
+[1109/1936] Compiling C object libcommon.a.p/hw_display_vga-pci.c.o
+[1110/1936] Compiling C object libcommon.a.p/hw_display_bochs-display.c.o
+[1111/1936] Compiling C object libcommon.a.p/hw_display_framebuffer.c.o
+[1112/1936] Compiling C object libcommon.a.p/hw_display_blizzard.c.o
+[1113/1936] Compiling C object libcommon.a.p/hw_display_pl110.c.o
+[1114/1936] Compiling C object libcommon.a.p/hw_display_tc6393xb.c.o
+[1115/1936] Compiling C object libcommon.a.p/hw_display_bcm2835_fb.c.o
+[1116/1936] Compiling C object libcommon.a.p/hw_display_virtio-dmabuf.c.o
+[1117/1936] Compiling C object libcommon.a.p/hw_display_omap_dss.c.o
+[1118/1936] Compiling C object libcommon.a.p/hw_display_acpi-vga.c.o
+[1119/1936] Compiling C object libcommon.a.p/hw_display_pxa2xx_lcd.c.o
+[1120/1936] Compiling C object libcommon.a.p/hw_display_dm163.c.o
+[1121/1936] Compiling C object libcommon.a.p/hw_display_exynos4210_fimd.c.o
+[1122/1936] Compiling C object libcommon.a.p/hw_display_ati_2d.c.o
+[1123/1936] Compiling C object libcommon.a.p/hw_display_ati_dbg.c.o
+[1124/1936] Compiling C object libcommon.a.p/hw_dma_pl080.c.o
+[1125/1936] Compiling C object libcommon.a.p/hw_display_omap_lcdc.c.o
+[1126/1936] Compiling C object libcommon.a.p/hw_display_ati.c.o
+[1127/1936] Compiling C object libcommon.a.p/hw_dma_xilinx_axidma.c.o
+[1128/1936] Compiling C object libcommon.a.p/hw_dma_xlnx-zynq-devcfg.c.o
+[1129/1936] Compiling C object libcommon.a.p/hw_dma_soc_dma.c.o
+[1130/1936] Compiling C object libcommon.a.p/hw_display_vga.c.o
+[1131/1936] Compiling C object libcommon.a.p/hw_gpio_gpio_key.c.o
+[1132/1936] Compiling C object libcommon.a.p/hw_dma_pxa2xx_dma.c.o
+[1133/1936] Compiling C object libcommon.a.p/hw_dma_bcm2835_dma.c.o
+[1134/1936] Compiling C object libcommon.a.p/hw_gpio_gpio_pwr.c.o
+[1135/1936] Compiling C object libcommon.a.p/hw_dma_pl330.c.o
+[1136/1936] Compiling C object libcommon.a.p/hw_gpio_max7310.c.o
+[1137/1936] Compiling C object libcommon.a.p/hw_gpio_zaurus.c.o
+[1138/1936] Compiling C object libcommon.a.p/hw_gpio_pca9552.c.o
+[1139/1936] Compiling C object libcommon.a.p/hw_dma_omap_dma.c.o
+[1140/1936] Compiling C object libcommon.a.p/hw_gpio_imx_gpio.c.o
+[1141/1936] Compiling C object libcommon.a.p/hw_gpio_pl061.c.o
+[1142/1936] Compiling C object libcommon.a.p/hw_gpio_nrf51_gpio.c.o
+[1143/1936] Compiling C object libcommon.a.p/hw_gpio_npcm7xx_gpio.c.o
+[1144/1936] Compiling C object libcommon.a.p/hw_gpio_bcm2835_gpio.c.o
+[1145/1936] Compiling C object libcommon.a.p/hw_gpio_bcm2838_gpio.c.o
+[1146/1936] Compiling C object libcommon.a.p/hw_i2c_smbus_slave.c.o
+[1147/1936] Compiling C object libcommon.a.p/hw_gpio_stm32l4x5_gpio.c.o
+[1148/1936] Compiling C object libcommon.a.p/hw_gpio_omap_gpio.c.o
+[1149/1936] Compiling C object libcommon.a.p/hw_i2c_core.c.o
+[1150/1936] Compiling C object libcommon.a.p/hw_i2c_smbus_master.c.o
+[1151/1936] Compiling C object libcommon.a.p/hw_gpio_aspeed_gpio.c.o
+[1152/1936] Compiling C object libcommon.a.p/hw_i2c_exynos4210_i2c.c.o
+[1153/1936] Compiling C object libcommon.a.p/hw_i2c_bitbang_i2c.c.o
+[1154/1936] Compiling C object libcommon.a.p/hw_i2c_imx_i2c.c.o
+[1155/1936] Compiling C object libcommon.a.p/hw_i2c_microbit_i2c.c.o
+[1156/1936] Compiling C object libcommon.a.p/hw_i2c_allwinner-i2c.c.o
+[1157/1936] Compiling C object libcommon.a.p/hw_i2c_arm_sbcon_i2c.c.o
+[1158/1936] Compiling C object libcommon.a.p/hw_i2c_npcm7xx_smbus.c.o
+[1159/1936] Compiling C object libcommon.a.p/hw_i2c_i2c_mux_pca954x.c.o
+[1160/1936] Compiling C object libcommon.a.p/hw_i2c_smbus_eeprom.c.o
+[1161/1936] Compiling C object libcommon.a.p/hw_i2c_omap_i2c.c.o
+[1162/1936] Compiling C object libcommon.a.p/hw_i2c_bcm2835_i2c.c.o
+[1163/1936] Compiling C object libcommon.a.p/hw_i2c_aspeed_i2c.c.o
+[1164/1936] Compiling C object libcommon.a.p/hw_ide_ich.c.o
+[1165/1936] Compiling C object libcommon.a.p/hw_ide_ahci-allwinner.c.o
+[1166/1936] Compiling C object libcommon.a.p/hw_ide_ide-bus.c.o
+[1167/1936] Compiling C object libcommon.a.p/hw_ide_cf.c.o
+[1168/1936] Compiling C object libcommon.a.p/hw_ide_ide-dev.c.o
+[1169/1936] Compiling C object libcommon.a.p/hw_ide_microdrive.c.o
+[1170/1936] Compiling C object libcommon.a.p/hw_i2c_pmbus_device.c.o
+[1171/1936] Compiling C object libcommon.a.p/hw_input_hid.c.o
+[1172/1936] Compiling C object libcommon.a.p/hw_input_ads7846.c.o
+[1173/1936] Compiling C object libcommon.a.p/hw_ide_atapi.c.o
+[1174/1936] Compiling C object libcommon.a.p/hw_input_lm832x.c.o
+[1175/1936] Compiling C object libcommon.a.p/hw_input_pl050.c.o
+[1176/1936] Compiling C object libcommon.a.p/hw_ide_ahci.c.o
+[1177/1936] Compiling C object libcommon.a.p/hw_input_stellaris_gamepad.c.o
+[1178/1936] Compiling C object libcommon.a.p/hw_input_tsc2005.c.o
+[1179/1936] Compiling C object libcommon.a.p/hw_input_virtio-input-hid.c.o
+[1180/1936] Compiling C object libcommon.a.p/hw_input_virtio-input.c.o
+[1181/1936] Compiling C object libcommon.a.p/hw_input_pxa2xx_keypad.c.o
+[1182/1936] Compiling C object libcommon.a.p/hw_input_virtio-input-host.c.o
+[1183/1936] Compiling C object libcommon.a.p/hw_intc_intc.c.o
+[1184/1936] Compiling C object libcommon.a.p/hw_input_ps2.c.o
+[1185/1936] Compiling C object libcommon.a.p/hw_ide_core.c.o
+[1186/1936] Compiling C object libcommon.a.p/hw_intc_arm_gic_common.c.o
+[1187/1936] Compiling C object libcommon.a.p/hw_intc_arm_gicv2m.c.o
+[1188/1936] Compiling C object libcommon.a.p/hw_intc_arm_gicv3_its_common.c.o
+[1189/1936] Compiling C object libcommon.a.p/hw_intc_arm_gicv3_common.c.o
+[1190/1936] Compiling C object libcommon.a.p/hw_input_tsc210x.c.o
+[1191/1936] Compiling C object libcommon.a.p/hw_intc_arm_gicv3.c.o
+[1192/1936] Compiling C object libcommon.a.p/hw_intc_allwinner-a10-pic.c.o
+[1193/1936] Compiling C object libcommon.a.p/hw_intc_arm_gicv3_dist.c.o
+[1194/1936] Compiling C object libcommon.a.p/hw_intc_aspeed_vic.c.o
+[1195/1936] Compiling C object libcommon.a.p/hw_intc_aspeed_intc.c.o
+[1196/1936] Compiling C object libcommon.a.p/hw_intc_exynos4210_gic.c.o
+[1197/1936] Compiling C object libcommon.a.p/hw_intc_ioapic-stub.c.o
+[1198/1936] Compiling C object libcommon.a.p/hw_intc_arm_gic.c.o
+[1199/1936] Compiling C object libcommon.a.p/hw_intc_exynos4210_combiner.c.o
+[1200/1936] Compiling C object libcommon.a.p/hw_intc_imx_avic.c.o
+[1201/1936] Compiling C object libcommon.a.p/hw_intc_imx_gpcv2.c.o
+[1202/1936] Compiling C object libcommon.a.p/hw_intc_arm_gicv3_redist.c.o
+[1203/1936] Compiling C object libcommon.a.p/hw_intc_pl190.c.o
+[1204/1936] Compiling C object libcommon.a.p/hw_intc_arm_gicv3_its.c.o
+[1205/1936] Compiling C object libcommon.a.p/hw_intc_xilinx_intc.c.o
+[1206/1936] Compiling C object libcommon.a.p/hw_intc_realview_gic.c.o
+[1207/1936] Compiling C object libcommon.a.p/hw_intc_bcm2836_control.c.o
+[1208/1936] Compiling C object libcommon.a.p/hw_intc_bcm2835_ic.c.o
+[1209/1936] Compiling C object libcommon.a.p/hw_ipack_ipack.c.o
+[1210/1936] Compiling C object libcommon.a.p/hw_intc_omap_intc.c.o
+[1211/1936] Compiling C object libcommon.a.p/hw_mem_npcm7xx_mc.c.o
+[1212/1936] Compiling C object libcommon.a.p/hw_mem_nvdimm.c.o
+[1213/1936] Compiling C object libcommon.a.p/hw_ipack_tpci200.c.o
+[1214/1936] Compiling C object libcommon.a.p/hw_mem_pc-dimm.c.o
+[1215/1936] Compiling C object libcommon.a.p/hw_mem_memory-device.c.o
+[1216/1936] Compiling C object libcommon.a.p/hw_misc_vmcoreinfo.c.o
+[1217/1936] Compiling C object libcommon.a.p/hw_misc_edu.c.o
+[1218/1936] Compiling C object libcommon.a.p/hw_misc_unimp.c.o
+[1219/1936] Compiling C object libcommon.a.p/hw_misc_led.c.o
+[1220/1936] Compiling C object libcommon.a.p/hw_misc_pci-testdev.c.o
+[1221/1936] Compiling C object libcommon.a.p/hw_misc_arm_integrator_debug.c.o
+[1222/1936] Compiling C object libcommon.a.p/hw_misc_a9scu.c.o
+[1223/1936] Compiling C object libcommon.a.p/hw_misc_arm_l2x0.c.o
+[1224/1936] Compiling C object libcommon.a.p/hw_misc_pvpanic.c.o
+[1225/1936] Compiling C object libcommon.a.p/hw_misc_armv7m_ras.c.o
+[1226/1936] Compiling C object libcommon.a.p/hw_misc_arm11scu.c.o
+[1227/1936] Compiling C object libcommon.a.p/hw_mem_cxl_type3.c.o
+[1228/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-a10-ccm.c.o
+[1229/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-a10-dramc.c.o
+[1230/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-sramc.c.o
+[1231/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-h3-ccu.c.o
+[1232/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-h3-sysctrl.c.o
+[1233/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-h3-dramc.c.o
+[1234/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-r40-ccu.c.o
+[1235/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-sid.c.o
+[1236/1936] Compiling C object libcommon.a.p/hw_misc_ivshmem.c.o
+[1237/1936] Compiling C object libcommon.a.p/hw_misc_axp2xx.c.o
+[1238/1936] Compiling C object libcommon.a.p/hw_misc_cbus.c.o
+[1239/1936] Compiling C object libcommon.a.p/hw_misc_exynos4210_pmu.c.o
+[1240/1936] Compiling C object libcommon.a.p/hw_misc_allwinner-r40-dramc.c.o
+[1241/1936] Compiling C object libcommon.a.p/hw_misc_exynos4210_clk.c.o
+[1242/1936] Compiling C object libcommon.a.p/hw_misc_arm_sysctl.c.o
+[1243/1936] Compiling C object libcommon.a.p/hw_misc_exynos4210_rng.c.o
+[1244/1936] Compiling C object libcommon.a.p/hw_misc_imx25_ccm.c.o
+[1245/1936] Compiling C object libcommon.a.p/hw_misc_imx31_ccm.c.o
+[1246/1936] Compiling C object libcommon.a.p/hw_misc_imx6_src.c.o
+[1247/1936] Compiling C object libcommon.a.p/hw_misc_imx7_ccm.c.o
+[1248/1936] Compiling C object libcommon.a.p/hw_misc_imx7_src.c.o
+[1249/1936] Compiling C object libcommon.a.p/hw_misc_imx7_gpr.c.o
+[1250/1936] Compiling C object libcommon.a.p/hw_misc_imx6_ccm.c.o
+[1251/1936] Compiling C object libcommon.a.p/hw_misc_imx_ccm.c.o
+[1252/1936] Compiling C object libcommon.a.p/hw_misc_imx7_snvs.c.o
+[1253/1936] Compiling C object libcommon.a.p/hw_misc_imx_rngc.c.o
+[1254/1936] Compiling C object libcommon.a.p/hw_misc_mst_fpga.c.o
+[1255/1936] Compiling C object libcommon.a.p/hw_misc_imx6ul_ccm.c.o
+[1256/1936] Compiling C object libcommon.a.p/hw_misc_npcm7xx_gcr.c.o
+[1257/1936] Compiling C object libcommon.a.p/hw_display_cirrus_vga.c.o
+[1258/1936] Compiling C object libcommon.a.p/hw_misc_npcm7xx_rng.c.o
+[1259/1936] Compiling C object libcommon.a.p/hw_misc_npcm7xx_mft.c.o
+[1260/1936] Compiling C object libcommon.a.p/hw_misc_npcm7xx_clk.c.o
+[1261/1936] Compiling C object libcommon.a.p/hw_misc_omap_clk.c.o
+[1262/1936] Compiling C object libcommon.a.p/hw_misc_npcm7xx_pwm.c.o
+[1263/1936] Compiling C object libcommon.a.p/hw_misc_omap_l4.c.o
+[1264/1936] Compiling C object libcommon.a.p/hw_misc_omap_tap.c.o
+[1265/1936] Compiling C object libcommon.a.p/hw_misc_omap_sdrc.c.o
+[1266/1936] Compiling C object libcommon.a.p/hw_misc_omap_gpmc.c.o
+[1267/1936] Compiling C object libcommon.a.p/hw_misc_bcm2835_mphi.c.o
+[1268/1936] Compiling C object libcommon.a.p/hw_misc_bcm2835_rng.c.o
+[1269/1936] Compiling C object libcommon.a.p/hw_misc_bcm2835_thermal.c.o
+[1270/1936] Compiling C object libcommon.a.p/hw_misc_bcm2835_mbox.c.o
+[1271/1936] Compiling C object libcommon.a.p/hw_misc_bcm2835_powermgt.c.o
+[1272/1936] Compiling C object libcommon.a.p/hw_misc_stm32f2xx_syscfg.c.o
+[1273/1936] Compiling C object libcommon.a.p/hw_misc_zynq_slcr.c.o
+[1274/1936] Compiling C object libcommon.a.p/hw_misc_stm32f4xx_syscfg.c.o
+[1275/1936] Compiling C object libcommon.a.p/hw_misc_bcm2835_property.c.o
+[1276/1936] Compiling C object libcommon.a.p/hw_misc_stm32f4xx_exti.c.o
+[1277/1936] Compiling C object libcommon.a.p/hw_misc_stm32l4x5_exti.c.o
+[1278/1936] Compiling C object libcommon.a.p/hw_misc_bcm2835_cprman.c.o
+[1279/1936] Compiling C object libcommon.a.p/hw_misc_stm32l4x5_syscfg.c.o
+[1280/1936] Compiling C object libcommon.a.p/hw_misc_mps2-fpgaio.c.o
+[1281/1936] Compiling C object libcommon.a.p/hw_misc_mps2-scc.c.o
+[1282/1936] Compiling C object libcommon.a.p/hw_misc_tz-msc.c.o
+[1283/1936] Compiling C object libcommon.a.p/hw_misc_tz-mpc.c.o
+[1284/1936] Compiling C object libcommon.a.p/hw_misc_tz-ppc.c.o
+[1285/1936] Compiling C object libcommon.a.p/hw_misc_iotkit-sysinfo.c.o
+[1286/1936] Compiling C object libcommon.a.p/hw_misc_armsse-cpu-pwrctrl.c.o
+[1287/1936] Compiling C object libcommon.a.p/hw_misc_iotkit-sysctl.c.o
+[1288/1936] Compiling C object libcommon.a.p/hw_misc_armsse-cpuid.c.o
+[1289/1936] Compiling C object libcommon.a.p/hw_misc_iotkit-secctl.c.o
+[1290/1936] Compiling C object libcommon.a.p/hw_misc_stm32l4x5_rcc.c.o
+[1291/1936] Compiling C object libcommon.a.p/hw_misc_armsse-mhu.c.o
+[1292/1936] Compiling C object libcommon.a.p/hw_misc_pvpanic-pci.c.o
+[1293/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_sbc.c.o
+[1294/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_hace.c.o
+[1295/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_lpc.c.o
+[1296/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_i3c.c.o
+[1297/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_xdma.c.o
+[1298/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_sdmc.c.o
+[1299/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_peci.c.o
+[1300/1936] Compiling C object libcommon.a.p/hw_misc_i2c-echo.c.o
+[1301/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_sli.c.o
+[1302/1936] Compiling C object libcommon.a.p/hw_misc_aspeed_scu.c.o
+[1303/1936] Compiling C object libcommon.a.p/hw_misc_nrf51_rng.c.o
+[1304/1936] Compiling C object libcommon.a.p/hw_misc_msf2-sysreg.c.o
+[1305/1936] Compiling C object libcommon.a.p/hw_net_ne2000-pci.c.o
+[1306/1936] Compiling C object libcommon.a.p/hw_net_ne2000.c.o
+[1307/1936] Compiling C object libcommon.a.p/hw_net_pcnet-pci.c.o
+[1308/1936] Compiling C object libcommon.a.p/hw_net_e1000x_common.c.o
+[1309/1936] Compiling C object libcommon.a.p/hw_net_net_tx_pkt.c.o
+[1310/1936] Compiling C object libcommon.a.p/hw_net_eepro100.c.o
+[1311/1936] Compiling C object libcommon.a.p/hw_net_pcnet.c.o
+[1312/1936] Compiling C object libcommon.a.p/hw_net_net_rx_pkt.c.o
+[1313/1936] Compiling C object libcommon.a.p/hw_net_e1000.c.o
+[1314/1936] Compiling C object libcommon.a.p/hw_net_e1000e.c.o
+[1315/1936] Compiling C object libcommon.a.p/hw_net_igbvf.c.o
+[1316/1936] Compiling C object libcommon.a.p/hw_net_igb.c.o
+[1317/1936] Compiling C object libcommon.a.p/hw_net_xgmac.c.o
+[1318/1936] Compiling C object libcommon.a.p/hw_net_smc91c111.c.o
+[1319/1936] Compiling C object libcommon.a.p/hw_net_lan9118.c.o
+[1320/1936] Compiling C object libcommon.a.p/hw_net_rtl8139.c.o
+[1321/1936] Compiling C object libcommon.a.p/hw_net_tulip.c.o
+[1322/1936] Compiling C object libcommon.a.p/hw_net_allwinner_emac.c.o
+[1323/1936] Compiling C object libcommon.a.p/hw_net_xilinx_axienet.c.o
+[1324/1936] Compiling C object libcommon.a.p/hw_net_vmxnet3.c.o
+[1325/1936] Compiling C object libcommon.a.p/hw_net_msf2-emac.c.o
+[1326/1936] Compiling C object libcommon.a.p/hw_net_mv88w8618_eth.c.o
+[1327/1936] Compiling C object libcommon.a.p/hw_net_allwinner-sun8i-emac.c.o
+[1328/1936] Compiling C object libcommon.a.p/hw_net_stellaris_enet.c.o
+[1329/1936] Compiling C object libcommon.a.p/hw_net_imx_fec.c.o
+[1330/1936] Compiling C object libcommon.a.p/hw_net_cadence_gem.c.o
+[1331/1936] Compiling C object libcommon.a.p/hw_net_ftgmac100.c.o
+[1332/1936] Compiling C object libcommon.a.p/hw_net_npcm7xx_emc.c.o
+[1333/1936] Compiling C object libcommon.a.p/hw_net_igb_core.c.o
+[1334/1936] Compiling C object libcommon.a.p/hw_net_e1000e_core.c.o
+[1335/1936] Compiling C object libcommon.a.p/hw_net_vhost_net.c.o
+[1336/1936] Compiling C object libcommon.a.p/hw_net_npcm_gmac.c.o
+[1337/1936] Compiling C object libcommon.a.p/hw_net_rocker_rocker_fp.c.o
+[1338/1936] Compiling C object libcommon.a.p/hw_net_rocker_rocker_world.c.o
+[1339/1936] Compiling C object libcommon.a.p/hw_net_rocker_rocker_desc.c.o
+[1340/1936] Compiling C object libcommon.a.p/hw_net_rocker_rocker-hmp-cmds.c.o
+[1341/1936] Compiling C object libcommon.a.p/hw_net_can_can_sja1000.c.o
+[1342/1936] Compiling C object libcommon.a.p/hw_net_can_can_kvaser_pci.c.o
+[1343/1936] Compiling C object libcommon.a.p/hw_net_can_can_mioe3680_pci.c.o
+[1344/1936] Compiling C object libcommon.a.p/hw_net_can_can_pcm3680_pci.c.o
+[1345/1936] Compiling C object libcommon.a.p/hw_net_rocker_rocker.c.o
+[1346/1936] Compiling C object libcommon.a.p/hw_net_can_ctucan_core.c.o
+[1347/1936] Compiling C object libcommon.a.p/hw_net_can_ctucan_pci.c.o
+[1348/1936] Compiling C object libcommon.a.p/hw_net_rocker_rocker_of_dpa.c.o
+[1349/1936] Compiling C object libcommon.a.p/hw_nvram_fw_cfg-interface.c.o
+[1350/1936] Compiling C object libcommon.a.p/hw_nvme_subsys.c.o
+[1351/1936] Compiling C object libcommon.a.p/hw_nvme_nguid.c.o
+[1352/1936] Compiling C object libcommon.a.p/hw_nvram_bcm2835_otp.c.o
+[1353/1936] Compiling C object libcommon.a.p/hw_nvram_eeprom93xx.c.o
+[1354/1936] Compiling C object libcommon.a.p/hw_nvram_eeprom_at24c.c.o
+[1355/1936] Compiling C object libcommon.a.p/hw_nvme_ns.c.o
+[1356/1936] Compiling C object libcommon.a.p/hw_nvram_npcm7xx_otp.c.o
+[1357/1936] Compiling C object libcommon.a.p/hw_nvme_dif.c.o
+[1358/1936] Compiling C object libcommon.a.p/hw_nvram_nrf51_nvm.c.o
+[1359/1936] Compiling C object libcommon.a.p/hw_pci_pcie_port.c.o
+[1360/1936] Compiling C object libcommon.a.p/hw_pci_pcie_host.c.o
+[1361/1936] Compiling C object libcommon.a.p/hw_nvram_fw_cfg.c.o
+[1362/1936] Compiling C object libcommon.a.p/hw_pci_msi.c.o
+[1363/1936] Compiling C object libcommon.a.p/hw_pci_msix.c.o
+[1364/1936] Compiling C object libcommon.a.p/hw_pci_pci_bridge.c.o
+[1365/1936] Compiling C object libcommon.a.p/hw_pci_pci-hmp-cmds.c.o
+[1366/1936] Compiling C object libcommon.a.p/hw_pci_pci_host.c.o
+[1367/1936] Compiling C object libcommon.a.p/hw_pci_pci-qmp-cmds.c.o
+[1368/1936] Compiling C object libcommon.a.p/hw_pci_slotid_cap.c.o
+[1369/1936] Compiling C object libcommon.a.p/hw_pci_pcie_sriov.c.o
+[1370/1936] Compiling C object libcommon.a.p/hw_pci_pcie_doe.c.o
+[1371/1936] Compiling C object libcommon.a.p/hw_pci_shpc.c.o
+[1372/1936] Compiling C object libcommon.a.p/hw_pci_pcie_aer.c.o
+[1373/1936] Compiling C object libcommon.a.p/hw_pci-bridge_i82801b11.c.o
+[1374/1936] Compiling C object libcommon.a.p/hw_pci-bridge_pci_bridge_dev.c.o
+[1375/1936] Compiling C object libcommon.a.p/hw_pci_pcie.c.o
+[1376/1936] Compiling C object libcommon.a.p/hw_pci_pci.c.o
+[1377/1936] Compiling C object libcommon.a.p/hw_pci-bridge_ioh3420.c.o
+[1378/1936] Compiling C object libcommon.a.p/hw_pci-bridge_pcie_root_port.c.o
+[1379/1936] Compiling C object libcommon.a.p/hw_pci-bridge_gen_pcie_root_port.c.o
+[1380/1936] Compiling C object libcommon.a.p/hw_pci-bridge_pcie_pci_bridge.c.o
+[1381/1936] Compiling C object libcommon.a.p/hw_pci-bridge_xio3130_upstream.c.o
+[1382/1936] Compiling C object libcommon.a.p/hw_pci-bridge_pci_expander_bridge.c.o
+[1383/1936] Compiling C object libcommon.a.p/hw_pci-bridge_xio3130_downstream.c.o
+[1384/1936] Compiling C object libcommon.a.p/hw_pci-bridge_cxl_root_port.c.o
+[1385/1936] Compiling C object libcommon.a.p/hw_pci-bridge_cxl_downstream.c.o
+[1386/1936] Compiling C object libcommon.a.p/hw_pci-bridge_cxl_upstream.c.o
+[1387/1936] Compiling C object libcommon.a.p/hw_pci-host_gpex.c.o
+[1388/1936] Compiling C object libcommon.a.p/hw_pcmcia_pcmcia.c.o
+[1389/1936] Compiling C object libcommon.a.p/hw_pci-host_designware.c.o
+[1390/1936] Compiling C object libcommon.a.p/hw_pci-host_versatile.c.o
+[1391/1936] Compiling C object libcommon.a.p/hw_pcmcia_pxa2xx.c.o
+[1392/1936] Compiling C object libcommon.a.p/hw_rtc_ds1338.c.o
+[1393/1936] Compiling C object libcommon.a.p/hw_pci-host_gpex-acpi.c.o
+[1394/1936] Compiling C object libcommon.a.p/hw_rtc_m41t80.c.o
+[1395/1936] Compiling C object libcommon.a.p/hw_scsi_emulation.c.o
+[1396/1936] Compiling C object libcommon.a.p/hw_rtc_pl031.c.o
+[1397/1936] Compiling C object libcommon.a.p/hw_rtc_aspeed_rtc.c.o
+[1398/1936] Compiling C object libcommon.a.p/hw_rtc_twl92230.c.o
+[1399/1936] Compiling C object libcommon.a.p/hw_rtc_allwinner-rtc.c.o
+[1400/1936] Compiling C object libcommon.a.p/hw_rtc_exynos4210_rtc.c.o
+[1401/1936] Compiling C object libcommon.a.p/hw_scsi_scsi-generic.c.o
+[1402/1936] Compiling C object libcommon.a.p/hw_scsi_esp-pci.c.o
+[1403/1936] Compiling C object libcommon.a.p/hw_scsi_scsi-bus.c.o
+[1404/1936] Compiling C object libcommon.a.p/hw_scsi_esp.c.o
+[1405/1936] Compiling C object libcommon.a.p/hw_scsi_mptconfig.c.o
+[1406/1936] Compiling C object libcommon.a.p/hw_scsi_mptendian.c.o
+[1407/1936] Compiling C object libcommon.a.p/hw_scsi_scsi-disk.c.o
+[1408/1936] Compiling C object libcommon.a.p/hw_scsi_mptsas.c.o
+[1409/1936] Compiling C object libcommon.a.p/hw_scsi_virtio-scsi-dataplane.c.o
+[1410/1936] Compiling C object libcommon.a.p/hw_scsi_vhost-scsi.c.o
+[1411/1936] Compiling C object libcommon.a.p/hw_scsi_vhost-user-scsi.c.o
+[1412/1936] Compiling C object libcommon.a.p/hw_sd_pl181.c.o
+[1413/1936] Compiling C object libcommon.a.p/hw_scsi_lsi53c895a.c.o
+[1414/1936] Compiling C object libcommon.a.p/hw_scsi_megasas.c.o
+[1415/1936] Compiling C object libcommon.a.p/hw_scsi_vmw_pvscsi.c.o
+[1416/1936] Compiling C object libcommon.a.p/hw_sd_core.c.o
+[1417/1936] Compiling C object libcommon.a.p/hw_nvme_ctrl.c.o
+[1418/1936] Compiling C object libcommon.a.p/hw_sd_sdhci-pci.c.o
+[1419/1936] Compiling C object libcommon.a.p/hw_sd_ssi-sd.c.o
+[1420/1936] Compiling C object libcommon.a.p/hw_sd_omap_mmc.c.o
+[1421/1936] Compiling C object libcommon.a.p/hw_sd_pxa2xx_mmci.c.o
+[1422/1936] Compiling C object libcommon.a.p/hw_sd_bcm2835_sdhost.c.o
+[1423/1936] Compiling C object libcommon.a.p/hw_sd_aspeed_sdhci.c.o
+[1424/1936] Compiling C object libcommon.a.p/hw_sensor_tmp105.c.o
+[1425/1936] Compiling C object libcommon.a.p/hw_sd_npcm7xx_sdhci.c.o
+[1426/1936] Compiling C object libcommon.a.p/hw_sensor_tmp421.c.o
+[1427/1936] Compiling C object libcommon.a.p/hw_sd_allwinner-sdhost.c.o
+[1428/1936] Compiling C object libcommon.a.p/hw_sensor_dps310.c.o
+[1429/1936] Compiling C object libcommon.a.p/hw_sensor_emc141x.c.o
+[1430/1936] Compiling C object libcommon.a.p/hw_sensor_adm1266.c.o
+[1431/1936] Compiling C object libcommon.a.p/hw_sensor_adm1272.c.o
+[1432/1936] Compiling C object libcommon.a.p/hw_sd_sd.c.o
+[1433/1936] Compiling C object libcommon.a.p/hw_sensor_lsm303dlhc_mag.c.o
+[1434/1936] Compiling C object libcommon.a.p/hw_sd_sdhci.c.o
+[1435/1936] Compiling C object libcommon.a.p/hw_sensor_isl_pmbus_vr.c.o
+[1436/1936] Compiling C object libcommon.a.p/hw_sensor_max34451.c.o
+[1437/1936] Compiling C object libcommon.a.p/hw_smbios_smbios_type_38-stub.c.o
+[1438/1936] Compiling C object libcommon.a.p/hw_sensor_max31785.c.o
+[1439/1936] Compiling C object libcommon.a.p/hw_smbios_smbios_legacy_stub.c.o
+[1440/1936] Compiling C object libcommon.a.p/hw_ssi_ssi.c.o
+[1441/1936] Compiling C object libcommon.a.p/hw_ssi_pl022.c.o
+[1442/1936] Compiling C object libcommon.a.p/hw_ssi_npcm_pspi.c.o
+[1443/1936] Compiling C object libcommon.a.p/hw_ssi_mss-spi.c.o
+[1444/1936] Compiling C object libcommon.a.p/hw_ssi_stm32f2xx_spi.c.o
+[1445/1936] Compiling C object libcommon.a.p/hw_ssi_npcm7xx_fiu.c.o
+[1446/1936] Compiling C object libcommon.a.p/hw_ssi_xilinx_spi.c.o
+[1447/1936] Compiling C object libcommon.a.p/hw_ssi_omap_spi.c.o
+[1448/1936] Compiling C object libcommon.a.p/hw_ssi_imx_spi.c.o
+[1449/1936] Compiling C object libcommon.a.p/hw_ssi_bcm2835_spi.c.o
+[1450/1936] Compiling C object libcommon.a.p/hw_ssi_aspeed_smc.c.o
+[1451/1936] Compiling C object libcommon.a.p/hw_timer_a9gtimer.c.o
+[1452/1936] Compiling C object libcommon.a.p/hw_timer_allwinner-a10-pit.c.o
+[1453/1936] Compiling C object libcommon.a.p/hw_timer_arm_timer.c.o
+[1454/1936] Compiling C object libcommon.a.p/hw_timer_arm_mptimer.c.o
+[1455/1936] Compiling C object libcommon.a.p/hw_timer_armv7m_systick.c.o
+[1456/1936] Compiling C object libcommon.a.p/hw_smbios_smbios.c.o
+[1457/1936] Compiling C object libcommon.a.p/hw_ssi_xilinx_spips.c.o
+[1458/1936] Compiling C object libcommon.a.p/hw_timer_cadence_ttc.c.o
+[1459/1936] Compiling C object libcommon.a.p/hw_timer_digic-timer.c.o
+[1460/1936] Compiling C object libcommon.a.p/hw_timer_cmsdk-apb-timer.c.o
+[1461/1936] Compiling C object libcommon.a.p/hw_timer_cmsdk-apb-dualtimer.c.o
+[1462/1936] Compiling C object libcommon.a.p/hw_timer_exynos4210_pwm.c.o
+[1463/1936] Compiling C object libcommon.a.p/hw_timer_aspeed_timer.c.o
+[1464/1936] Compiling C object libcommon.a.p/hw_timer_imx_epit.c.o
+[1465/1936] Compiling C object libcommon.a.p/hw_timer_mss-timer.c.o
+[1466/1936] Compiling C object libcommon.a.p/hw_timer_imx_gpt.c.o
+[1467/1936] Compiling C object libcommon.a.p/hw_timer_exynos4210_mct.c.o
+[1468/1936] Compiling C object libcommon.a.p/hw_timer_omap_synctimer.c.o
+[1469/1936] Compiling C object libcommon.a.p/hw_timer_nrf51_timer.c.o
+[1470/1936] Compiling C object libcommon.a.p/hw_timer_npcm7xx_timer.c.o
+[1471/1936] Compiling C object libcommon.a.p/hw_timer_omap_gptimer.c.o
+[1472/1936] Compiling C object libcommon.a.p/hw_timer_bcm2835_systmr.c.o
+[1473/1936] Compiling C object libcommon.a.p/hw_timer_sse-counter.c.o
+[1474/1936] Compiling C object libcommon.a.p/hw_timer_sse-timer.c.o
+[1475/1936] Compiling C object libcommon.a.p/hw_timer_pxa2xx_timer.c.o
+[1476/1936] Compiling C object libcommon.a.p/hw_timer_stellaris-gptm.c.o
+[1477/1936] Compiling C object libcommon.a.p/hw_timer_stm32f2xx_timer.c.o
+[1478/1936] Compiling C object libcommon.a.p/hw_timer_xilinx_timer.c.o
+[1479/1936] Compiling C object libcommon.a.p/hw_tpm_tpm_tis_sysbus.c.o
+[1480/1936] Compiling C object libcommon.a.p/hw_tpm_tpm_ppi.c.o
+[1481/1936] Compiling C object libcommon.a.p/hw_tpm_tpm_tis_i2c.c.o
+[1482/1936] Compiling C object libcommon.a.p/hw_ufs_lu.c.o
+[1483/1936] Compiling C object libcommon.a.p/hw_tpm_tpm_tis_common.c.o
+[1484/1936] Compiling C object libcommon.a.p/hw_usb_combined-packet.c.o
+[1485/1936] Compiling C object libcommon.a.p/hw_usb_desc-msos.c.o
+[1486/1936] Compiling C object libcommon.a.p/hw_usb_bus.c.o
+[1487/1936] Compiling C object libcommon.a.p/hw_usb_pcap.c.o
+[1488/1936] Compiling C object libcommon.a.p/hw_usb_libhw.c.o
+[1489/1936] Compiling C object libcommon.a.p/hw_usb_core.c.o
+[1490/1936] Compiling C object libcommon.a.p/hw_usb_desc.c.o
+[1491/1936] Compiling C object libcommon.a.p/hw_usb_hcd-ohci-pci.c.o
+[1492/1936] Compiling C object libcommon.a.p/hw_usb_hcd-ehci-pci.c.o
+[1493/1936] Compiling C object libcommon.a.p/hw_usb_hcd-ohci-sysbus.c.o
+[1494/1936] Compiling C object libcommon.a.p/hw_ufs_ufs.c.o
+[1495/1936] Compiling C object libcommon.a.p/hw_usb_hcd-ehci-sysbus.c.o
+[1496/1936] Compiling C object libcommon.a.p/hw_usb_hcd-uhci.c.o
+[1497/1936] Compiling C object libcommon.a.p/hw_usb_hcd-xhci-nec.c.o
+[1498/1936] Compiling C object libcommon.a.p/hw_usb_hcd-xhci-pci.c.o
+[1499/1936] Compiling C object libcommon.a.p/hw_usb_tusb6010.c.o
+[1500/1936] Compiling C object libcommon.a.p/hw_usb_hcd-musb.c.o
+[1501/1936] Compiling C object libcommon.a.p/hw_usb_chipidea.c.o
+[1502/1936] Compiling C object libcommon.a.p/hw_usb_imx-usb-phy.c.o
+[1503/1936] Compiling C object libcommon.a.p/hw_usb_dev-wacom.c.o
+[1504/1936] Compiling C object libcommon.a.p/hw_usb_hcd-ohci.c.o
+[1505/1936] Compiling C object libcommon.a.p/hw_usb_dev-hid.c.o
+[1506/1936] Compiling C object libcommon.a.p/hw_usb_dev-hub.c.o
+[1507/1936] Compiling C object libcommon.a.p/hw_usb_dev-storage-bot.c.o
+[1508/1936] Compiling C object libcommon.a.p/hw_usb_dev-storage.c.o
+[1509/1936] Compiling C object libcommon.a.p/hw_usb_dev-storage-classic.c.o
+[1510/1936] Compiling C object libcommon.a.p/hw_usb_hcd-dwc2.c.o
+[1511/1936] Compiling C object libcommon.a.p/hw_usb_dev-audio.c.o
+[1512/1936] Compiling C object libcommon.a.p/hw_usb_dev-uas.c.o
+[1513/1936] Compiling C object libcommon.a.p/hw_usb_dev-network.c.o
+[1514/1936] Compiling C object libcommon.a.p/hw_usb_dev-serial.c.o
+[1515/1936] Compiling C object libcommon.a.p/hw_usb_u2f.c.o
+[1516/1936] Compiling C object libcommon.a.p/hw_usb_hcd-ehci.c.o
+[1517/1936] Compiling C object libcommon.a.p/hw_usb_u2f-passthru.c.o
+[1518/1936] Compiling C object libcommon.a.p/hw_usb_dev-smartcard-reader.c.o
+[1519/1936] Compiling C object libcommon.a.p/hw_virtio_virtio-bus.c.o
+[1520/1936] Compiling C object libcommon.a.p/hw_usb_hcd-xhci.c.o
+[1521/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-vsock-common.c.o
+[1522/1936] Compiling C object libcommon.a.p/hw_virtio_virtio-mmio.c.o
+[1523/1936] Compiling C object libcommon.a.p/hw_virtio_vdpa-dev.c.o
+[1524/1936] Compiling C object libcommon.a.p/hw_virtio_virtio-crypto.c.o
+[1525/1936] Compiling C object libcommon.a.p/hw_usb_dev-mtp.c.o
+[1526/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-device.c.o
+[1527/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-base.c.o
+[1528/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-gpio.c.o
+[1529/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-i2c.c.o
+[1530/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-rng.c.o
+[1531/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-snd.c.o
+[1532/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-input.c.o
+[1533/1936] Compiling C object libcommon.a.p/hw_virtio_virtio-pci.c.o
+[1534/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-device-pci.c.o
+[1535/1936] Compiling C object libcommon.a.p/hw_virtio_virtio-iommu.c.o
+[1536/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-gpio-pci.c.o
+[1537/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-i2c-pci.c.o
+[1538/1936] Compiling C object libcommon.a.p/hw_virtio_virtio-acpi.c.o
+[1539/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-rng-pci.c.o
+[1540/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-snd-pci.c.o
+[1541/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-user-input-pci.c.o
+[1542/1936] Compiling C object libcommon.a.p/hw_watchdog_watchdog.c.o
+[1543/1936] Compiling C object libcommon.a.p/hw_virtio_virtio-hmp-cmds.c.o
+[1544/1936] Compiling C object libcommon.a.p/hw_virtio_vhost.c.o
+[1545/1936] Compiling C object libcommon.a.p/hw_watchdog_cmsdk-apb-watchdog.c.o
+[1546/1936] Compiling C object libcommon.a.p/hw_watchdog_allwinner-wdt.c.o
+[1547/1936] Compiling C object libcommon.a.p/hw_watchdog_wdt_imx2.c.o
+[1548/1936] Compiling C object libcommon.a.p/hw_watchdog_wdt_aspeed.c.o
+[1549/1936] Compiling C object libcommon.a.p/hw_fsi_lbus.c.o
+[1550/1936] Compiling C object libcommon.a.p/hw_watchdog_wdt_i6300esb.c.o
+[1551/1936] Compiling C object libcommon.a.p/hw_fsi_fsi.c.o
+[1552/1936] Compiling C object libcommon.a.p/hw_fsi_fsi-master.c.o
+[1553/1936] Compiling C object libcommon.a.p/hw_fsi_cfam.c.o
+[1554/1936] Compiling C object libcommon.a.p/hw_fsi_aspeed_apb2opb.c.o
+[1555/1936] Compiling C object libcommon.a.p/hw_arm_collie.c.o
+[1556/1936] Compiling C object libcommon.a.p/hw_arm_palm.c.o
+[1557/1936] Compiling C object libcommon.a.p/hw_arm_exynos4_boards.c.o
+[1558/1936] Compiling C object libcommon.a.p/hw_virtio_vhost-vdpa.c.o
+[1559/1936] Compiling C object libcommon.a.p/hw_arm_gumstix.c.o
+[1560/1936] Compiling C object libcommon.a.p/hw_arm_netduino2.c.o
+[1561/1936] Compiling C object libcommon.a.p/hw_arm_smmu-common.c.o
+[1562/1936] Compiling C object libcommon.a.p/hw_arm_bcm2838_peripherals.c.o
+[1563/1936] Compiling C object libcommon.a.p/hw_arm_omap_sx1.c.o
+[1564/1936] Compiling C object libcommon.a.p/hw_arm_bcm2835_peripherals.c.o
+[1565/1936] Compiling C object libcommon.a.p/hw_arm_tosa.c.o
+[1566/1936] Compiling C object libcommon.a.p/hw_arm_spitz.c.o
+[1567/1936] Compiling C object libcommon.a.p/hw_arm_strongarm.c.o
+[1568/1936] Compiling C object libcommon.a.p/audio_audio-hmp-cmds.c.o
+[1569/1936] Compiling C object libcommon.a.p/hw_arm_versatilepb.c.o
+[1570/1936] Compiling C object libcommon.a.p/hw_arm_z2.c.o
+[1571/1936] Compiling C object libcommon.a.p/hw_arm_omap2.c.o
+[1572/1936] Compiling C object libcommon.a.p/hw_arm_vexpress.c.o
+[1573/1936] Compiling C object libcommon.a.p/audio_noaudio.c.o
+[1574/1936] Compiling C object libcommon.a.p/audio_wavaudio.c.o
+[1575/1936] Compiling C object libcommon.a.p/audio_wavcapture.c.o
+[1576/1936] Compiling C object libcommon.a.p/chardev_testdev.c.o
+[1577/1936] Compiling C object libcommon.a.p/chardev_msmouse.c.o
+[1578/1936] Compiling C object libcommon.a.p/fsdev_qemu-fsdev-opts.c.o
+[1579/1936] Compiling C object libcommon.a.p/chardev_char-hmp-cmds.c.o
+[1580/1936] Compiling C object libcommon.a.p/audio_mixeng.c.o
+[1581/1936] Compiling C object libcommon.a.p/chardev_wctablet.c.o
+[1582/1936] Compiling C object libcommon.a.p/fsdev_9p-marshal.c.o
+[1583/1936] Compiling C object libcommon.a.p/fsdev_qemu-fsdev-throttle.c.o
+[1584/1936] Compiling C object libcommon.a.p/fsdev_9p-iov-marshal.c.o
+[1585/1936] Compiling C object libcommon.a.p/fsdev_qemu-fsdev.c.o
+[1586/1936] Compiling C object libcommon.a.p/dump_dump-hmp-cmds.c.o
+[1587/1936] Compiling C object libcommon.a.p/block_blkreplay.c.o
+[1588/1936] Compiling C object libcommon.a.p/block_block-ram-registrar.c.o
+[1589/1936] Compiling C object libcommon.a.p/system_balloon.c.o
+[1590/1936] Compiling C object libcommon.a.p/block_qapi-sysemu.c.o
+[1591/1936] Compiling C object libcommon.a.p/system_cpu-throttle.c.o
+[1592/1936] Compiling C object libcommon.a.p/system_bootdevice.c.o
+[1593/1936] Compiling C object libcommon.a.p/audio_audio.c.o
+[1594/1936] Compiling C object libcommon.a.p/system_datadir.c.o
+[1595/1936] Compiling C object libcommon.a.p/system_cpu-timers.c.o
+[1596/1936] Compiling C object libcommon.a.p/block_monitor_block-hmp-cmds.c.o
+[1597/1936] Compiling C object libcommon.a.p/system_cpus.c.o
+[1598/1936] Compiling C object libcommon.a.p/system_globals.c.o
+[1599/1936] Compiling C object libcommon.a.p/system_memory_mapping.c.o
+[1600/1936] Compiling C object libcommon.a.p/system_dma-helpers.c.o
+[1601/1936] Compiling C object libcommon.a.p/system_dirtylimit.c.o
+[1602/1936] Compiling C object libcommon.a.p/system_runstate-action.c.o
+[1603/1936] Compiling C object libcommon.a.p/dump_dump.c.o
+[1604/1936] Compiling C object libcommon.a.p/system_rtc.c.o
+[1605/1936] Compiling C object libcommon.a.p/system_runstate-hmp-cmds.c.o
+[1606/1936] Compiling C object libcommon.a.p/system_tpm-hmp-cmds.c.o
+[1607/1936] Compiling C object libcommon.a.p/system_tpm.c.o
+[1608/1936] Compiling C object libcommon.a.p/system_qdev-monitor.c.o
+[1609/1936] Compiling C object libcommon.a.p/system_async-teardown.c.o
+[1610/1936] Compiling C object libcommon.a.p/system_qtest.c.o
+[1611/1936] Compiling C object libcommon.a.p/backends_cryptodev-hmp-cmds.c.o
+[1612/1936] Compiling C object libcommon.a.p/system_runstate.c.o
+[1613/1936] Compiling C object libcommon.a.p/backends_cryptodev-builtin.c.o
+[1614/1936] Compiling C object libcommon.a.p/system_device_tree.c.o
+[1615/1936] Compiling C object libcommon.a.p/backends_hostmem-ram.c.o
+[1616/1936] Compiling C object libcommon.a.p/backends_rng-builtin.c.o
+[1617/1936] Compiling C object libcommon.a.p/backends_confidential-guest-support.c.o
+[1618/1936] Compiling C object libcommon.a.p/backends_rng-egd.c.o
+[1619/1936] Compiling C object libcommon.a.p/backends_hostmem.c.o
+[1620/1936] Compiling C object libcommon.a.p/backends_rng.c.o
+[1621/1936] Compiling C object libcommon.a.p/backends_rng-random.c.o
+[1622/1936] Compiling C object libcommon.a.p/backends_cryptodev.c.o
+[1623/1936] Compiling C object libcommon.a.p/backends_host_iommu_device.c.o
+[1624/1936] Compiling C object libcommon.a.p/backends_hostmem-shm.c.o
+[1625/1936] Compiling C object libcommon.a.p/backends_hostmem-file.c.o
+[1626/1936] Compiling C object libcommon.a.p/backends_hostmem-memfd.c.o
+[1627/1936] Compiling C object libcommon.a.p/backends_spdm-socket.c.o
+[1628/1936] Compiling C object libcommon.a.p/backends_vhost-user.c.o
+[1629/1936] Compiling C object libcommon.a.p/backends_cryptodev-vhost.c.o
+[1630/1936] Compiling C object libcommon.a.p/backends_tpm_tpm_backend.c.o
+[1631/1936] Compiling C object libcommon.a.p/backends_cryptodev-vhost-user.c.o
+[1632/1936] Compiling C object libcommon.a.p/backends_iommufd.c.o
+[1633/1936] Compiling C object libcommon.a.p/backends_tpm_tpm_util.c.o
+[1634/1936] Compiling C object libcommon.a.p/backends_tpm_tpm_passthrough.c.o
+[1635/1936] Compiling C object libcommon.a.p/disas_disas-mon.c.o
+[1636/1936] Compiling C object libcommon.a.p/migration_channel.c.o
+[1637/1936] Compiling C object libcommon.a.p/migration_channel-block.c.o
+[1638/1936] Compiling C object libcommon.a.p/migration_exec.c.o
+[1639/1936] Compiling C object libcommon.a.p/backends_tpm_tpm_emulator.c.o
+[1640/1936] Compiling C object libcommon.a.p/system_vl.c.o
+[1641/1936] Compiling C object libcommon.a.p/migration_fd.c.o
+[1642/1936] Compiling C object libcommon.a.p/migration_block-dirty-bitmap.c.o
+[1643/1936] Compiling C object libcommon.a.p/migration_global_state.c.o
+[1644/1936] Compiling C object libcommon.a.p/migration_file.c.o
+[1645/1936] Compiling C object libcommon.a.p/migration_dirtyrate.c.o
+[1646/1936] Compiling C object libcommon.a.p/migration_migration-hmp-cmds.c.o
+[1647/1936] Compiling C object libcommon.a.p/migration_multifd-zlib.c.o
+[1648/1936] Compiling C object libcommon.a.p/migration_multifd-zero-page.c.o
+[1649/1936] Compiling C object libcommon.a.p/migration_threadinfo.c.o
+[1650/1936] Compiling C object libcommon.a.p/migration_socket.c.o
+[1651/1936] Compiling C object libcommon.a.p/migration_tls.c.o
+[1652/1936] Compiling C object libcommon.a.p/migration_options.c.o
+[1653/1936] Compiling C object libcommon.a.p/migration_multifd.c.o
+[1654/1936] Compiling C object libcommon.a.p/migration_colo-failover.c.o
+[1655/1936] Compiling C object libcommon.a.p/monitor_fds.c.o
+[1656/1936] Compiling C object libcommon.a.p/monitor_hmp-cmds.c.o
+[1657/1936] Compiling C object libcommon.a.p/migration_postcopy-ram.c.o
+[1658/1936] Compiling C object libcommon.a.p/monitor_qemu-config-qmp.c.o
+[1659/1936] Compiling C object libcommon.a.p/migration_colo.c.o
+[1660/1936] Compiling C object libcommon.a.p/net_announce.c.o
+[1661/1936] Compiling C object libcommon.a.p/net_checksum.c.o
+[1662/1936] Compiling C object libcommon.a.p/migration_migration.c.o
+[1663/1936] Compiling C object libcommon.a.p/net_dump.c.o
+[1664/1936] Compiling C object libcommon.a.p/monitor_qmp-cmds.c.o
+[1665/1936] Compiling C object libcommon.a.p/monitor_hmp.c.o
+[1666/1936] Compiling C object libcommon.a.p/net_filter-buffer.c.o
+[1667/1936] Compiling C object libcommon.a.p/net_eth.c.o
+[1668/1936] Compiling C object libcommon.a.p/net_filter-mirror.c.o
+[1669/1936] Compiling C object libcommon.a.p/net_net-hmp-cmds.c.o
+[1670/1936] Compiling C object libcommon.a.p/net_hub.c.o
+[1671/1936] Compiling C object libcommon.a.p/net_filter.c.o
+[1672/1936] Compiling C object libcommon.a.p/migration_savevm.c.o
+[1673/1936] Compiling C object libcommon.a.p/net_queue.c.o
+[1674/1936] Compiling C object libcommon.a.p/net_util.c.o
+[1675/1936] Compiling C object libcommon.a.p/net_socket.c.o
+[1676/1936] Compiling C object libcommon.a.p/net_stream.c.o
+[1677/1936] Compiling C object libcommon.a.p/net_colo.c.o
+[1678/1936] Compiling C object libcommon.a.p/net_dgram.c.o
+[1679/1936] Compiling C object libcommon.a.p/net_filter-replay.c.o
+[1680/1936] Compiling C object libcommon.a.p/net_filter-rewriter.c.o
+[1681/1936] Compiling C object libcommon.a.p/net_net.c.o
+[1682/1936] Compiling C object libcommon.a.p/net_tap-linux.c.o
+[1683/1936] Compiling C object libcommon.a.p/net_vhost-user.c.o
+[1684/1936] Compiling C object libcommon.a.p/net_l2tpv3.c.o
+[1685/1936] Compiling C object libcommon.a.p/net_can_can_core.c.o
+[1686/1936] Compiling C object libcommon.a.p/net_colo-compare.c.o
+[1687/1936] Compiling C object libcommon.a.p/net_can_can_host.c.o
+[1688/1936] Compiling C object libcommon.a.p/net_can_can_socketcan.c.o
+[1689/1936] Compiling C object libcommon.a.p/net_tap.c.o
+[1690/1936] Compiling C object libcommon.a.p/replay_replay.c.o
+[1691/1936] Compiling C object libcommon.a.p/replay_replay-time.c.o
+[1692/1936] Compiling C object libcommon.a.p/replay_replay-events.c.o
+[1693/1936] Compiling C object libcommon.a.p/replay_replay-internal.c.o
+[1694/1936] Compiling C object libcommon.a.p/replay_replay-input.c.o
+[1695/1936] Compiling C object libcommon.a.p/replay_replay-char.c.o
+[1696/1936] Compiling C object libcommon.a.p/net_vhost-vdpa.c.o
+[1697/1936] Compiling C object libcommon.a.p/replay_replay-net.c.o
+[1698/1936] Compiling C object libcommon.a.p/replay_replay-audio.c.o
+[1699/1936] Compiling C object libcommon.a.p/replay_replay-snapshot.c.o
+[1700/1936] Compiling C object libcommon.a.p/replay_replay-random.c.o
+[1701/1936] Compiling C object libcommon.a.p/stats_stats-qmp-cmds.c.o
+[1702/1936] Compiling C object libcommon.a.p/replay_replay-debugging.c.o
+[1703/1936] Compiling C object libcommon.a.p/accel_accel-blocker.c.o
+[1704/1936] Compiling C object libcommon.a.p/accel_accel-system.c.o
+[1705/1936] Compiling C object libcommon.a.p/stats_stats-hmp-cmds.c.o
+[1706/1936] Compiling C object libcommon.a.p/ebpf_ebpf_rss-stub.c.o
+[1707/1936] Compiling C object libcommon.a.p/accel_dummy-cpus.c.o
+[1708/1936] Compiling C object libcommon.a.p/accel_tcg_monitor.c.o
+[1709/1936] Compiling C object libcommon.a.p/accel_tcg_icount-common.c.o
+[1710/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._arm-softmmu-gdbstub-xml.c.o
+[1711/1936] Compiling C object libcommon.a.p/hw_display_virtio-gpu-base.c.o
+[1712/1936] Compiling C object libcommon.a.p/hw_display_virtio-gpu-udmabuf.c.o
+[1713/1936] Compiling C object libcommon.a.p/hw_display_virtio-gpu-pci.c.o
+[1714/1936] Compiling C object libcommon.a.p/hw_display_vhost-user-gpu-pci.c.o
+[1715/1936] Compiling C object libcommon.a.p/hw_display_vhost-user-gpu.c.o
+[1716/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-types-machine-target.c.o
+[1717/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-events-machine-target.c.o
+[1718/1936] Compiling C object libcommon.a.p/audio_ossaudio.c.o
+[1719/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-types-misc-target.c.o
+[1720/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-visit-machine-target.c.o
+[1721/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-commands-machine-target.c.o
+[1722/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-events-misc-target.c.o
+[1723/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-visit-misc-target.c.o
+[1724/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-commands-misc-target.c.o
+[1725/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-emit-events.c.o
+[1726/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-types.c.o
+[1727/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-visit.c.o
+[1728/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-commands.c.o
+[1729/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-events.c.o
+[1730/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-init-commands.c.o
+[1731/1936] Compiling C object libcommon.a.p/hw_display_virtio-gpu.c.o
+[1732/1936] Compiling C object libqemu-arm-softmmu.a.p/meson-generated_.._qapi_qapi-introspect.c.o
+[1733/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_arch_dump.c.o
+[1734/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_cortex-regs.c.o
+[1735/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_arm-powerctl.c.o
+[1736/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_arm-qmp-cmds.c.o
+[1737/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_machine.c.o
+[1738/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_cpu-v7m.c.o
+[1739/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_digic_boards.c.o
+[1740/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_msf2-som.c.o
+[1741/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_psci.c.o
+[1742/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_boot.c.o
+[1743/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_highbank.c.o
+[1744/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_virt-acpi-build.c.o
+[1745/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_mainstone.c.o
+[1746/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_integratorcp.c.o
+[1747/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_microbit.c.o
+[1748/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_netduinoplus2.c.o
+[1749/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_olimex-stm32-h405.c.o
+[1750/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_mps3r.c.o
+[1751/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_musicpal.c.o
+[1752/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_npcm7xx_boards.c.o
+[1753/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_ptw.c.o
+[1754/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_realview.c.o
+[1755/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_stm32vldiscovery.c.o
+[1756/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_npcm7xx.c.o
+[1757/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_nseries.c.o
+[1758/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_xilinx_zynq.c.o
+[1759/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_stellaris.c.o
+[1760/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_sabrelite.c.o
+[1761/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_pxa2xx_gpio.c.o
+[1762/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_armv7m.c.o
+[1763/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_virt.c.o
+[1764/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_exynos4210.c.o
+[1765/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_pxa2xx_pic.c.o
+[1766/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_digic.c.o
+[1767/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_cubieboard.c.o
+[1768/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_allwinner-a10.c.o
+[1769/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_orangepi.c.o
+[1770/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_bananapi_m2u.c.o
+[1771/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_allwinner-h3.c.o
+[1772/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_pxa2xx.c.o
+[1773/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_allwinner-r40.c.o
+[1774/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_stm32f100_soc.c.o
+[1775/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_stm32f205_soc.c.o
+[1776/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_bcm2836.c.o
+[1777/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_stm32f405_soc.c.o
+[1778/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_raspi.c.o
+[1779/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_b-l475e-iot01a.c.o
+[1780/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_stm32l4x5_soc.c.o
+[1781/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_fsl-imx31.c.o
+[1782/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_kzm.c.o
+[1783/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_imx25_pdk.c.o
+[1784/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_fsl-imx25.c.o
+[1785/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_aspeed_eeprom.c.o
+[1786/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_fsl-imx6.c.o
+[1787/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_aspeed_soc_common.c.o
+[1788/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_omap1.c.o
+[1789/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_aspeed_ast2400.c.o
+[1790/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_aspeed.c.o
+[1791/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_aspeed_ast10x0.c.o
+[1792/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_fby35.c.o
+[1793/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_aspeed_ast2600.c.o
+[1794/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_msf2-soc.c.o
+[1795/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_mps2.c.o
+[1796/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_mcimx7d-sabre.c.o
+[1797/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_musca.c.o
+[1798/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_mcimx6ul-evk.c.o
+[1799/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_armsse.c.o
+[1800/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_fsl-imx7.c.o
+[1801/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_nrf51_soc.c.o
+[1802/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_fsl-imx6ul.c.o
+[1803/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_nano7_unimpl.c.o
+[1804/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_nano7.c.o
+[1805/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_kvm-stub.c.o
+[1806/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_gdbstub.c.o
+[1807/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_mps2-tz.c.o
+[1808/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_arm_smmuv3.c.o
+[1809/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_cpu32.c.o
+[1810/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_cpu.c.o
+[1811/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_debug_helper.c.o
+[1812/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_vfp_helper.c.o
+[1813/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_translate-m-nocp.c.o
+[1814/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_gengvec.c.o
+[1815/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_crypto_helper.c.o
+[1816/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_hflags.c.o
+[1817/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_translate-vfp.c.o
+[1818/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_iwmmxt_helper.c.o
+[1819/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_m_helper.c.o
+[1820/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_tlb_helper.c.o
+[1821/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_helper.c.o
+[1822/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_op_helper.c.o
+[1823/1936] Compiling C object libqemu-arm-softmmu.a.p/trace_control-target.c.o
+[1824/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_9pfs_virtio-9p-device.c.o
+[1825/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_block_virtio-blk-common.c.o
+[1826/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_neon_helper.c.o
+[1827/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_translate-neon.c.o
+[1828/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_block_vhost-user-blk.c.o
+[1829/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_cpu_a15mpcore.c.o
+[1830/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_hyperv_hv-balloon-stub.c.o
+[1831/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_intc_arm_gicv3_cpuif_common.c.o
+[1832/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_block_virtio-blk.c.o
+[1833/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_char_virtio-serial-bus.c.o
+[1834/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_translate-mve.c.o
+[1835/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_nvram_fw_cfg-acpi.c.o
+[1836/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_misc_allwinner-cpucfg.c.o
+[1837/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_scsi_vhost-scsi-common.c.o
+[1838/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_scsi_virtio-scsi.c.o
+[1839/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_intc_armv7m_nvic.c.o
+[1840/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_helpers.c.o
+[1841/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_intc_arm_gicv3_cpuif.c.o
+[1842/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_container-base.c.o
+[1843/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_cpr.c.o
+[1844/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_net_virtio-net.c.o
+[1845/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_common.c.o
+[1846/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_migration.c.o
+[1847/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_container.c.o
+[1848/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_display.c.o
+[1849/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_iommufd.c.o
+[1850/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_calxeda-xgmac.c.o
+[1851/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_translate.c.o
+[1852/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_platform.c.o
+[1853/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_amd-xgbe.c.o
+[1854/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-config-io.c.o
+[1855/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_pci-quirks.c.o
+[1856/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-backend.c.o
+[1857/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-qmp.c.o
+[1858/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-iova-tree.c.o
+[1859/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-shadow-virtqueue.c.o
+[1860/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user-fs.c.o
+[1861/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-balloon.c.o
+[1862/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user-vsock.c.o
+[1863/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_vec_helper.c.o
+[1864/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-vsock.c.o
+[1865/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_vfio_pci.c.o
+[1866/1936] Compiling C object libqemu-arm-softmmu.a.p/target_arm_tcg_mve_helper.c.o
+[1867/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user-scmi-pci.c.o
+[1868/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user-scmi.c.o
+[1869/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user.c.o
+[1870/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-vsock-pci.c.o
+[1871/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user-vsock-pci.c.o
+[1872/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-rng.c.o
+[1873/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user-blk-pci.c.o
+[1874/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-scsi-pci.c.o
+[1875/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user-fs-pci.c.o
+[1876/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-crypto-pci.c.o
+[1877/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-input-host-pci.c.o
+[1878/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vhost-user-scsi-pci.c.o
+[1879/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-mem.c.o
+[1880/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-rng-pci.c.o
+[1881/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-input-pci.c.o
+[1882/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-balloon-pci.c.o
+[1883/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-9p-pci.c.o
+[1884/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-scsi-pci.c.o
+[1885/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio.c.o
+[1886/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-blk-pci.c.o
+[1887/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_i386_kvm_xen-stubs.c.o
+[1888/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-net-pci.c.o
+[1889/1936] Compiling C object libqemu-arm-softmmu.a.p/dump_win_dump.c.o
+[1890/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-serial-pci.c.o
+[1891/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_vdpa-dev-pci.c.o
+[1892/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-iommu-pci.c.o
+[1893/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-md-pci.c.o
+[1894/1936] Compiling C object libqemu-arm-softmmu.a.p/hw_virtio_virtio-mem-pci.c.o
+[1895/1936] Compiling C object libqemu-arm-softmmu.a.p/system_arch_init.c.o
+[1896/1936] Compiling C object libqemu-arm-softmmu.a.p/cpu-target.c.o
+[1897/1936] Compiling C object libqemu-arm-softmmu.a.p/page-target.c.o
+[1898/1936] Compiling C object libqemu-arm-softmmu.a.p/page-vary-target.c.o
+[1899/1936] Compiling C object libqemu-arm-softmmu.a.p/system_watchpoint.c.o
+[1900/1936] Compiling C object libqemu-arm-softmmu.a.p/system_ioport.c.o
+[1901/1936] Compiling C object libqemu-arm-softmmu.a.p/semihosting_guestfd.c.o
+[1902/1936] Compiling C object libqemu-arm-softmmu.a.p/migration_target.c.o
+[1903/1936] Compiling C object libqemu-arm-softmmu.a.p/monitor_hmp-target.c.o
+[1904/1936] Compiling C object libqemu-arm-softmmu.a.p/monitor_hmp-cmds-target.c.o
+[1905/1936] Compiling C object libqemu-arm-softmmu.a.p/semihosting_config.c.o
+[1906/1936] Compiling C object libqemu-arm-softmmu.a.p/semihosting_console.c.o
+[1907/1936] Compiling C object libqemu-arm-softmmu.a.p/semihosting_uaccess.c.o
+[1908/1936] Compiling C object libqemu-arm-softmmu.a.p/semihosting_syscalls.c.o
+[1909/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_accel-target.c.o
+[1910/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_tcg-all.c.o
+[1911/1936] Compiling C object libqemu-arm-softmmu.a.p/semihosting_arm-compat-semi.c.o
+[1912/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_tb-maint.c.o
+[1913/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_cpu-exec.c.o
+[1914/1936] Compiling C object libqemu-arm-softmmu.a.p/system_memory.c.o
+[1915/1936] Compiling C object libqemu-arm-softmmu.a.p/migration_ram.c.o
+[1916/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_tcg-runtime.c.o
+[1917/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_translate-all.c.o
+[1918/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_stubs_xen-stub.c.o
+[1919/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_watchpoint.c.o
+[1920/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_stubs_kvm-stub.c.o
+[1921/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_plugin-gen.c.o
+[1922/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_translator.c.o
+[1923/1936] Compiling C object libqemu-arm-softmmu.a.p/plugins_loader.c.o
+[1924/1936] Compiling C object libqemu-arm-softmmu.a.p/system_physmem.c.o
+[1925/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_tcg-accel-ops.c.o
+[1926/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_tcg-accel-ops-icount.c.o
+[1927/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_tcg-accel-ops-mttcg.c.o
+[1928/1936] Compiling C object libqemu-arm-softmmu.a.p/plugins_api.c.o
+[1929/1936] Compiling C object qemu-system-arm.p/system_main.c.o
+[1930/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_qtest_qtest.c.o
+[1931/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_tcg-accel-ops-rr.c.o
+[1932/1936] Compiling C object libqemu-arm-softmmu.a.p/plugins_core.c.o
+[1933/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_tcg-runtime-gvec.c.o
+[1934/1936] Compiling C object libqemu-arm-softmmu.a.p/accel_tcg_cputlb.c.o
+[1935/1936] Compiling C object libqemu-arm-softmmu.a.p/fpu_softfloat.c.o
+[1936/1936] Linking target qemu-system-arm
+FAILED: [code=1] qemu-system-arm 
+cc -m64 @qemu-system-arm.rsp
+/usr/bin/ld: libqemu-arm-softmmu.a.p/hw_arm_nano7.c.o: in function `nano7_init':
+/home/pavliukov/ipodwork/NanoRework/emulator/build/../vendor/qemu-9.1.2/hw/arm/nano7.c:125: undefined reference to `nano7_clkcon_attach'
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.

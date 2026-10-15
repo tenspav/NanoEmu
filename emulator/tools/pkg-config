@@ -1,0 +1,8 @@
+#!/bin/sh
+# pkg-config wrapper pointing at the local no-root sysroot (sysroot/root)
+# populated from Ubuntu .debs (libglib2.0-dev, libpixman-1-dev, zlib1g-dev).
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+ROOT="$HERE/sysroot/root"
+export PKG_CONFIG_PATH="$ROOT/usr/lib/x86_64-linux-gnu/pkgconfig:$ROOT/usr/share/pkgconfig"
+export PKG_CONFIG_SYSROOT_DIR="$ROOT"
+exec "$ROOT/usr/bin/pkg-config" "$@"

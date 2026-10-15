@@ -1,0 +1,137 @@
+qemu-system-arm: info: nano7: preloaded '/home/pavliukov/ipodwork/bt-research-20261007/nano-os-20261007/iram-22000000.bin' (262144 bytes) at 0x22000000
+qemu-system-arm: info: nano7: preloaded '/home/pavliukov/ipodwork/bt-research-20261007/nano-os-20261007/ram-full-08000000.bin' (67108864 bytes) at 0x08000000
+qemu-system-arm: info: nano7: reset, PC=0x20000000
+[nano7-b38e] pc=0x200000b0 W32 addr=0x38e00014 value=0xffffffff
+[nano7-b38e] pc=0x200000bc W32 addr=0x38e01014 value=0xffffffff
+[nano7-b38e] pc=0x200000c8 W32 addr=0x38e00f00 value=0xffffffff
+[nano7-b38e] pc=0x200000d0 W32 addr=0x38e01f00 value=0xffffffff
+[nano7-b38e] pc=0x200000d8 W32 addr=0x38e02008 value=0xffffffff
+[nano7-b38e] pc=0x200000e0 W32 addr=0x38e0200c value=0xffffffff
+[nano7-b3c8] pc=0x200000ec W32 addr=0x3c800000 value=0x000000a5
+[nano7-pmgr] pc=0x200000f4 R32 addr=0x3d100004
+[nano7-vic] pc=0x2000016c W32 addr=0x39700018 value=0x01f40000
+[nano7-vic] pc=0x20000178 W32 addr=0x39700010 value=0x0000003e
+[nano7-vic] pc=0x20000184 R32 addr=0x39700014
+[nano7-vic] pc=0x20000190 R32 addr=0x39700008
+[nano7-clkcon] pc=0x200001b4 W32 addr=0x3c500048 value=0x001b1d87
+[nano7-clkcon] pc=0x200001c0 W32 addr=0x3c50004c value=0xffabafff
+[nano7-clkcon] pc=0x200001cc W32 addr=0x3c500058 value=0x000012f5
+[nano7-clkcon] pc=0x200001d8 W32 addr=0x3c500068 value=0x0003d1fc
+[nano7-clkcon] pc=0x200001e4 W32 addr=0x3c50006c value=0x02ffffff
+[nano7-clkcon] pc=0x200001f0 R32 addr=0x3c500044
+[nano7-clkcon] pc=0x200001f8 W32 addr=0x3c500044 value=0xffffffff
+[nano7-clkcon] pc=0x20000204 W32 addr=0x3c500000 value=0x00000000
+[nano7-clkcon] pc=0x20000210 W32 addr=0x3c500020 value=0x030003c1
+[nano7-clkcon] pc=0x2000021c W32 addr=0x3c500030 value=0x00000960
+[nano7-clkcon] pc=0x2000022c R32 addr=0x3c500044
+[nano7-clkcon] pc=0x20000234 W32 addr=0x3c500044 value=0xffffffff
+[nano7-clkcon] pc=0x2000023c R32 addr=0x3c500040
+[nano7-clkcon] pc=0x20000260 R32 addr=0x3c500044
+[nano7-clkcon] pc=0x20000268 W32 addr=0x3c500044 value=0xffffffff
+[nano7-clkcon] pc=0x20000280 W32 addr=0x3c500008 value=0x80008000
+[nano7-clkcon] pc=0x20000298 W32 addr=0x3c50000c value=0x80008000
+[nano7-clkcon] pc=0x200002b0 W32 addr=0x3c500010 value=0x00008000
+[nano7-clkcon] pc=0x200002c8 W32 addr=0x3c500014 value=0x80008000
+[nano7-clkcon] pc=0x200002e0 W32 addr=0x3c500018 value=0xc000c000
+[nano7-clkcon] pc=0x200002f8 W32 addr=0x3c50001c value=0xc0000000
+[nano7-clkcon] pc=0x20000310 W32 addr=0x3c500004 value=0x00404240
+[nano7-clkcon] pc=0x20000328 W32 addr=0x3c500000 value=0x40001000
+[nano7-b38e] pc=0x20001540 W32 addr=0x38e0000c value=0x00000000
+[nano7-b38e] pc=0x20001548 W32 addr=0x38e0100c value=0x00000000
+[nano7-b38e] pc=0x20001550 W32 addr=0x38e00014 value=0xffffffff
+[nano7-b38e] pc=0x20001554 W32 addr=0x38e01014 value=0xffffffff
+[nano7-b38e] pc=0x20001558 W32 addr=0x38e00f00 value=0x00000000
+[nano7-b38e] pc=0x2000155c W32 addr=0x38e01f00 value=0x00000000
+[nano7-vic] pc=0x20001564 W32 addr=0x397000c0 value=0x00000000
+[nano7-vic] pc=0x20001568 W32 addr=0x397000c4 value=0x00000000
+[nano7-vic] pc=0x2000156c W32 addr=0x397000c8 value=0x00000000
+[nano7-vic] pc=0x20001570 W32 addr=0x397000cc value=0x00000000
+[nano7-vic] pc=0x20001574 W32 addr=0x397000d0 value=0x00000000
+[nano7-vic] pc=0x20001578 W32 addr=0x397000d4 value=0x00000000
+[nano7-vic] pc=0x2000157c W32 addr=0x397000d8 value=0x00000000
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00100 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00104 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00108 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e0010c value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00110 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00114 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00118 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e0011c value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00120 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00124 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00128 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e0012c value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00130 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00134 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00138 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e0013c value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00140 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00144 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00148 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e0014c value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00150 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00154 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00158 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e0015c value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00160 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00164 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00168 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e0016c value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00170 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00174 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e00178 value=0x200011f8
+[nano7-b38e] pc=0x20001598 W32 addr=0x38e0017c value=0x200011f8
+[nano7-b38e] pc=0x200015fc W32 addr=0x38e01104 value=0x200014cc
+[nano7-b38e] pc=0x20001608 W32 addr=0x38e0010c value=0x20001488
+[nano7-b38e] pc=0x20001614 W32 addr=0x38e00108 value=0x20001444
+[nano7-b38e] pc=0x20001620 W32 addr=0x38e00104 value=0x20001400
+[nano7-b38e] pc=0x20001628 W32 addr=0x38e00100 value=0x200013a0
+[nano7-pmgr] pc=0x20003794 R32 addr=0x3d100008
+[nano7-b3cf] pc=0x20001dec W32 addr=0x3cf001e0 value=0x000b0300
+[nano7-b3cf] pc=0x20001b7c R32 addr=0x3cf00174
+[nano7-b3cf] pc=0x20001b8c W32 addr=0x3cf00174 value=0xffffffff
+[nano7-b3cf] pc=0x20001e14 R32 addr=0x3cf00164
+[nano7-b3c4] pc=0x20003800 R32 addr=0x3c400028
+[nano7-b3cf] pc=0x20001c7c R32 addr=0x3cf00184
+[nano7-b3cf] pc=0x20001c8c W32 addr=0x3cf00184 value=0xffffffff
+[nano7-clkcon] pc=0x20001824 R32 addr=0x3c50004c
+[nano7-clkcon] pc=0x20001830 W32 addr=0x3c50004c value=0xffabaff7
+[nano7-clkcon] pc=0x20001808 R32 addr=0x3c500048
+[nano7-clkcon] pc=0x20001810 W32 addr=0x3c500048 value=0x001b1d83
+[nano7-pmgr] pc=0x200031d0 R32 addr=0x3d100014
+[nano7-b3c4] pc=0x200031d8 R32 addr=0x3c400040
+[nano7-b3c4] pc=0x200031e8 W32 addr=0x3c400040 value=0x000000ff
+[nano7-b3c4] pc=0x200031ec R32 addr=0x3c400044
+[nano7-b3c4] pc=0x20003214 W32 addr=0x3c400044 value=0x0000000f
+[nano7-b3c4] pc=0x20003220 R32 addr=0x3c400100
+[nano7-b3c4] pc=0x20003228 W32 addr=0x3c400100 value=0xffffffff
+[nano7-b3c4] pc=0x20009fd8 W32 addr=0x3c400000 value=0x00000000
+[nano7-clkcon] pc=0x200018ac R32 addr=0x3c50006c
+[nano7-clkcon] pc=0x20001968 W32 addr=0x3c50006c value=0x02fffffb
+[nano7-tmr] pc=0x20009f48 W32 addr=0x3c7000a0 value=0x00000000
+[nano7-tmr] pc=0x20009f4c W32 addr=0x3c7000b0 value=0x00000000
+[nano7-tmr] pc=0x20009f54 W32 addr=0x3c7000a8 value=0xffffffff
+[nano7-tmr] pc=0x20009f5c W32 addr=0x3c7000a4 value=0x00000003
+[nano7-tmr] pc=0x20009f7c R32 addr=0x3c7000b4
+[nano7-tmr] pc=0x20009f88 W32 addr=0x3c7000a4 value=0x00000000
+[nano7-clkcon] pc=0x200019b0 R32 addr=0x3c50004c
+[nano7-clkcon] pc=0x200019bc W32 addr=0x3c50004c value=0xffabaff7
+[nano7-clkcon] pc=0x20001a38 R32 addr=0x3c50006c
+[nano7-clkcon] pc=0x20001af4 W32 addr=0x3c50006c value=0x02ffffff
+[nano7-b3c4] pc=0x20009fe8 W32 addr=0x3c400008 value=0x00000001
+[nano7-b3c4] pc=0x20009ff4 W32 addr=0x3c400008 value=0x00000000
+[nano7-b3c4] pc=0x2000a004 W32 addr=0x3c40001c value=0x00000006
+[nano7-b3c4] pc=0x2000a008 W32 addr=0x3c400004 value=0x00000001
+[nano7-b3c4] pc=0x2000a010 W32 addr=0x3c400034 value=0x00000004
+[nano7-b3c4] pc=0x2000a86c R32 addr=0x3c400028
+[nano7-b384] pc=0x2000a880 W32 addr=0x38400010 value=0x00000001
+[nano7-b384] pc=0x2000a884 R32 addr=0x38400010
+[nano7-b384] pc=0x2000a890 R32 addr=0x38400010
+[nano7-b384] pc=0x2000a89c R32 addr=0x38400014
+[nano7-b384] pc=0x2000a8bc W32 addr=0x38400008 value=0x0000002b
+[nano7-b384] pc=0x2000a8c4 W32 addr=0x3840000c value=0x00001708
+[nano7-b384] pc=0x2000a8cc W32 addr=0x38400018 value=0x70000006
+[nano7-b384] pc=0x2000a8d4 W32 addr=0x38400024 value=0x00000218
+[nano7-b384] pc=0x2000a8dc W32 addr=0x38400028 value=0x01000218
+[nano7-b384] pc=0x2000a8e4 W32 addr=0x38400104 value=0x01000318
+qemu-system-arm: terminating on signal 15 from pid 942801 (timeout)

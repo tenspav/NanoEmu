@@ -1,0 +1,5 @@
+# snap6: NAND power-save flag (ANDCall struct 0x0895c554 +8, set/cleared only by ANDCall op 4) is 1 in
+# ram-full, but the power manager (obj 0x0b40a3c4, +0x54 byte, T0-masked overlay copy) says 0 and thr 24
+# is blocked at T0 in 0x0819d8a4 about to ENTER power-save. Thr 24 entered it right after T0, before the
+# torn-map's h0 pass (blind window), so the block was never flagged. Restore the T0 value.
+0x0895c55c 0x00000000

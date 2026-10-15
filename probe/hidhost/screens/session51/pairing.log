@@ -1,0 +1,213 @@
+[nano7-bt] t=9.728 > cmd 0x0c03 Reset len 0 : 01 03 0c 00
+[nano7-bt] t=9.728 < evt 0x0e len 4 (complete 0x0c03 status 0) : 04 0e 04 01 03 0c 00
+qemu-system-arm: info: nano7-bt: host reads the RX FIFO (pc 0x08550d10)
+[nano7-bt] t=9.729 > cmd 0x1001 Read_Local_Version len 0 : 01 01 10 00
+[nano7-bt] t=9.729 < evt 0x0e len 12 (complete 0x1001 status 0) : 04 0e 0c 01 01 10 00 06 00 10 06 0f 00 0b 41
+[nano7-bt] t=9.741 > cmd 0x1009 Read_BD_ADDR len 0 : 01 09 10 00
+[nano7-bt] t=9.741 < evt 0x0e len 10 (complete 0x1009 status 0) : 04 0e 0a 01 09 10 00 01 00 00 37 4e 02
+[nano7-bt] t=9.767 > cmd 0xfc18 BCM_Update_UART_Baud_Rate len 6 : 01 18 fc 06 00 00 00 9f 24 00
+qemu-system-arm: info: nano7-bt: controller UART -> 2400000 baud
+[nano7-bt] t=9.767 < evt 0x0e len 4 (complete 0xfc18 status 0) : 04 0e 04 01 18 fc 00
+[nano7-bt] t=9.810 > cmd 0xfc2e BCM_Download_Minidriver len 0 : 01 2e fc 00
+[nano7-bt] t=9.811 < evt 0x0e len 4 (complete 0xfc2e status 0) : 04 0e 04 01 2e fc 00
+[nano7-bt] t=10.734 > cmd 0xfc4e BCM_Launch_RAM len 4 : 01 4e fc 04 ff ff ff ff
+qemu-system-arm: info: nano7-bt: patchram: 151 Write_RAM records, 30039 bytes, launched
+[nano7-bt] t=10.734 < evt 0x0e len 4 (complete 0xfc4e status 0) : 04 0e 04 01 4e fc 00
+[nano7-bt] t=10.789 > cmd 0xfc01 BCM_Write_BD_ADDR len 6 : 01 01 fc 06 74 07 51 a9 d1 f0
+qemu-system-arm: info: nano7-bt: BD_ADDR f0:d1:a9:51:07:74
+[nano7-bt] t=10.789 < evt 0x0e len 4 (complete 0xfc01 status 0) : 04 0e 04 01 01 fc 00
+[nano7-bt] t=10.816 > cmd 0xfc27 BCM_Write_Sleep_Mode len 12 : 01 27 fc 0c 01 00 00 01 01 01 01 00 00 00 00 01
+[nano7-bt] t=10.816 < evt 0x0e len 4 (complete 0xfc27 status 0) : 04 0e 04 01 27 fc 00
+[nano7-bt] t=10.821 > cmd 0x1001 Read_Local_Version len 0 : 01 01 10 00
+[nano7-bt] t=10.821 < evt 0x0e len 12 (complete 0x1001 status 0) : 04 0e 0c 01 01 10 00 06 00 10 06 0f 00 0b 41
+[nano7-bt] t=10.833 > cmd 0x1009 Read_BD_ADDR len 0 : 01 09 10 00
+[nano7-bt] t=10.833 < evt 0x0e len 10 (complete 0x1009 status 0) : 04 0e 0a 01 09 10 00 74 07 51 a9 d1 f0
+[nano7-bt] t=10.858 > cmd 0xfc18 BCM_Update_UART_Baud_Rate len 6 : 01 18 fc 06 00 00 00 9f 24 00
+qemu-system-arm: info: nano7-bt: controller UART -> 2400000 baud
+[nano7-bt] t=10.858 < evt 0x0e len 4 (complete 0xfc18 status 0) : 04 0e 04 01 18 fc 00
+[nano7-bt] t=12.597 > cmd 0x0c03 Reset len 0 : 01 03 0c 00
+[nano7-bt] t=12.597 < evt 0x0e len 4 (complete 0x0c03 status 0) : 04 0e 04 01 03 0c 00
+[nano7-bt] t=12.641 > cmd 0x1001 Read_Local_Version len 0 : 01 01 10 00
+[nano7-bt] t=12.641 < evt 0x0e len 12 (complete 0x1001 status 0) : 04 0e 0c 01 01 10 00 06 00 10 06 0f 00 0b 41
+[nano7-bt] t=12.645 > cmd 0x1002 Read_Local_Supported_Commands len 0 : 01 02 10 00
+[nano7-bt] t=12.645 < evt 0x0e len 68 (complete 0x1002 status 0) : 04 0e 44 01 02 10 00 ff ff ff ff ff ff ff ff ff ..
+[nano7-bt] t=12.648 > cmd 0x1009 Read_BD_ADDR len 0 : 01 09 10 00
+[nano7-bt] t=12.648 < evt 0x0e len 10 (complete 0x1009 status 0) : 04 0e 0a 01 09 10 00 74 07 51 a9 d1 f0
+[nano7-bt] t=12.651 > cmd 0x1003 Read_Local_Supported_Features len 0 : 01 03 10 00
+[nano7-bt] t=12.651 < evt 0x0e len 12 (complete 0x1003 status 0) : 04 0e 0c 01 03 10 00 bf fe cf fe db ff 7b 87
+[nano7-bt] t=12.654 > cmd 0x0c01 Set_Event_Mask len 8 : 01 01 0c 08 ff ff ff ff ff ff ff 3f
+[nano7-bt] t=12.654 < evt 0x0e len 4 (complete 0x0c01 status 0) : 04 0e 04 01 01 0c 00
+[nano7-bt] t=12.655 > cmd 0x0c56 Write_Simple_Pairing_Mode len 1 : 01 56 0c 01 01
+[nano7-bt] t=12.655 < evt 0x0e len 4 (complete 0x0c56 status 0) : 04 0e 04 01 56 0c 00
+[nano7-bt] t=12.656 > cmd 0x0c6d Write_LE_Host_Supported len 2 : 01 6d 0c 02 01 01
+[nano7-bt] t=12.656 < evt 0x0e len 4 (complete 0x0c6d status 0) : 04 0e 04 01 6d 0c 00
+[nano7-bt] t=12.657 > cmd 0x2002 LE_Read_Buffer_Size len 0 : 01 02 20 00
+[nano7-bt] t=12.657 < evt 0x0e len 7 (complete 0x2002 status 0) : 04 0e 07 01 02 20 00 1b 00 08
+[nano7-bt] t=12.658 > cmd 0x201c  len 0 : 01 1c 20 00
+[nano7-bt] t=12.658 < evt 0x0e len 12 (complete 0x201c status 0) : 04 0e 0c 01 1c 20 00 ff ff ff ff ff 00 00 00
+[nano7-bt] t=12.659 > cmd 0x200f  len 0 : 01 0f 20 00
+[nano7-bt] t=12.659 < evt 0x0e len 5 (complete 0x200f status 0) : 04 0e 05 01 0f 20 00 08
+[nano7-bt] t=12.660 > cmd 0x0c33 Host_Buffer_Size len 7 : 01 33 0c 07 00 04 ff 01 00 01 00
+[nano7-bt] t=12.661 < evt 0x0e len 4 (complete 0x0c33 status 0) : 04 0e 04 01 33 0c 00
+[nano7-bt] t=12.662 > cmd 0x0c31  len 1 : 01 31 0c 01 00
+[nano7-bt] t=12.662 < evt 0x0e len 4 (complete 0x0c31 status 0) : 04 0e 04 01 31 0c 00
+[nano7-bt] t=12.663 > cmd 0x1005 Read_Buffer_Size len 0 : 01 05 10 00
+[nano7-bt] t=12.663 < evt 0x0e len 11 (complete 0x1005 status 0) : 04 0e 0b 01 05 10 00 fd 03 40 08 00 00 00
+[nano7-bt] t=12.665 > cmd 0x2007  len 0 : 01 07 20 00
+[nano7-bt] t=12.665 < evt 0x0e len 5 (complete 0x2007 status 0) : 04 0e 05 01 07 20 00 04
+[nano7-bt] t=12.720 > cmd 0x080f  len 2 : 01 0f 08 02 05 00
+[nano7-bt] t=12.720 < evt 0x0e len 4 (complete 0x080f status 0) : 04 0e 04 01 0f 08 00
+[nano7-bt] t=12.721 > cmd 0x0c16 Write_Connection_Accept_Timeout len 2 : 01 16 0c 02 a0 1f
+[nano7-bt] t=12.721 < evt 0x0e len 4 (complete 0x0c16 status 0) : 04 0e 04 01 16 0c 00
+[nano7-bt] t=12.722 > cmd 0x0c18 Write_Page_Timeout len 2 : 01 18 0c 02 00 20
+[nano7-bt] t=12.722 < evt 0x0e len 4 (complete 0x0c18 status 0) : 04 0e 04 01 18 0c 00
+[nano7-bt] t=12.723 > cmd 0x0c1c  len 4 : 01 1c 0c 04 00 08 12 00
+[nano7-bt] t=12.723 < evt 0x0e len 4 (complete 0x0c1c status 0) : 04 0e 04 01 1c 0c 00
+[nano7-bt] t=12.724 > cmd 0x0c1e Write_Inquiry_Scan_Activity len 4 : 01 1e 0c 04 00 08 12 00
+[nano7-bt] t=12.724 < evt 0x0e len 4 (complete 0x0c1e status 0) : 04 0e 04 01 1e 0c 00
+[nano7-bt] t=12.724 > cmd 0x0c26  len 2 : 01 26 0c 02 60 00
+[nano7-bt] t=12.724 < evt 0x0e len 4 (complete 0x0c26 status 0) : 04 0e 04 01 26 0c 00
+[nano7-bt] t=12.725 > cmd 0x0c2a  len 1 : 01 2a 0c 01 00
+[nano7-bt] t=12.725 < evt 0x0e len 4 (complete 0x0c2a status 0) : 04 0e 04 01 2a 0c 00
+[nano7-bt] t=12.726 > cmd 0x0c2c  len 1 : 01 2c 0c 01 00
+[nano7-bt] t=12.726 < evt 0x0e len 4 (complete 0x0c2c status 0) : 04 0e 04 01 2c 0c 00
+[nano7-bt] t=12.727 > cmd 0x0c2f  len 1 : 01 2f 0c 01 00
+[nano7-bt] t=12.727 < evt 0x0e len 4 (complete 0x0c2f status 0) : 04 0e 04 01 2f 0c 00
+[nano7-bt] t=12.727 > cmd 0x0c3c  len 1 : 01 3c 0c 01 00
+[nano7-bt] t=12.727 < evt 0x0e len 4 (complete 0x0c3c status 0) : 04 0e 04 01 3c 0c 00
+[nano7-bt] t=12.728 > cmd 0x0c43  len 1 : 01 43 0c 01 01
+[nano7-bt] t=12.728 < evt 0x0e len 4 (complete 0x0c43 status 0) : 04 0e 04 01 43 0c 00
+[nano7-bt] t=12.729 > cmd 0x0c45 Write_Inquiry_Mode len 1 : 01 45 0c 01 02
+[nano7-bt] t=12.729 < evt 0x0e len 4 (complete 0x0c45 status 0) : 04 0e 04 01 45 0c 00
+[nano7-bt] t=12.730 > cmd 0x0c47  len 1 : 01 47 0c 01 01
+[nano7-bt] t=12.730 < evt 0x0e len 4 (complete 0x0c47 status 0) : 04 0e 04 01 47 0c 00
+[nano7-bt] t=12.730 > cmd 0x0c49  len 1 : 01 49 0c 01 01
+[nano7-bt] t=12.730 < evt 0x0e len 4 (complete 0x0c49 status 0) : 04 0e 04 01 49 0c 00
+[nano7-bt] t=12.732 > cmd 0x0c13 Write_Local_Name len 248 : 01 13 0c f8 69 50 6f 64 20 6e 61 6e 6f 00 00 00 ..
+[nano7-bt] t=12.732 < evt 0x0e len 4 (complete 0x0c13 status 0) : 04 0e 04 01 13 0c 00
+[nano7-bt] t=12.750 > cmd 0x0c52 Write_Extended_Inquiry_Response len 241 : 01 52 0c f1 01 0a 09 69 50 6f 64 20 6e 61 6e 6f ..
+[nano7-bt] t=12.750 < evt 0x0e len 4 (complete 0x0c52 status 0) : 04 0e 04 01 52 0c 00
+[nano7-bt] t=12.751 > cmd 0x0c24 Write_Class_Of_Device len 3 : 01 24 0c 03 1c 04 00
+[nano7-bt] t=12.751 < evt 0x0e len 4 (complete 0x0c24 status 0) : 04 0e 04 01 24 0c 00
+[nano7-bt] t=12.760 > cmd 0x0c24 Write_Class_Of_Device len 3 : 01 24 0c 03 1c 04 08
+[nano7-bt] t=12.761 < evt 0x0e len 4 (complete 0x0c24 status 0) : 04 0e 04 01 24 0c 00
+[nano7-bt] t=12.813 > cmd 0x0405 Create_Connection len 13 : 01 05 04 0d 01 44 41 50 4e 02 1c ee 02 00 00 00 ..
+[nano7-bt] t=12.813 < evt 0x0f len 4 (status 0 for 0x0405) : 04 0f 04 00 01 05 04
+[nano7-bt] t=12.813 < evt 0x03 len 11 : 04 03 0b 00 40 00 01 44 41 50 4e 02 01 00
+qemu-system-arm: info: nano7-bt: peer "NanoPad" connected (iPod paged it), handle 0x0040
+[nano7-bt] t=12.820 > cmd 0x040f  len 4 : 01 0f 04 04 40 00 1c ee
+[nano7-bt] t=12.821 < evt 0x0f len 4 (status 0 for 0x040f) : 04 0f 04 00 01 0f 04
+[nano7-bt] t=12.821 < evt 0x1d len 5 : 04 1d 05 00 40 00 1c ee
+[nano7-bt] t=12.823 > cmd 0x041b  len 2 : 01 1b 04 02 40 00
+[nano7-bt] t=12.823 < evt 0x0f len 4 (status 0 for 0x041b) : 04 0f 04 00 01 1b 04
+[nano7-bt] t=12.823 < evt 0x0b len 11 : 04 0b 0b 00 40 00 bf fe 8f fe 98 19 09 83
+[nano7-bt] t=12.826 > cmd 0x041c  len 3 : 01 1c 04 03 40 00 01
+[nano7-bt] t=12.826 < evt 0x0f len 4 (status 0 for 0x041c) : 04 0f 04 00 01 1c 04
+[nano7-bt] t=12.826 < evt 0x23 len 13 : 04 23 0d 00 40 00 01 01 01 00 00 00 00 00 00 00
+[nano7-bt] t=12.829 > cmd 0x0809  len 2 : 01 09 08 02 40 00
+[nano7-bt] t=12.829 < evt 0x0e len 7 (complete 0x0809 status 0) : 04 0e 07 01 09 08 00 40 00 00
+[nano7-bt] t=12.830 > cmd 0x080d  len 4 : 01 0d 08 04 40 00 05 00
+[nano7-bt] t=12.830 < evt 0x0e len 6 (complete 0x080d status 0) : 04 0e 06 01 0d 08 00 40 00
+[nano7-bt] t=12.842 > acl handle 0x040 len 10 : 02 40 00 0a 00 06 00 01 00 0a 01 02 00 02 00
+[nano7-bt] t=12.842 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+[nano7-bt] t=12.842 < acl handle 0x040 len 16 : 02 40 20 10 00 0c 00 01 00 0b 01 08 00 02 00 00 ..
+[nano7-bt] t=12.929 > acl handle 0x040 len 12 : 02 40 00 0c 00 08 00 01 00 02 02 04 00 01 00 02 ..
+[nano7-bt] t=12.929 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+[nano7-bt] t=12.929 < acl handle 0x040 len 16 : 02 40 20 10 00 0c 00 01 00 03 02 08 00 40 00 02 ..
+qemu-system-arm: info: nano7-bt: iPod opens L2CAP PSM 0x0001: accepted
+[nano7-bt] t=12.930 < acl handle 0x040 len 12 : 02 40 20 0c 00 08 00 01 00 04 01 04 00 02 01 00 ..
+[nano7-bt] t=12.933 > cmd 0x0c28  len 4 : 01 28 0c 04 40 00 00 00
+[nano7-bt] t=12.933 < evt 0x0e len 4 (complete 0x0c28 status 0) : 04 0e 04 01 28 0c 00
+[nano7-bt] t=12.941 > cmd 0x0c37  len 4 : 01 37 0c 04 40 00 40 1f
+[nano7-bt] t=12.941 < evt 0x0e len 6 (complete 0x0c37 status 0) : 04 0e 06 01 37 0c 00 40 00
+[nano7-bt] t=12.941 > acl handle 0x040 len 12 : 02 40 00 0c 00 08 00 01 00 04 03 04 00 40 00 00 ..
+[nano7-bt] t=12.941 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+[nano7-bt] t=12.942 < acl handle 0x040 len 14 : 02 40 20 0e 00 0a 00 01 00 05 03 06 00 02 01 00 ..
+[nano7-bt] t=12.942 > acl handle 0x040 len 18 : 02 40 00 12 00 0e 00 01 00 05 01 0a 00 40 00 00 ..
+[nano7-bt] t=12.942 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+qemu-system-arm: info: nano7-bt: L2CAP PSM 0x01 open
+[nano7-bt] t=12.973 > acl handle 0x040 len 22 : 02 40 00 16 00 12 00 40 00 06 00 01 00 0d 35 03 ..
+[nano7-bt] t=12.973 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+qemu-system-arm: info: nano7-bt: SDP ServiceSearchAttribute (1 UUIDs, first 0x1124): 62 bytes
+[nano7-bt] t=12.973 < acl handle 0x040 len 74 : 02 40 20 4a 00 46 00 02 01 07 00 01 00 41 00 3e ..
+[nano7-bt] t=13.030 > cmd 0x0411  len 2 : 01 11 04 02 40 00
+[nano7-bt] t=13.030 < evt 0x0f len 4 (status 0 for 0x0411) : 04 0f 04 00 01 11 04
+[nano7-bt] t=13.030 < evt 0x17 len 6 : 04 17 06 01 44 41 50 4e 02
+[nano7-bt] t=13.033 > cmd 0x040c Link_Key_Request_Negative_Reply len 6 : 01 0c 04 06 01 44 41 50 4e 02
+[nano7-bt] t=13.033 < evt 0x0e len 10 (complete 0x040c status 0) : 04 0e 0a 01 0c 04 00 01 44 41 50 4e 02
+[nano7-bt] t=13.033 < evt 0x31 len 6 : 04 31 06 01 44 41 50 4e 02
+[nano7-bt] t=13.035 > cmd 0x042b IO_Capability_Request_Reply len 9 : 01 2b 04 09 01 44 41 50 4e 02 01 00 00
+[nano7-bt] t=13.035 < evt 0x0e len 10 (complete 0x042b status 0) : 04 0e 0a 01 2b 04 00 01 44 41 50 4e 02
+qemu-system-arm: info: nano7-bt: SSP: iPod IO capability 1, auth req 0x00
+[nano7-bt] t=13.035 < evt 0x32 len 9 : 04 32 09 01 44 41 50 4e 02 03 00 04
+[nano7-bt] t=13.035 < evt 0x33 len 10 : 04 33 0a 01 44 41 50 4e 02 40 e2 01 00
+[nano7-bt] t=13.074 > cmd 0x042c User_Confirmation_Request_Reply len 6 : 01 2c 04 06 01 44 41 50 4e 02
+[nano7-bt] t=13.074 < evt 0x0e len 10 (complete 0x042c status 0) : 04 0e 0a 01 2c 04 00 01 44 41 50 4e 02
+[nano7-bt] t=13.074 < evt 0x36 len 7 : 04 36 07 00 01 44 41 50 4e 02
+[nano7-bt] t=13.074 < evt 0x18 len 23 : 04 18 17 01 44 41 50 4e 02 4e 61 6e 6f 50 61 64 ..
+qemu-system-arm: info: nano7-bt: paired with "NanoPad" (link key type 4)
+[nano7-bt] t=13.074 < evt 0x06 len 3 : 04 06 03 00 40 00
+[nano7-bt] t=13.207 > cmd 0x0413  len 3 : 01 13 04 03 40 00 01
+[nano7-bt] t=13.207 < evt 0x0f len 4 (status 0 for 0x0413) : 04 0f 04 00 01 13 04
+[nano7-bt] t=13.207 < evt 0x08 len 4 : 04 08 04 00 40 00 01
+qemu-system-arm: info: nano7-bt: link encryption on
+[nano7-bt] t=13.207 < acl handle 0x040 len 12 : 02 40 20 0c 00 08 00 01 00 02 02 04 00 11 00 41 ..
+qemu-system-arm: info: nano7-bt: peer opens L2CAP PSM 0x0011
+[nano7-bt] t=13.218 > cmd 0x0c37  len 4 : 01 37 0c 04 40 00 40 1f
+[nano7-bt] t=13.218 < evt 0x0e len 6 (complete 0x0c37 status 0) : 04 0e 06 01 37 0c 00 40 00
+[nano7-bt] t=13.219 > acl handle 0x040 len 12 : 02 40 00 0c 00 08 00 01 00 02 04 04 00 11 00 03 ..
+[nano7-bt] t=13.219 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+[nano7-bt] t=13.219 < acl handle 0x040 len 16 : 02 40 20 10 00 0c 00 01 00 03 04 08 00 42 00 03 ..
+qemu-system-arm: info: nano7-bt: iPod opens L2CAP PSM 0x0011: accepted
+[nano7-bt] t=13.219 < acl handle 0x040 len 12 : 02 40 20 0c 00 08 00 01 00 04 03 04 00 03 02 00 ..
+[nano7-bt] t=13.220 > acl handle 0x040 len 16 : 02 40 00 10 00 0c 00 01 00 03 02 08 00 04 03 41 ..
+[nano7-bt] t=13.220 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+qemu-system-arm: info: nano7-bt: iPod answers the peer's L2CAP PSM 0x0011: result 0x0004
+[nano7-bt] t=13.222 > cmd 0x0c28  len 4 : 01 28 0c 04 40 00 00 00
+[nano7-bt] t=13.222 < evt 0x0e len 4 (complete 0x0c28 status 0) : 04 0e 04 01 28 0c 00
+[nano7-bt] t=13.226 > cmd 0x0c37  len 4 : 01 37 0c 04 40 00 40 1f
+[nano7-bt] t=13.226 < evt 0x0e len 6 (complete 0x0c37 status 0) : 04 0e 06 01 37 0c 00 40 00
+[nano7-bt] t=13.227 > acl handle 0x040 len 12 : 02 40 00 0c 00 08 00 01 00 04 05 04 00 42 00 00 ..
+[nano7-bt] t=13.227 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+[nano7-bt] t=13.227 < acl handle 0x040 len 14 : 02 40 20 0e 00 0a 00 01 00 05 05 06 00 03 02 00 ..
+[nano7-bt] t=13.227 > acl handle 0x040 len 18 : 02 40 00 12 00 0e 00 01 00 05 03 0a 00 42 00 00 ..
+[nano7-bt] t=13.228 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+qemu-system-arm: info: nano7-bt: L2CAP PSM 0x11 open
+[nano7-bt] t=13.284 > cmd 0x0c19  len 0 : 01 19 0c 00
+[nano7-bt] t=13.284 < evt 0x0e len 5 (complete 0x0c19 status 0) : 04 0e 05 01 19 0c 00 00
+[nano7-bt] t=13.287 > cmd 0x0c1a Write_Scan_Enable len 1 : 01 1a 0c 01 02
+qemu-system-arm: info: nano7-bt: scan enable = 2 (page)
+[nano7-bt] t=13.287 < evt 0x0e len 4 (complete 0x0c1a status 0) : 04 0e 04 01 1a 0c 00
+[nano7-bt] t=13.454 > cmd 0x2005  len 6 : 01 05 20 06 00 00 00 8f 32 6b
+[nano7-bt] t=13.454 < evt 0x0e len 4 (complete 0x2005 status 0) : 04 0e 04 01 05 20 00
+[nano7-bt] t=13.459 > acl handle 0x040 len 12 : 02 40 00 0c 00 08 00 01 00 02 06 04 00 13 00 05 ..
+[nano7-bt] t=13.459 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+[nano7-bt] t=13.459 < acl handle 0x040 len 16 : 02 40 20 10 00 0c 00 01 00 03 06 08 00 41 00 05 ..
+qemu-system-arm: info: nano7-bt: iPod opens L2CAP PSM 0x0013: accepted
+[nano7-bt] t=13.460 < acl handle 0x040 len 12 : 02 40 20 0c 00 08 00 01 00 04 04 04 00 05 04 00 ..
+[nano7-bt] t=13.461 > cmd 0x0c28  len 4 : 01 28 0c 04 40 00 00 00
+[nano7-bt] t=13.461 < evt 0x0e len 4 (complete 0x0c28 status 0) : 04 0e 04 01 28 0c 00
+[nano7-bt] t=13.465 > cmd 0x0c37  len 4 : 01 37 0c 04 40 00 40 1f
+[nano7-bt] t=13.465 < evt 0x0e len 6 (complete 0x0c37 status 0) : 04 0e 06 01 37 0c 00 40 00
+[nano7-bt] t=13.466 > acl handle 0x040 len 12 : 02 40 00 0c 00 08 00 01 00 04 07 04 00 41 00 00 ..
+[nano7-bt] t=13.466 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+[nano7-bt] t=13.466 < acl handle 0x040 len 14 : 02 40 20 0e 00 0a 00 01 00 05 07 06 00 05 04 00 ..
+[nano7-bt] t=13.466 > acl handle 0x040 len 18 : 02 40 00 12 00 0e 00 01 00 05 04 0a 00 41 00 00 ..
+[nano7-bt] t=13.467 < evt 0x13 len 5 : 04 13 05 01 40 00 01 00
+qemu-system-arm: info: nano7-bt: L2CAP PSM 0x13 open
+qemu-system-arm: info: nano7-bt: HID link up (control + interrupt), 6 scripted report steps
+[nano7-bt] t=13.467 < acl handle 0x040 len 11 : 02 40 20 0b 00 07 00 05 04 a1 00 00 00 00 00 00
+qemu-system-arm: info: nano7-bt: HID input report #1: buttons 0x0000 X 0 Y 0 Z 0 Rz 0
+[nano7-bt] t=15.470 < acl handle 0x040 len 11 : 02 40 20 0b 00 07 00 05 04 a1 00 00 7f 00 00 00
+qemu-system-arm: info: nano7-bt: HID input report #2: buttons 0x0000 X 127 Y 0 Z 0 Rz 0
+[nano7-bt] t=16.667 < acl handle 0x040 len 11 : 02 40 20 0b 00 07 00 05 04 a1 00 00 00 00 00 00
+qemu-system-arm: info: nano7-bt: HID input report #3: buttons 0x0000 X 0 Y 0 Z 0 Rz 0
+[nano7-bt] t=18.469 < acl handle 0x040 len 11 : 02 40 20 0b 00 07 00 05 04 a1 01 00 00 9c 00 00
+qemu-system-arm: info: nano7-bt: HID input report #4: buttons 0x0001 X 0 Y -100 Z 0 Rz 0
+[nano7-bt] t=19.967 < acl handle 0x040 len 11 : 02 40 20 0b 00 07 00 05 04 a1 00 00 00 00 00 00
+qemu-system-arm: info: nano7-bt: HID input report #5: buttons 0x0000 X 0 Y 0 Z 0 Rz 0
+[nano7-bt] t=22.467 < acl handle 0x040 len 11 : 02 40 20 0b 00 07 00 05 04 a1 02 00 00 00 00 00
+qemu-system-arm: info: nano7-bt: HID input report #6: buttons 0x0002 X 0 Y 0 Z 0 Rz 0
+[nano7-bt] t=23.467 < acl handle 0x040 len 11 : 02 40 20 0b 00 07 00 05 04 a1 00 00 00 00 00 00
+qemu-system-arm: info: nano7-bt: HID input report #7: buttons 0x0000 X 0 Y 0 Z 0 Rz 0
+[nano7-bt] summary: host sent 32402 bytes (216 commands, 12 ACL), controller sent 2318 bytes (259 events), scan enable 2, local name "iPod nano"; peer: 1 pairings, link up, 12 L2CAP frames, 7 HID reports

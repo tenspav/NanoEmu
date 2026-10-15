@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>	<string>org.nanoapps.dumpboot</string>
+	<key>CFBundleName</key>		<string>DumpBoot</string>
+	<key>CFBundleExecutable</key>	<string>dumpboot</string>
+	<key>HBAppKind</key>		<integer>1</integer>
+	<key>HBIconGlyph</key>		<string>hard-drive</string>
+	<key>HBIconColor</key>		<string>#f0a030</string>
+</dict>
+</plist>

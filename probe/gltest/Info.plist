@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>	<string>org.nanorework.gltest</string>
+	<key>CFBundleName</key>		<string>GL Test</string>
+	<key>CFBundleExecutable</key>	<string>gltest</string>
+	<key>HBAppKind</key>			<integer>2</integer>
+	<key>HBIconGlyph</key>		<string>cube</string>
+	<key>HBIconColor</key>		<string>#3f6fd8</string>
+</dict>
+</plist>

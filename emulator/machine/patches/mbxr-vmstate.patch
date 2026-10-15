@@ -1,0 +1,187 @@
+--- a/emulator/machine/hw/arm/nano7_mbx.c
++++ b/emulator/machine/hw/arm/nano7_mbx.c
+@@ -48,6 +48,7 @@
+     bool ta_end, render_pending;  /* end-of-list seen / render running */
+     uint64_t scenes, renders, jobs;
+     MbxR *r;                    /* software renderer (nano7_mbxr.c) */
++    bool r_loaded;              /* the state load carried the renderer */
+     bool trace;                 /* NANO7_MBX_TRACE: log writes */
+     uint64_t trace_n;
+ };
+@@ -312,11 +313,41 @@
+ 
+ static int mbx_post_load(void *opaque, int version_id)
+ {
+-    mbxr_reset(((Nano7MbxState *)opaque)->r);
+-    mbx_update_irq(opaque);
++    Nano7MbxState *s = opaque;
++
++    if (!s->r_loaded) {
++        mbxr_reset(s->r);       /* older state without the renderer */
++    }
++    s->r_loaded = false;
++    mbx_update_irq(s);
+     return 0;
+ }
+ 
++static bool mbx_renderer_needed(void *opaque)
++{
++    return true;
++}
++
++static int mbx_renderer_post_load(void *opaque, int version_id)
++{
++    ((Nano7MbxState *)opaque)->r_loaded = true;
++    return 0;
++}
++
++/* the renderer's state: without it a state loaded into a fresh process
++ * draws nothing until the OS happens to resend its draw state */
++static const VMStateDescription vmstate_mbx_renderer = {
++    .name = TYPE_NANO7_MBX "/renderer",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .needed = mbx_renderer_needed,
++    .post_load = mbx_renderer_post_load,
++    .fields = (const VMStateField[]) {
++        VMSTATE_STRUCT_POINTER(r, Nano7MbxState, vmstate_mbxr, MbxR),
++        VMSTATE_END_OF_LIST()
++    },
++};
++
+ static const VMStateDescription vmstate_mbx = {
+     .name = TYPE_NANO7_MBX,
+     .version_id = 1,
+@@ -333,6 +364,10 @@
+         VMSTATE_BOOL(render_pending, Nano7MbxState),
+         VMSTATE_END_OF_LIST()
+     },
++    .subsections = (const VMStateDescription * const []) {
++        &vmstate_mbx_renderer,
++        NULL
++    },
+ };
+ 
+ static void mbx_init(Object *obj)
+--- a/emulator/machine/hw/arm/nano7_mbxr.c
++++ b/emulator/machine/hw/arm/nano7_mbxr.c
+@@ -64,6 +64,7 @@
+ #include "exec/memory.h"
+ #include "exec/address-spaces.h"
+ #include "qemu/host-utils.h"
++#include "migration/vmstate.h"
+ #include <math.h>
+ 
+ #define SEG_MAX         (1u << 20)      /* words per segment */
+@@ -310,6 +311,8 @@
+     uint32_t dump_isp;          /* NANO7_MBXR_DUMP=isp: print one segment */
+     const char *dump_fb;        /* NANO7_MBXR_DUMPFB=file: frame 300 as PAM */
+     uint32_t st_key[64][5], st_n[64], st_cnt;
++    /* save state: byte sizes of the used part of seg / tri / texs */
++    uint32_t vm_seg_bytes, vm_tri_bytes, vm_tex_bytes;
+ };
+ 
+ static float f32(uint32_t w)
+@@ -363,6 +366,86 @@
+     r->stage_valid = 0;         /* program memory: re-uploaded per frame */
+ }
+ 
++/* ------------------------------------------------------------------ */
++/* save state                                                          */
++
++/* Everything the OS driver does not resend per frame (draw state, the
++ * vertex program and constants, texture layers), plus the segment and
++ * scene in flight. Floats and the scene arrays are saved as host bytes:
++ * save states are only loaded by the same binary. Not saved: the host
++ * frame / depth buffers (cleared by every render job), debug and HUD
++ * counters. */
++static int mbxr_pre_save(void *opaque)
++{
++    MbxR *r = opaque;
++
++    r->vm_seg_bytes = r->seg_len * sizeof(uint32_t);
++    r->vm_tri_bytes = r->ntri * sizeof(MbxTri);
++    r->vm_tex_bytes = r->ntex * sizeof(MbxTex);
++    return 0;
++}
++
++static bool mbxr_sizes_ok(void *opaque, int version_id)
++{
++    MbxR *r = opaque;
++
++    return r->vm_seg_bytes <= SEG_MAX * sizeof(uint32_t) &&
++           r->vm_seg_bytes % sizeof(uint32_t) == 0 &&
++           r->vm_tri_bytes <= TRI_MAX * sizeof(MbxTri) &&
++           r->vm_tri_bytes % sizeof(MbxTri) == 0 &&
++           r->vm_tex_bytes <= TRI_MAX * sizeof(MbxTex) &&
++           r->vm_tex_bytes % sizeof(MbxTex) == 0;
++}
++
++static int mbxr_post_load(void *opaque, int version_id)
++{
++    MbxR *r = opaque;
++
++    r->seg_len = r->vm_seg_bytes / sizeof(uint32_t);
++    r->ntri = r->vm_tri_bytes / sizeof(MbxTri);
++    r->ntex = r->vm_tex_bytes / sizeof(MbxTex);
++    return 0;
++}
++
++const VMStateDescription vmstate_mbxr = {
++    .name = "nano7-mbxr",
++    .version_id = 1,
++    .minimum_version_id = 1,
++    .pre_save = mbxr_pre_save,
++    .post_load = mbxr_post_load,
++    .fields = (const VMStateField[]) {
++        VMSTATE_UINT32(isp, MbxR),
++        VMSTATE_UINT32(b1, MbxR),
++        VMSTATE_UINT32(region, MbxR),
++        VMSTATE_UINT32(fmt, MbxR),
++        VMSTATE_UINT32(b6, MbxR),
++        VMSTATE_UINT32(b8, MbxR),
++        VMSTATE_UINT32(cull, MbxR),
++        VMSTATE_UINT32(keep, MbxR),
++        VMSTATE_INT32(tex1, MbxR),
++        VMSTATE_UINT32(fog_mode, MbxR),
++        VMSTATE_BOOL(uclip, MbxR),
++        VMSTATE_UINT32_ARRAY(stage, MbxR, 16),
++        VMSTATE_UINT32(stage_valid, MbxR),
++        VMSTATE_UINT32_2DARRAY(prog, MbxR, VGP_PROG_MAX, 2),
++        VMSTATE_BUFFER_UNSAFE(point_half, MbxR, 0, sizeof(float)),
++        VMSTATE_BOOL(cont, MbxR),
++        VMSTATE_UINT32(cont_prim, MbxR),
++        VMSTATE_UINT32(cont_ctl, MbxR),
++        VMSTATE_BUFFER_UNSAFE(layer, MbxR, 0, sizeof(MbxTex) * 2),
++        VMSTATE_BUFFER_UNSAFE(vp, MbxR, 0, sizeof(float) * 6),
++        VMSTATE_BUFFER_UNSAFE(cst, MbxR, 0, sizeof(float) * NCONST * 4),
++        VMSTATE_UINT32(vm_seg_bytes, MbxR),
++        VMSTATE_UINT32(vm_tri_bytes, MbxR),
++        VMSTATE_UINT32(vm_tex_bytes, MbxR),
++        VMSTATE_VALIDATE("nano7-mbxr sizes", mbxr_sizes_ok),
++        VMSTATE_VBUFFER_UINT32(seg, MbxR, 0, NULL, vm_seg_bytes),
++        VMSTATE_VBUFFER_UINT32(tri, MbxR, 0, NULL, vm_tri_bytes),
++        VMSTATE_VBUFFER_UINT32(texs, MbxR, 0, NULL, vm_tex_bytes),
++        VMSTATE_END_OF_LIST()
++    }
++};
++
+ void mbxr_scene_begin(MbxR *r)
+ {
+     r->ntri = 0;
+--- a/emulator/machine/hw/arm/nano7_mbxr.h
++++ b/emulator/machine/hw/arm/nano7_mbxr.h
+@@ -23,8 +23,12 @@
+ /* render job (+0x6ec): draw the scene into the target described by the
+  * core registers (core[] = 0x3b000000.. as 32-bit words) */
+ void mbxr_render(MbxR *r, const uint32_t *core);
+-/* drop parsed state (after a state load) */
++/* drop parsed state (after loading a state saved without the renderer) */
+ void mbxr_reset(MbxR *r);
++/* save-state description of the renderer state (persistent TA state,
++ * vertex program and constants, the segment and scene being built);
++ * nano7_mbx.c saves it through its MbxR pointer */
++extern const struct VMStateDescription vmstate_mbxr;
+ 
+ /* cumulative GPU workload, for the usage HUD (nano7_hud.c) */
+ typedef struct MbxrStats {

@@ -1,0 +1,29 @@
+# local data, never publish
+dumps/
+files-from-mac/
+workers/*-log.txt
+workers/prompt-*.txt
+workers/*.sh
+
+# build artifacts
+emulator/vendor/
+emulator/build/
+emulator/sysroot/
+probe/dumpram/build/
+probe/install/AllApps-B.pack.new
+probe/install/*dryrun*
+
+# misc
+__pycache__/
+*.pyc
+.DS_Store
+
+# too big / copyrighted firmware
+emulator/*.log
+emulator/retailos-patched.bin
+workers/
+games/
+emulator/state/
+emulator/rsrc/
+state/
+run1/
