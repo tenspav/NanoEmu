@@ -14,7 +14,9 @@
 #                                images; make it with tools/extract_rsrc.py IPSW)
 #   --disp-dump DIR              write display-pipe frames as PPMs
 #   --buttons SEC:BTN[:MS]/...   timed presses (home|power|play|volup|voldown);
-#                                keys: h/p/space, Up/Down = volume (VNC or sendkey)
+#                                keys: h or Esc/p/space, Up/Down = volume (VNC,
+#                                window or sendkey); Cmd-S/L/R/P/... mirror
+#                                the F keys (docs/MACOS.md)
 #   --rtc snapshot|host|SECONDS  PMU real-time clock at start (default snapshot)
 #   --audio-play                 play the audio live on the host (ffplay, else
 #                                aplay, reading a FIFO; 44.1 kHz s16 stereo)
@@ -44,10 +46,13 @@
 #                                gamepad (F8 toggles: WASD left stick, arrows
 #                                right stick, J K U I = A B X Y, Q / E = L / R,
 #                                Enter start, Backspace select, Esc home)
-#   --host-pad auto|PATH         a real gamepad on the host drives the fake BT
-#                                gamepad (Linux evdev: auto = first
-#                                /dev/input/event* gamepad, hot-plug; or a
-#                                node / FIFO path; needs the "input" group)
+#   --host-pad auto|PATH|NAME    a real gamepad on the host drives the fake BT
+#                                gamepad (hot-plug). Linux evdev: auto = first
+#                                /dev/input/event* gamepad, or a node / FIFO
+#                                path; needs the "input" group. macOS IOKit
+#                                HID: auto, or a product-name substring
+#                                (NANO7_HOST_PAD_BUTTONS / _TRACE: see
+#                                nano7_hostpad.c)
 #   --clock-profile stock|safe|max  start with a clock profile (CPU/GPU MHz
 #                                342/133, 684/171, 684/266; F11 cycles) and the
 #                                65 C governor; default: the guest's own clocks
@@ -142,7 +147,7 @@ while [ $# -gt 0 ]; do
         --pad-keys)
             export NANO7_PAD_KEYS=1; shift ;;
         --host-pad)
-            export NANO7_HOST_PAD="${2:?--host-pad needs auto or a path}"; shift 2 ;;
+            export NANO7_HOST_PAD="${2:?--host-pad needs auto, a path or a name}"; shift 2 ;;
         --clock-profile)
             export NANO7_CLOCK_PROFILE="${2:?--clock-profile needs stock, safe or max}"; shift 2 ;;
         --zoom)

@@ -113,7 +113,7 @@ Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 | Video decoders (M2) | 🟡 MPEG-4/H.263 block modeled; real H.264 block identified (0x38f00000/IRQ35) |
 | Bluetooth (classic + BLE) | ✅ HID gamepad host working: pairing with security (L2CAP + bonding), HID descriptor over SDP, live reports drive an on-screen app ([research](docs/research/bluetooth-stack.md)) |
 | Cold boot (zero device) | 🟡 Route confirmed: rebuild Type 4 plaintext images from dumps we already have + bypass signature checks in the emulated boot chain ([`docs/research/coldboot-zero-device.md`](docs/research/coldboot-zero-device.md), milestone plan in [`coldboot-plan.md`](docs/research/coldboot-plan.md)) |
-| macOS build | ✅ Working (SDL2 native window, keyboard + touch via mouse; build deps via Homebrew) |
+| macOS build | ✅ Working: **NanoEmu.app** bundle (Dock icon, integer-zoom window, Mac key mapping, Cmd-S/L/R save/load/reset); see [`docs/MACOS.md`](docs/MACOS.md) |
 | Windows build | ⬜ Planned (native window; the browser/noVNC route proved unreliable for keyboard+touch input) |
 
 Full hardware specs live in [`docs/HARDWARE.md`](docs/HARDWARE.md); reverse-engineering notes live in [`docs/research/`](docs/research/). The session-by-session development journal is [`emulator/boot-progress.md`](emulator/boot-progress.md).
@@ -124,6 +124,8 @@ Full hardware specs live in [`docs/HARDWARE.md`](docs/HARDWARE.md); reverse-engi
 cd emulator
 ./build.sh   # downloads QEMU 9.1.2, installs the nano7 machine, builds qemu-system-arm
 ```
+
+On macOS, `macos/make-app.sh` then packages a self-contained `NanoEmu.app`; see [`docs/MACOS.md`](docs/MACOS.md).
 
 ## Running
 

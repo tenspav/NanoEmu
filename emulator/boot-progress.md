@@ -2090,3 +2090,81 @@ AUTOMATION:
     - 06_retailos_restored.png: restored interactive RetailOS home screen
 RESULT: PASS. Zero CPU crashes, clean handoff, 100 % pixel-accurate green payload, flawless warm reset back to RetailOS.
 
+
+## Session 64 (2026-10-15): host gamepad - macOS backend (IOKit HID)
+NEW (nano7_hostpad.c, __APPLE__ part): IOKit HID Manager in plain C.
+  - Its own thread runs a CFRunLoop. QEMU's main loop is not a run loop, and with the Cocoa display
+    AppKit owns the main thread.
+  - Callbacks snapshot the state under a QemuMutex and schedule a bottom half; the report is sent from the
+    main loop.
+  - Hot-plug and removal come from the manager.
+  - Device matching: Generic Desktop joystick, gamepad or multi-axis controller.
+  - --host-pad auto takes the first pad; any other value picks a pad by product-name substring.
+  - Gamepads need no Input Monitoring permission.
+WHY NOT GameController.framework: it needs Objective-C, and its notifications arrive on the main dispatch
+  queue, which QEMU only services with the Cocoa display. IOKit works with any display (VNC included).
+MAPPING (HID button numbers differ per maker; tables from the controllers' public descriptors as SDL
+  documents them; NOT tested on hardware):
+  - Sony 0x054c (DS4 / DualSense), Xbox Wireless over Bluetooth 0x045e, Switch Pro 0x057e. All are mapped
+    by position like Linux (south = A ...).
+  - Any other pad: HID button n = NanoPad button n.
+  - NANO7_HOST_PAD_BUTTONS="HID:PAD,..." overrides entries. NANO7_HOST_PAD_TRACE=1 logs every element
+    change, to work out a new pad's numbers.
+  - Axes: left = X / Y. Right = Z / Rz when the pad has Rz, else Rx / Ry.
+  - Sony Rx / Ry and Xbox Brake / Accelerator are the analog triggers: past half way they press L2 / R2.
+  - Hat switch (8 directions) and D-pad usages 0x90-0x93 add to the left stick. Dead zone 10 %.
+SHARED: hp_emit() / hp_release() (state -> report, change detection) are now common to both backends.
+  meson.snippet adds QEMU's own coref / iokit dependencies, which are empty lists off macOS.
+TESTS:
+  - Linux build and the FIFO test (padfeed.py into probe/hidhost): the same 11 reports as Session 62.
+  - The macOS part cannot be built here. It compiles with gcc -Wall -Wextra against stub IOKit /
+    CoreFoundation headers (signatures written from the SDK API), which checks syntax and types only.
+  - It still needs a real build and a pad on the M2 Mac.
+
+## Session 65 (2026-10-15): NanoEmu.app - a real macOS desktop app (docs/MACOS.md)
+GOAL: replace "raw SDL window from a CLI command" on the user's MacBook Air M2 with a double-clickable app.
+BUNDLE (emulator/macos/): make-app.sh builds emulator/dist/NanoEmu.app.
+  - Info.plist (io.github.tenspav.nanoemu) and NanoEmu.icns, made by sips + iconutil from assets/icon-256.png
+    (icon-512.png for the large sizes).
+  - Launcher Contents/MacOS/NanoEmu (launcher.sh, bash 3.2) execs Contents/MacOS/qemu-system-arm, so macOS
+    attributes the process to the bundle: Dock icon, "NanoEmu" app menu, bundle id all verified with NSWorkspace.
+  - Device data from ~/Library/Application Support/NanoEmu: snapshot/ is required (or bundled with
+    --snapshot); ipod-disk.dd, rsrc.img1, bootrom-vrom.bin and nanoemu.conf are optional. Save states go to
+    state/, screenshots to ~/Pictures/NanoEmu, the log to ~/Library/Logs/NanoEmu.log (capped at 20 MB).
+    A missing snapshot shows an alert with "Open Data Folder".
+  - Self-contained: 22 Homebrew dylibs are copied into Frameworks/, rewired with install_name_tool and ad-hoc
+    re-signed. Homebrew SDL2 is sdl2-compat, which dlopen()s SDL3 (invisible to otool), so libSDL3 is copied
+    in as Frameworks/libSDL3.dylib, where sdl2-compat looks first (@loader_path). otool shows no
+    /opt/homebrew references left. 49 MB.
+WINDOW:
+  - build.sh patches QEMU's SDL front end: the title is the plain -name, and SDL_RenderSetIntegerScale is on.
+  - nano7_ui.c implements the console ui_info hook: after a window resize (debounced 1 s by the console),
+    zoom = the largest whole factor that fits (1-6) and the window snaps to it.
+  - NANO7_ZOOM / run.sh --zoom set the start zoom. The launcher's ZOOM=auto computes it from
+    NSScreen.visibleFrame (JXA) minus the title bar, which is 32 pt on macOS 26.
+  - Measured on the MBA (visible area 1470x839 with the Dock): 1x gives a 240x464 window. Cmd-2 asks for
+    480x864 + title; macOS clamps it to 807 content, ui_info falls back to 1x and the window snaps back.
+    HUD on/off: 464 <-> 511.
+KEYS:
+  - Esc and Home are now also the iPod Home button.
+  - Cmd shortcuts in nano7_ui.c mirror the F keys, because MacBook F keys are media keys: Cmd-S save, Cmd-L/O
+    load, Cmd-R reset, Cmd-P pause, Cmd-1..4 zoom, Cmd-T rotate, Cmd-U HUD, Cmd-K clock profile,
+    Cmd-F fast-forward, Cmd-G gamepad keys, Cmd-E screenshot.
+  - While Cmd is down no key-down reaches the iPod or the gamepad, and the release of a shortcut key is
+    dropped. The drop flag is cleared on the next real press, because Cocoa sends no key-up for keys
+    released while Cmd is held.
+BUG FIXED (pre-existing): pause (F5) deadlocked when the key came from QMP send-key with more than one key,
+  or from any queued input. Queued keys are delivered from a QEMU_CLOCK_VIRTUAL timer, and pause_all_vcpus()
+  -> qemu_clock_enable(VIRTUAL, false) waits for that clock's timers to finish. Pause now runs in the UI
+  bottom half (UI_PAUSE).
+build.sh: the macOS `sed -i${SED_I}` left `file''` backup copies in vendor/ (word splitting). Replaced by
+  a sedi() helper.
+TESTS:
+  - Linux headless (QMP send-key, scratch state dir): Cmd-S / E / 3 / P x2, F5 x2, Esc, Home, Cmd-U / K,
+    F10 / F11, Cmd-L / R, then plain p still presses Power.
+  - Mac: built, packaged and launched with `open dist/NanoEmu.app`. Window owned by NanoEmu, snapshot
+    resumed; Esc = home, Cmd-S/E/L, F10, F11 checked over QMP.
+  - Not checked: the window title text and real Cmd keypresses (ssh has no Screen Recording / Accessibility
+    permission).
+SEEN, NOT CHANGED: a few seconds after load / profile changes, RetailOS sometimes writes 0xa5 to PMGR +0x50
+  (pc 0x08417cac), a guest-initiated reboot. The Session 64 hook turns it into a boot-state reload.

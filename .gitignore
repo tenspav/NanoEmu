@@ -8,6 +8,7 @@ workers/*.sh
 # build artifacts
 emulator/vendor/
 emulator/build/
+emulator/dist/
 emulator/sysroot/
 probe/dumpram/build/
 probe/install/AllApps-B.pack.new

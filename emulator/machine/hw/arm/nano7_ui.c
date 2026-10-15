@@ -87,7 +87,7 @@
 #define UI_ZOOM_MAX     6       /* window-fit limit (F9 cycles 1..3) */
 
 typedef enum UiAction {
-    UI_NONE, UI_SAVE, UI_LOAD, UI_RESET, UI_BOOT_SAVE, UI_SHOT,
+    UI_NONE, UI_SAVE, UI_LOAD, UI_RESET, UI_BOOT_SAVE, UI_SHOT, UI_PAUSE,
 } UiAction;
 
 typedef struct UiRam {
@@ -505,6 +505,13 @@ static void ui_bh(void *opaque)
     case UI_SHOT:
         ui_screenshot();
         break;
+    case UI_PAUSE:
+        if (runstate_is_running()) {
+            ui_set_paused(!ui->paused);
+            fprintf(stderr, "[nano7-ui] %s\n", ui->paused ? "paused" :
+                    "resumed");
+        }
+        break;
     default:
         break;
     }
@@ -572,14 +579,16 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
     if (qcode < 0 || qcode >= Q_KEY_CODE__MAX) {
         return;
     }
-    if (!key->down && ui->swallowed[qcode]) {
+    if (key->down) {
+        /* macOS sends no release for a key let go while Cmd is down, so
+         * the flag must not outlive the next real press */
+        ui->swallowed[qcode] = false;
+    } else if (ui->swallowed[qcode]) {
         ui->swallowed[qcode] = false;
         return;
     }
-    if (ui->meta_l || ui->meta_r) {     /* Cmd shortcuts */
-        if (!key->down) {
-            return;
-        }
+    /* Cmd shortcuts (a release still reaches a button pressed before Cmd) */
+    if ((ui->meta_l || ui->meta_r) && key->down) {
         ui->swallowed[qcode] = true;
         if (qcode >= Q_KEY_CODE_1 && qcode <= Q_KEY_CODE_4) {
             ui_set_zoom(qcode - Q_KEY_CODE_1 + 1);
@@ -646,11 +655,10 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
         break;
     case Q_KEY_CODE_F5:
     case Q_KEY_CODE_PAUSE:
-        if (runstate_is_running()) {
-            ui_set_paused(!ui->paused);
-            fprintf(stderr, "[nano7-ui] %s\n", ui->paused ? "paused" :
-                    "resumed");
-        }
+        /* not here: keys from QMP send-key / VNC can arrive from a
+         * QEMU_CLOCK_VIRTUAL timer, and pausing waits for that clock's
+         * timers to finish (a deadlock from inside one) */
+        ui_request(UI_PAUSE);
         break;
     case Q_KEY_CODE_F6:
         ui->ff_speed = ui->ff_speed >= 4 ? 1 : ui->ff_speed * 2;
