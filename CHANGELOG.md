@@ -2,6 +2,22 @@
 
 All notable milestones of NanoEmu, in reverse order. This project uses semantic-ish versioning: every guest-visible capability bump is a minor version.
 
+## [v1.2.0] - 2026-10-15
+### Added
+- NanoEmu.app for macOS: a real desktop app, 780 x 836 points on a 13" MacBook (1.5x), with the iPod nano 7G drawn around the screen and clickable Sleep/Wake, Volume Up/Down, Play/Pause and Home buttons
+- Side panel next to the iPod: live FPS, CPU and GPU clock and load, RAM, temperature and rotation in large text, plus labelled buttons for the Stock / Safe / Max clock profiles, the iPod buttons, Pause, Reset, Mute, Rotate and Screenshot
+- Native menu bar: Reset, Save/Load State, Screenshot, Pause, Mute, Speed, clock profiles, Size, Rotation (0/90/180/270), Side Panel, Full Screen, iPod buttons
+- Sound through CoreAudio, with Mute
+- Battery always full and on USB power: no low battery warning or shutdown (`BATTERY_DRAIN` / `--battery-drain` to test power)
+- Sleep turns the screen off, Wake turns it back on; the iPod's own 1 minute auto-lock works the same way
+- The app opens on the first home page (Music, Videos, Fitness ...)
+- `.dmg` installer (`packaging/macos/make-dmg.sh`)
+
+### Fixed
+- Short clicks on the drawn buttons are held for at least 200 ms, so the OS never misses them (waking from auto-lock needed it)
+- The window no longer grabs the mouse pointer ("Press Ctrl-Alt-G to exit grab")
+- Each frame updates only the screen area of the window, so a big window no longer slows the emulated iPod down
+
 ## [v0.5.0] - 2026-10-14
 ### Added
 - Live display window over VNC (`run.sh --vnc N`, port 5900+N)

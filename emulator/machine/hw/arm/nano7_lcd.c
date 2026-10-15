@@ -29,6 +29,15 @@
  * bit28 is cleared per packet. DCS 0x2a / 0x2b set the column / page
  * window, 0x2c / 0x3c write RGB888 pixels from the window start / onward.
  *
+ * Block register 0 (Session 66): bit 0 = controller enable (0x08049f38
+ * sets it, 0x08053a00 clears it); bit 8 = stop request and bit 1 =
+ * stopped status. The display power-down path (0x0824803c, run when the
+ * screen goes off or changes mode: Power, volume overlay, app switches)
+ * sets bit 8 and waits for it to clear (0x0814de88), then waits for bit 1
+ * to be set (0x08248228) - each wait 2 s, then the OS panic handler
+ * 0x08001190 reboots. That was the crash on non-Home buttons. Model: the
+ * stop completes at once (bit 8 reads clear, bit 1 set); re-enabling
+ * (bit 0 0 -> 1) clears bit 1. Nothing waits for bit 1 to clear.
  * Model: registers read back what was written. Every 16.67 ms GPIO 14
  * goes low for 1 ms (falling edge -> pending). At each TE the enabled
  * windows are composited (window 0 opaque, window 1 over it with its
@@ -61,11 +70,15 @@ typedef struct Nano7LcdState {
     uint32_t regs[LCD_SIZE / 4];
     QEMUTimer *te_timer;
     bool te_low;
+    uint32_t stops;             /* reg 0 stop requests (the first logged) */
+    bool dsi_trace;             /* NANO7_DSI_TRACE: log all DSI traffic */
     char *dump_dir;
     uint32_t fb[NANO7_LCD_W * NANO7_LCD_H];   /* panel GRAM, XRGB: shown */
     uint32_t comp[NANO7_LCD_W * NANO7_LCD_H]; /* last window composite */
     bool dirty;                 /* GRAM changed since the last TE */
     MemoryRegion dsim_mr;       /* 0x3d800000 MIPI DSI controller */
+    MemoryRegion bridge_mr;     /* 0x38300000 DSI transport bridge */
+    uint32_t bridge_regs[0x100 / 4];
     uint32_t dsim_regs[LCD_SIZE / 4];
     uint8_t pkt[0x4000];        /* payload FIFO */
     unsigned pkt_len;
@@ -262,6 +275,25 @@ static void lcd_write(void *opaque, hwaddr off, uint64_t v, unsigned size)
                 off == 0x44, (uint32_t)v, s->regs[(off - 4) / 4],
                 (s->regs[0x04 / 4] >> 4) & 3);
     }
+    if (off == 0x00) {                  /* enable / stop handshake */
+        uint32_t old = s->regs[0];
+        bool stopped = old & 2;
+
+        if (v & 0x100) {                /* stop request: done at once */
+            stopped = true;
+            if (s->stops++ < 4) {
+                fprintf(stderr, "[nano7-lcd] t=%.3f s pc=0x%08x stop "
+                        "request (reg 0 = 0x%08x): stopped\n",
+                        nano7_now_ns() / 1e9,
+                        current_cpu ? ARM_CPU(current_cpu)->env.regs[15] : 0,
+                        (uint32_t)v);
+            }
+        }
+        if ((v & 1) && !(old & 1)) {
+            stopped = false;            /* re-enabled */
+        }
+        v = (v & ~0x102ull) | (stopped ? 2 : 0);
+    }
     s->regs[off / 4] = v;
     s->written[off / 4] = true;
 }
@@ -281,6 +313,14 @@ static const MemoryRegionOps lcd_ops = {
 #define DSIM_FIFOCTRL   0x44
 #define DSIM_EMPTY      (1u << 22 | 1u << 20)   /* header + payload FIFO */
 #define DSIM_FULL       (1u << 21)
+/* +0x00 status (Session 66): after a wake the OS re-initialises the link
+ * and waits (wait helper 0x083c30a8) for bit 0 (0x080025d4: data lane 0
+ * stop state) and, after a software reset, bit 20 (0x0800265a: reset
+ * released); the link is always up here: lanes 0-3 + clock in stop state,
+ * reset released. Without it the panel power-on failed 5 times and the OS
+ * panicked at 0x0821b1a2 (the wake crash) */
+#define DSIM_STATUS     0x00
+#define DSIM_READY      (0xfu | 1u << 8 | 1u << 20)
 
 static void dsi_pixel(Nano7LcdState *s, const uint8_t *rgb)
 {
@@ -334,8 +374,18 @@ static uint64_t dsim_read(void *opaque, hwaddr off, unsigned size)
 {
     Nano7LcdState *s = opaque;
 
+    if (s->dsi_trace && off != DSIM_FIFOCTRL) {     /* NANO7_DSI_TRACE */
+        fprintf(stderr, "[nano7-lcd] t=%.3f s pc=0x%08x DSIM read +0x%02x "
+                "-> 0x%08x\n", nano7_now_ns() / 1e9,
+                current_cpu ? ARM_CPU(current_cpu)->env.regs[15] : 0,
+                (unsigned)off, s->dsim_regs[off / 4]);
+    }
+
     if (off == DSIM_FIFOCTRL) {
         return (s->dsim_regs[off / 4] | DSIM_EMPTY) & ~DSIM_FULL;
+    }
+    if (off == DSIM_STATUS) {
+        return s->dsim_regs[off / 4] | DSIM_READY;
     }
     return s->dsim_regs[off / 4];
 }
@@ -357,7 +407,7 @@ static void dsim_write(void *opaque, hwaddr off, uint64_t v, unsigned size)
         if ((type == 0x29 || type == 0x39) && len && len <= s->pkt_len) {
             dsi_dcs(s, s->pkt, len);
         }
-        if (s->dsi_packets++ < 8) {
+        if (s->dsi_packets++ < 8 || s->dsi_trace) {
             fprintf(stderr, "[nano7-lcd] t=%.3f s DSI packet type 0x%02x len "
                     "%u cmd 0x%02x\n", nano7_now_ns() /
                     1e9, type, len, s->pkt_len ? s->pkt[0] : 0);
@@ -368,6 +418,48 @@ static void dsim_write(void *opaque, hwaddr off, uint64_t v, unsigned size)
     }
     s->dsim_regs[off / 4] = v;
 }
+
+/*
+ * 0x38300000 DSI transport bridge (docs/research/display-cap.md; Session 66
+ * RE, snap6): the pipe set-up 0x08002728 and power-off 0x080034ac wait up
+ * to 2 s for +0x1c bit 12 (bridge idle) before reconfiguring, write +0x30
+ * = 1 and wait for it to read 0 (0x0800650a), then set +0x00 bit 10 and
+ * wait to read it back (0x08003526); +0x80 = 1 pushes a frame to the
+ * panel. Unmapped (reads 0) the waits failed on every wake -> OS panic.
+ * Model: registers read back what was written; +0x1c always idle, +0x30
+ * and +0x80 commands complete at once.
+ */
+#define BRIDGE_IDLE     0x1000
+
+static uint64_t bridge_read(void *opaque, hwaddr off, unsigned size)
+{
+    Nano7LcdState *s = opaque;
+
+    switch (off) {
+    case 0x1c:
+        return s->bridge_regs[off / 4] | BRIDGE_IDLE;
+    case 0x30:
+    case 0x80:
+        return 0;
+    default:
+        return s->bridge_regs[off / 4];
+    }
+}
+
+static void bridge_write(void *opaque, hwaddr off, uint64_t v, unsigned size)
+{
+    Nano7LcdState *s = opaque;
+
+    s->bridge_regs[off / 4] = v;
+}
+
+static const MemoryRegionOps bridge_ops = {
+    .read = bridge_read,
+    .write = bridge_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .valid = { .min_access_size = 4, .max_access_size = 4 },
+    .impl = { .min_access_size = 4, .max_access_size = 4 },
+};
 
 static const MemoryRegionOps dsim_ops = {
     .read = dsim_read,
@@ -394,6 +486,22 @@ void nano7_lcd_refresh(void)
     }
 }
 
+static bool lcd_bridge_needed(void *opaque)
+{
+    return true;
+}
+
+static const VMStateDescription vmstate_lcd_bridge = {
+    .name = "nano7-lcd/bridge",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .needed = lcd_bridge_needed,
+    .fields = (const VMStateField[]) {
+        VMSTATE_UINT32_ARRAY(bridge_regs, Nano7LcdState, 0x100 / 4),
+        VMSTATE_END_OF_LIST()
+    }
+};
+
 static const VMStateDescription vmstate_lcd = {
     .name = "nano7-lcd",
     .version_id = 1,
@@ -418,6 +526,10 @@ static const VMStateDescription vmstate_lcd = {
         VMSTATE_UINT32(cur_y, Nano7LcdState),
         VMSTATE_UINT64(tes, Nano7LcdState),
         VMSTATE_END_OF_LIST()
+    },
+    .subsections = (const VMStateDescription * const []) {
+        &vmstate_lcd_bridge,            /* optional: older states load */
+        NULL
     }
 };
 
@@ -429,6 +541,7 @@ void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
         s->dump_dir = g_strdup(dump_dir);
         g_mkdir_with_parents(dump_dir, 0755);
     }
+    s->dsi_trace = getenv("NANO7_DSI_TRACE") != NULL;
     lcd_singleton = s;
     atexit(lcd_summary);
     vmstate_register_any(NULL, &vmstate_lcd, s);
@@ -444,4 +557,7 @@ void nano7_lcd_attach(MemoryRegion *parent, hwaddr base, const char *dump_dir)
     memory_region_init_io(&s->dsim_mr, NULL, &dsim_ops, s, "nano7.dsim",
                           LCD_SIZE);
     memory_region_add_subregion_overlap(parent, 0x3d800000, &s->dsim_mr, 0);
+    memory_region_init_io(&s->bridge_mr, NULL, &bridge_ops, s, "nano7.dsibridge",
+                          sizeof(s->bridge_regs));
+    memory_region_add_subregion_overlap(parent, 0x38300000, &s->bridge_mr, 0);
 }

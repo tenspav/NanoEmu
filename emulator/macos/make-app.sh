@@ -31,8 +31,11 @@ BIN="$HERE/build/qemu-system-arm"
 
 APP="$OUT/NanoEmu.app"
 C="$APP/Contents"
-VERSION=$(git -C "$ROOT" describe --tags --always 2>/dev/null || echo dev)
-echo "[app] $APP ($VERSION)"
+# bundle version: the newest "## [vX.Y.Z]" in CHANGELOG.md (packaging spec)
+VERSION=$(sed -n 's/^## \[v\([0-9][0-9.]*\)\].*/\1/p' "$ROOT/CHANGELOG.md" | head -1)
+VERSION=${VERSION:-0.0.0}
+REV=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo dev)
+echo "[app] $APP ($VERSION, $REV)"
 rm -rf "$APP"
 mkdir -p "$C/MacOS" "$C/Resources/fixups" "$C/Frameworks"
 

@@ -14,6 +14,9 @@
  *   callback 0x080fb268 wakes the button thread (entry 0x08567808), which
  *   loops status read + dispatch 0x080fb270 until the line is high.
  *   Events: 0x08408570(id, 1/0), id 1 home, 9 powerkey, 6 playpause.
+ *   reg4 bit4 (word bit 28 -> event mask 0x2000 at 0x084d8590) is the
+ *   accelerometer's interrupt: the dispatcher then drains the LIS3DH FIFO
+ *   (Session 66; raised by nano7_accel.c through nano7_pmu_raise()).
  *   A Power hold > ~150 ms may run PressAndHold (shutdown): keep it short.
  * Battery / charger (Session 19 RE):
  *   0x30  ADC control: bits 3:0 channel, bit4 start/busy (the OS aborts if
@@ -25,6 +28,13 @@
  *   0x3c..0x3f temperature fields (0x0818a4e8): ~24 C
  *   0x05  bit6 external power, bit3 charger good (both = on USB power)
  *   0x29  bit2 + current-limit code bits 1:0 (2 = 500 mA)   0x0d bit3 = 0
+ * Model: always charged by default - on USB power (0x05 = 0x48) with a
+ *   full battery (4190 mV, level 15 in all four temperature bands of the
+ *   OS table), so long sessions never show "Low Battery". Opt-out for
+ *   power testing, NANO7_BATTERY_DRAIN=MIN (run.sh --battery-drain [MIN]):
+ *   on battery (0x05 = 0) and the voltage falls linearly from 4100 mV to
+ *   3450 mV over MIN minutes of guest time (default 30): the OS's own low
+ *   battery warning, then its shutdown.
  * Real-time clock (Session 20 RE; read 0x0801ed02, set path 0x08010b1c):
  *   0x40..0x43 u32 LE free-running 1 Hz counter (seconds since PMU power-
  *              up, never written by the OS; it polls it at boot)
@@ -48,6 +58,7 @@
 #include "qemu/osdep.h"
 #include <math.h>
 #include "nano7_pmu.h"
+#include "nano7_ui.h"
 #include "nano7_gpio.h"
 #include "qemu/timer.h"
 #include "nano7_clock.h"
@@ -57,8 +68,11 @@
 
 #define PMU_ADDR        0x73
 #define PMU_HOLD_MS     100
+#define PMU_MIN_HOLD_MS 200         /* shortest press the guest sees */
 #define PMU_SCRIPT_MAX  32
-#define PMU_BATT_MV     4100        /* battery level 14, as in snap6 */
+#define PMU_BATT_MV     4190        /* full: level 15 in every temp band */
+#define PMU_DRAIN_FROM  4100        /* --battery-drain: snap6's level 14 .. */
+#define PMU_DRAIN_TO    3450        /* .. below level 0 (3550: empty) */
 #define PMU_RTC_OFFSET  0x6a090928u /* snap6 offset (2026-05-17 00:17:44) */
 #define PMU_TOD_CACHE   0x08a6b7fcu /* OS time-of-day cache (snap6 build) */
 
@@ -91,10 +105,12 @@ typedef struct Nano7PmuState {
     bool trace;                 /* NANO7_PMU_TRACE: log every access */
     int64_t rtc_base;           /* counter value at virtual time 0 */
     bool rtc_from_snapshot;     /* rtc_base still to be set from the cache */
+    int64_t drain_ns, drain_t0; /* NANO7_BATTERY_DRAIN: span, start (guest) */
     PmuEvent script[PMU_SCRIPT_MAX];
     unsigned nscript, next;
     QEMUTimer *script_timer;
     QEMUTimer *release_timer[NANO7_BTN_COUNT];
+    int64_t press_ns[NANO7_BTN_COUNT];  /* guest time of the last press */
 } Nano7PmuState;
 
 static Nano7PmuState *pmu_singleton;
@@ -140,7 +156,15 @@ static void pmu_adc(Nano7PmuState *s, uint8_t v)
 
     s->regs[0x30] = v & ~0x10;
     if ((v & 0x10) && (v & 0xf) == 4) {
-        raw = (PMU_BATT_MV - 2500) * 1023 / 2000;
+        int mv = PMU_BATT_MV;
+
+        if (s->drain_ns) {              /* --battery-drain */
+            double f = MIN((double)(nano7_now_ns() - s->drain_t0) /
+                           s->drain_ns, 1.0);
+
+            mv = PMU_DRAIN_FROM - (int)(f * (PMU_DRAIN_FROM - PMU_DRAIN_TO));
+        }
+        raw = (mv - 2500) * 1023 / 2000;
     }
     if (v & 0x10) {
         s->regs[0x32] = raw >> 2;
@@ -173,6 +197,11 @@ static bool pmu_write(void *opaque, uint8_t v)
         /* RTC counter: read-only */
     } else if (r == 0x30) {
         pmu_adc(s, v);
+    } else if (r == 0x10) {
+        /* display power rails (0x68 on; 0x00 when the OS goes to sleep,
+         * 0x08 / 0x28 / 0x68 while waking): black screen while off */
+        s->regs[r] = v;
+        nano7_ui_set_display(v != 0);
     } else {
         s->regs[r] = v;
     }
@@ -221,6 +250,16 @@ static uint8_t pmu_read(void *opaque)
     return s->regs[r];
 }
 
+void nano7_pmu_raise(unsigned reg, uint8_t bits)
+{
+    Nano7PmuState *s = pmu_singleton;
+
+    if (s && reg >= 1 && reg <= 4 && (s->regs[reg] & bits) != bits) {
+        s->regs[reg] |= bits;
+        pmu_line(s);
+    }
+}
+
 void nano7_pmu_set_temp(float celsius)
 {
     Nano7PmuState *s = pmu_singleton;
@@ -244,6 +283,16 @@ void nano7_pmu_button(int btn, bool pressed)
     const PmuBtn *b = &pmu_btns[btn];
 
     if (!s || btn < 0 || btn >= NANO7_BTN_COUNT) {
+        return;
+    }
+    /* a quick mouse click on a drawn button is ~70 ms: hold every press at
+     * least PMU_MIN_HOLD_MS (the OS misses shorter wake presses from deep
+     * sleep after its 1 minute auto-lock) */
+    if (pressed) {
+        s->press_ns[btn] = nano7_now_ns();
+    } else if (nano7_now_ns() - s->press_ns[btn] < PMU_MIN_HOLD_MS * 1000000LL) {
+        nano7_timer_mod(s->release_timer[btn], s->press_ns[btn] +
+                        PMU_MIN_HOLD_MS * 1000000LL);
         return;
     }
     if (btn == NANO7_BTN_VOLUP || btn == NANO7_BTN_VOLDOWN) {
@@ -395,6 +444,17 @@ void nano7_pmu_attach(Nano7I2CBus *bus, const char *script, const char *rtc)
     s->regs[7] = 0x30;      /* home, power released */
     s->regs[8] = 0x02;      /* play/pause released */
     s->regs[0x05] = 0x48;   /* external power present, charger good */
+    if (getenv("NANO7_BATTERY_DRAIN")) {
+        double min = atof(getenv("NANO7_BATTERY_DRAIN"));
+
+        s->drain_ns = (int64_t)((min > 0 ? min : 30) * 60e9);
+        s->drain_t0 = nano7_now_ns();
+        s->regs[0x05] = 0x00;           /* on battery */
+        fprintf(stderr, "[nano7-pmu] battery drain: %.0f -> %.0f mV over "
+                "%.1f guest minutes, no external power\n",
+                (double)PMU_DRAIN_FROM, (double)PMU_DRAIN_TO,
+                s->drain_ns / 60e9);
+    }
     s->regs[0x29] = 0x06;   /* charger enabled, 500 mA input limit */
     s->regs[0x3c] = 0x08;   /* temperature fields: A 500, r5 530, r6 500 */
     s->regs[0x3d] = 0x84;

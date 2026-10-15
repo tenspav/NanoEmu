@@ -16,6 +16,9 @@ void nano7_ui_init(const char *state_dir, const char *screens_dir);
 void nano7_ui_add_ram(MemoryRegion *mr, const char *name);
 /* the panel frame changed (240x432 XRGB, stays valid) */
 void nano7_ui_frame(const uint32_t *frame);
+/* the panel's power (PMU reg 0x10: 0 while the iPod sleeps): off = the
+ * screen is drawn black */
+void nano7_ui_set_display(bool on);
 /* re-render the console (the usage HUD changed) */
 void nano7_ui_redraw(void);
 /* reload the boot state (F1); false if it was not saved yet */
@@ -24,5 +27,23 @@ bool nano7_ui_reset(void);
  * panel pixel, undoing rotation and zoom */
 void nano7_ui_map_touch(int64_t u, int64_t v, int64_t range, int *px,
                         int *py);
+/* the left mouse button changed at the last mapped position: true if the
+ * front end takes it (a button drawn on the device frame, or a press that
+ * began off the screen), false = a touch */
+bool nano7_ui_pointer_button(bool down);
+
+/* front-end commands (the macOS menu): queued from any thread, run in the
+ * main loop. ZOOM arg = pixel zoom, SPEED arg = 1/2/4, PROFILE arg =
+ * NANO7_PROFILE_* or -1 = next, BUTTON arg = NANO7_BTN_* (a 100 ms tap) */
+enum {
+    NANO7_UI_SAVE, NANO7_UI_LOAD, NANO7_UI_RESET, NANO7_UI_PAUSE,
+    NANO7_UI_ROTATE, NANO7_UI_PADKEYS, NANO7_UI_HUD, NANO7_UI_SHOT,
+    NANO7_UI_ZOOM, NANO7_UI_SPEED, NANO7_UI_PROFILE, NANO7_UI_FRAME,
+    NANO7_UI_BUTTON, NANO7_UI_MUTE,
+};
+void nano7_ui_command(int cmd, int arg);
+/* current value for a menu check mark (paused, HUD on, zoom, speed,
+ * profile (-1 = the guest's own clocks), frame, gamepad keys, rotation) */
+int nano7_ui_state(int cmd);
 
 #endif

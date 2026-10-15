@@ -75,7 +75,10 @@ cp "$HERE/machine/hw/arm/nano7.c" "$HERE/machine/hw/arm/nano7_unimpl.c" \
    "$HERE/machine/hw/arm/nano7_btuart.c" "$HERE/machine/hw/arm/nano7_btuart.h" \
    "$HERE/machine/hw/arm/nano7_hud.c" "$HERE/machine/hw/arm/nano7_hud.h" \
    "$HERE/machine/hw/arm/nano7_power.c" "$HERE/machine/hw/arm/nano7_power.h" \
-   "$HERE/machine/hw/arm/nano7_hostpad.c" "$HERE/machine/hw/arm/nano7_hostpad.h" "$QEMU_DIR/hw/arm/"
+   "$HERE/machine/hw/arm/nano7_hostpad.c" "$HERE/machine/hw/arm/nano7_hostpad.h" \
+   "$HERE/machine/hw/arm/nano7_accel.c" "$HERE/machine/hw/arm/nano7_accel.h" \
+   "$HERE/machine/hw/arm/nano7_skin.c" "$HERE/machine/hw/arm/nano7_skin.h" \
+   "$HERE/machine/hw/arm/nano7_macmenu.m" "$HERE/machine/hw/arm/nano7_macmenu.h" "$QEMU_DIR/hw/arm/"
 
 grep -q "^config NANO7" "$QEMU_DIR/hw/arm/Kconfig" || \
     cat "$HERE/machine/kconfig.snippet" >> "$QEMU_DIR/hw/arm/Kconfig"
@@ -91,8 +94,28 @@ grep -q "CONFIG_NANO7" "$QEMU_DIR/configs/devices/arm-softmmu/default.mak" || \
     cat "$HERE/machine/default-mak.snippet" >> \
         "$QEMU_DIR/configs/devices/arm-softmmu/default.mak"
 
+# QEMU source patches (machine/patches/, applied once; -R --dry-run detects
+# an already patched tree). darwin-poll-ns: sub-ms timers on hosts without
+# ppoll (macOS) - without it guest apps time out there (Session 66);
+# sdl-hidpi: the SDL window at native Retina density (exact integer zoom).
+for p in darwin-poll-ns sdl-hidpi; do
+    pf="$HERE/machine/patches/$p.patch"
+    if ! patch -d "$QEMU_DIR" -p1 -R --dry-run -s -f < "$pf" >/dev/null 2>&1; then
+        echo "[build] applying $p.patch"
+        patch -d "$QEMU_DIR" -p1 -s -f < "$pf"
+    fi
+done
+
 # SDL window (macOS): the title is just the -name value (not "QEMU (name-0)"),
 # and the panel is scaled by whole factors only (letterboxed otherwise)
+# no pointer grab while the guest pointer is absolute (the nano7 touch
+# screen): the cursor stays free and the title has no "exit grab" hint
+grep -q "nano7: no grab" "$QEMU_DIR/ui/sdl2.c" || \
+    sedi 's|^    if (!con \|\| !qemu_console_is_graphic(con)) {$|    if (con \&\& qemu_input_is_absolute(con)) { /* nano7: no grab */\
+        return;\
+    }\
+\
+&|' "$QEMU_DIR/ui/sdl2.c"
 grep -q '"QEMU (%s-%d)%s"' "$QEMU_DIR/ui/sdl2.c" && \
     sedi 's|"QEMU (%s-%d)%s", qemu_name,|"%s%.0d%s", qemu_name,|' \
         "$QEMU_DIR/ui/sdl2.c"
@@ -108,20 +131,28 @@ else
     export PKG_CONFIG="$HERE/tools/pkg-config"
 fi
 
-PYFLAG=""; SDLFLAG="--disable-sdl"
+PYFLAG=""; SDLFLAG="--disable-sdl"; AUDIODRV=""
 if [ "$(uname -s)" = "Darwin" ]; then
     [ -x /opt/homebrew/bin/python3.12 ] && PYFLAG="--python=/opt/homebrew/bin/python3.12"
     SDLFLAG="--enable-sdl"
+    AUDIODRV="coreaudio"        # host sound (nano7 audiodev=, Session 66)
 fi
-if [ ! -f "$HERE/build/build.ninja" ]; then
+CONF=(--target-list=arm-softmmu
+      --disable-user --disable-docs --disable-guest-agent
+      --disable-slirp $SDLFLAG --disable-gtk --disable-opengl
+      --disable-virglrenderer --disable-xen --disable-kvm
+      --disable-werror --audio-drv-list=$AUDIODRV $PYFLAG
+      "--extra-cflags=-ffile-prefix-map=$HERE/=")
+# (-ffile-prefix-map: no build-machine paths such as /Users/NAME in the
+# binary's assert / debug strings)
+# re-configure when the flags change (an existing build dir keeps its old
+# configuration otherwise)
+if [ ! -f "$HERE/build/build.ninja" ] || \
+   [ "$(cat "$HERE/build/.nano7-configure" 2>/dev/null)" != "${CONF[*]}" ]; then
     echo "[build] configuring"
     mkdir -p "$HERE/build"
-    (cd "$HERE/build" && "$QEMU_DIR/configure" \
-        --target-list=arm-softmmu \
-        --disable-user --disable-docs --disable-guest-agent \
-        --disable-slirp $SDLFLAG --disable-gtk --disable-opengl \
-        --disable-virglrenderer --disable-xen --disable-kvm \
-        --disable-werror --audio-drv-list= $PYFLAG)
+    (cd "$HERE/build" && "$QEMU_DIR/configure" "${CONF[@]}")
+    echo "${CONF[*]}" > "$HERE/build/.nano7-configure"
 fi
 
 JOBS=$(command -v nproc >/dev/null && nproc || sysctl -n hw.ncpu)

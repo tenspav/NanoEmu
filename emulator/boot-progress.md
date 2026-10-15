@@ -2168,3 +2168,52 @@ TESTS:
     permission).
 SEEN, NOT CHANGED: a few seconds after load / profile changes, RetailOS sometimes writes 0xa5 to PMGR +0x50
   (pc 0x08417cac), a guest-initiated reboot. The Session 64 hook turns it into a boot-state reload.
+
+## Session 66 (2026-10-15): NanoEmu.app usable on the Mac - iPod frame, clickable buttons, menu bar, sound, always charged
+WINDOW: nano7_skin.c draws a nano 7G body (366 x 659 units) around the panel with clickable Sleep/Wake, Volume
+  Up / Down, Play/Pause and Home; nano7_ui.c routes a press that starts on a drawn button to the PMU, anything
+  on the glass is a touch. sdl-hidpi.patch: the SDL window at native Retina density, so sizes are points
+  (100 % = pixel zoom 2 on Retina). FRAME=0 in nanoemu.conf gives the bare screen.
+MENU (nano7_macmenu.m, Cocoa, installed into SDL's menu bar): File (Save / Load State, Reset, Screenshot),
+  Emulation (Pause, Mute, Speed, Clock Profile, Gamepad Keys), View (Size, Rotate, Device Frame, HUD, Full
+  Screen), Device (Home, Sleep/Wake, Play/Pause, Volume). Mute = AUD_set_volume_out on the I2S voice.
+SOUND: I2S0 plays through a QEMU -audiodev (coreaudio, machine prop audiodev=); no ffplay needed.
+TIMERS: darwin-poll-ns.patch - macOS has no ppoll, g_poll rounds sub-ms timers up to 1 ms and device models
+  with us delays (I2C, NAND, DMA) ran up to 50x slow; select() with a us timeout for short waits.
+BATTERY: always charged by default (USB power 0x05 = 0x48, 4190 mV = level 15); --battery-drain [MIN] /
+  BATTERY_DRAIN=MIN for power testing.
+SLEEP: PMU reg 0x10 (display rails: 0x68 on, 0x00 asleep, 0x08 / 0x28 waking) now blanks the screen.
+START: snap6 resumes inside DumpRAM ("OK - REBOOT ME"), where taps do nothing; the launcher presses Home 1 s
+  in (HOME_AT_START=1), so the app opens on the home screen. A homebrew app "not launching" in earlier runs
+  was this: the tap landed on the DumpRAM screen.
+ALSO: LIS3DH accelerometer on I2C1 0x18 (nano7_accel.c, Left / Right keys or --tilt), guest-reboot log names
+  the next-boot mode, tools/guest_smoke.py (QMP driver: taps, keys, hmp:, screendumps, log scan).
+TESTS (headless, snap6 + disk + rsrc, tools/guest_smoke.py): Home at 1 s -> home screen; Settings and Music
+  open; Music > Songs > Maladie plays 100 s (1768 MP3 frames, I2S peak 31539), no guest reboot; Lines (GBA,
+  61 FPS), Mario Kart, Nanoracle, NanoSync, Game Boy launch; Cmd-R reloads to the home screen; Power sleeps
+  (black) and wakes; Volume Up shows the OS volume HUD; with --frame the drawn Home and Volume Up buttons and
+  taps through the frame work. App: built, launched, menu bar logged by NANO7_MENU_SELFTEST, CoreAudio voice
+  opened. QEMU's PPM screendump pads rows to 4 bytes (366 px wide = 1100-byte rows): read with that stride.
+NOT DONE: cold boot from the IPSW; jailbreak probe apps (DumpROM / DumpRAM) inside the emulated iPod.
+
+## Session 67 (2026-10-15): v1.2.0 - side panel with live numbers and buttons, bigger window, .dmg
+LAYOUT: the device is now compact (body 268 x 508 units, thin bezels; canvas 320 x 536) and the side panel
+  (NANO7_PANEL_W = 200 units) sits on its right: 520 x 536 units, so the launcher's auto zoom picks pixel zoom
+  3 on a 13" Retina MacBook = 780 x 804 points (was 366 x 659 at 1x). Rotation turns only the device; the
+  panel stays upright.
+PANEL (nano7_skin.c): 5x7 font drawn at any size (4x4 supersampled): FPS (big), CPU / GPU MHz and load, RAM,
+  temperature, rotation; buttons Stock / Safe / Max (active = blue), Home, Sleep, Vol -/+, Play / Pause,
+  Pause / Resume, Reset, Mute / Unmute, Rotate, Screenshot. Cached and redrawn only when its content or the
+  pressed button changes. Panel = HUD on (Cmd-U); FPS = max(GL render jobs, panel updates) per guest second.
+SPEED: a frame with nothing else changed only rescales the 240 x 432 screen into its rectangle and updates that
+  rectangle (dpy_gfx_update), instead of re-copying and re-uploading the whole 1560 x 1608 window. Before it,
+  the main loop was busy enough that PMU I2C transfers ran 100-300 ms late and the OS missed button events.
+BUTTONS: every press reaches the guest for at least 200 ms (PMU_MIN_HOLD_MS): a mouse click is ~70 ms, and the
+  OS missed short wake presses after its 1 minute auto-lock (display power PMU reg 0x10 = 0, now shown black).
+START: Home at 3, 6 and 9 s (300 ms): out of DumpRAM, then the first home page (Music, Videos, Fitness).
+SDL: no pointer grab while the guest pointer is absolute (build.sh patch of sdl_grab_start): no "exit grab"
+  title and the cursor stays free.
+PACKAGING: make-app.sh takes the version from CHANGELOG.md (1.2.0); packaging/macos/make-dmg.sh builds
+  NanoEmu-1.2.0.dmg (app + Applications link + README, UDZO), refusing an app with a bundled snapshot.
+TESTS: real window (computer use): opens on home page 1, tap opens apps, panel Home / Sleep / Safe work,
+  wake from auto-lock; headless: frame + panel at 0 / 90 degrees, Settings > Bluetooth ON, Music plays.

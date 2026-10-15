@@ -308,8 +308,10 @@ struct MbxR {
     uint64_t frames, warned;
     /* NANO7_MBXR_STATS: distinct draw states (isp, b1, fmt, tex word 0) */
     bool stats;
+    uint64_t dbg_frame;         /* NANO7_MBXR_FRAME: debug dumps (300) */
+    int probe_x, probe_y;       /* NANO7_MBXR_PROBE=x,y: fragments there */
     uint32_t dump_isp;          /* NANO7_MBXR_DUMP=isp: print one segment */
-    const char *dump_fb;        /* NANO7_MBXR_DUMPFB=file: frame 300 as PAM */
+    const char *dump_fb;        /* NANO7_MBXR_DUMPFB=file: frame 300 (or NANO7_MBXR_FRAME) as PAM */
     uint32_t st_key[64][5], st_n[64], st_cnt;
     /* save state: byte sizes of the used part of seg / tri / texs */
     uint32_t vm_seg_bytes, vm_tri_bytes, vm_tex_bytes;
@@ -343,6 +345,12 @@ MbxR *mbxr_new(void)
     r->fb = g_new(uint32_t, FB_MAX_W * FB_MAX_H);
     r->zb = g_new(float, FB_MAX_W * FB_MAX_H);
     r->stats = getenv("NANO7_MBXR_STATS") != NULL;
+    r->probe_x = r->probe_y = -1;
+    if (getenv("NANO7_MBXR_PROBE")) {
+        sscanf(getenv("NANO7_MBXR_PROBE"), "%d,%d", &r->probe_x, &r->probe_y);
+    }
+    r->dbg_frame = getenv("NANO7_MBXR_FRAME") ?
+                   strtoull(getenv("NANO7_MBXR_FRAME"), NULL, 0) : 300;
     r->point_half = 0.5f;       /* GL default point size 1 */
     r->dump_fb = getenv("NANO7_MBXR_DUMPFB");
     r->vgp_check = getenv("NANO7_MBXR_VGPCHECK") != NULL;
@@ -1953,7 +1961,7 @@ static bool load_tex_pvrtc(MbxR *r, const uint32_t *core, const MbxTex *t,
         pvrtc_decode(raw + roff[l], h->lw[l], h->lh[l], bpp4,
                      h->texel + h->off[l]);
     }
-    if (r->stats && r->frames == 300) {
+    if (r->stats && r->frames == r->dbg_frame) {
         fprintf(stderr, "[nano7-mbxr] tex %08x %08x %08x PVRTC %ubpp "
                 "%ux%u, %u levels\n", t->w[0], t->w[1], t->w[2],
                 bpp4 ? 4 : 2, h->w, h->h, h->nlev);
@@ -1994,7 +2002,7 @@ static bool load_tex(MbxR *r, const uint32_t *core, const MbxTex *t,
     if (!gpu_rw(core, va, raw, size, false)) {
         return false;
     }
-    if (r->stats && r->frames == 300) {
+    if (r->stats && r->frames == r->dbg_frame) {
         /* raw texels at (0,0) (1,1) (9,1): gltest's border, dark, light */
         static const unsigned pt[3][2] = { { 0, 0 }, { 1, 1 }, { 9, 1 } };
         unsigned k, j;
@@ -2369,6 +2377,45 @@ static uint32_t tex_fetch(const MbxTri *t, const HostTex *tx, int unit,
     return sample(tx, u, v, lambda);
 }
 
+/*
+ * Coverage (Session 67): edge functions on vertices snapped to 1/16 pixel,
+ * in exact integer arithmetic, with the top-left rule for samples exactly
+ * on an edge: such a pixel belongs to the triangle that has the edge on its
+ * left (inside to the right of it) or, for a horizontal edge, on its top
+ * (inside below). Of two triangles sharing an edge exactly one draws a
+ * pixel on it, so translucent meshes are not blended twice along their
+ * edges and quads cover exactly their [x0, x1) x [y0, y1) pixels (before:
+ * any sample with all edge values >= 0 was drawn, by every triangle
+ * touching it). gltest 88 checks it. Interpolation still uses the float
+ * barycentrics.
+ */
+#define SUBPIX          16
+
+typedef struct EdgeI {
+    int64_t a, b, c;            /* e(px, py) = a * px + b * py + c */
+    bool tl;                    /* top-left: e == 0 counts as inside */
+} EdgeI;
+
+/* edge P -> Q of a triangle with orientation sign s (+1 / -1), positive
+ * inside; coordinates in 1/16 pixel */
+static void edge_setup(EdgeI *e, int64_t px, int64_t py, int64_t qx,
+                       int64_t qy, int s)
+{
+    e->a = -(qy - py) * s;
+    e->b = (qx - px) * s;
+    e->c = -(e->a * px + e->b * py);
+    /* the inside normal (a, b): left edge = inside to the right (a > 0);
+     * top edge = horizontal with the inside below (a == 0, b > 0) */
+    e->tl = e->a > 0 || (e->a == 0 && e->b > 0);
+}
+
+static inline bool edge_in(const EdgeI *e, int64_t sx, int64_t sy)
+{
+    int64_t v = e->a * sx + e->b * sy + e->c;
+
+    return v > 0 || (v == 0 && e->tl);
+}
+
 static void raster(MbxR *r, const MbxTri *t, const HostTex *tx,
                    const HostTex *tx1, int W, int H)
 {
@@ -2381,10 +2428,29 @@ static void raster(MbxR *r, const MbxTri *t, const HostTex *tx,
     unsigned acmp = t->no_depth_test ? 7 : ATEST_CMP(t->atest);
     float aref = ATEST_REF(t->atest);
     int x0, x1, y0, y1, x, y, k;
+    /* integer coverage while the products fit (|coordinate| < 1e7 px;
+     * beyond that, far outside the frame, the float test as before) */
+    bool fix = fabsf(a->x) < 1e7f && fabsf(a->y) < 1e7f &&
+               fabsf(b->x) < 1e7f && fabsf(b->y) < 1e7f &&
+               fabsf(c->x) < 1e7f && fabsf(c->y) < 1e7f;
+    int64_t ax = fix ? llrintf(a->x * SUBPIX) : 0;
+    int64_t ay = fix ? llrintf(a->y * SUBPIX) : 0;
+    int64_t bx = fix ? llrintf(b->x * SUBPIX) : 0;
+    int64_t by = fix ? llrintf(b->y * SUBPIX) : 0;
+    int64_t cx = fix ? llrintf(c->x * SUBPIX) : 0;
+    int64_t cy = fix ? llrintf(c->y * SUBPIX) : 0;
+    int64_t iarea = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    EdgeI e0, e1, e2;
+    int sgn;
 
-    if (fabsf(area) < 1e-6f) {
+    if (fabsf(area) < 1e-6f || (fix && !iarea) ||
+        !isfinite(a->x + a->y + b->x + b->y + c->x + c->y)) {
         return;
     }
+    sgn = iarea >= 0 ? 1 : -1;
+    edge_setup(&e0, bx, by, cx, cy, sgn);
+    edge_setup(&e1, cx, cy, ax, ay, sgn);
+    edge_setup(&e2, ax, ay, bx, by, sgn);
     ia = 1.f / area;
     x0 = MAX(0, (int)floorf(MIN(a->x, MIN(b->x, c->x))));
     x1 = MIN(W - 1, (int)ceilf(MAX(a->x, MAX(b->x, c->x))));
@@ -2393,15 +2459,23 @@ static void raster(MbxR *r, const MbxTri *t, const HostTex *tx,
     for (y = y0; y <= y1; y++) {
         float py = y + 0.5f;
 
+        int64_t sy = (int64_t)y * SUBPIX + SUBPIX / 2;
+
         for (x = x0; x <= x1; x++) {
+            int64_t sx = (int64_t)x * SUBPIX + SUBPIX / 2;
             float px = x + 0.5f;
-            float w0 = edge(b->x, b->y, c->x, c->y, px, py) * ia;
-            float w1 = edge(c->x, c->y, a->x, a->y, px, py) * ia;
-            float w2 = edge(a->x, a->y, b->x, b->y, px, py) * ia;
+            float w0, w1, w2;
             float z, iw, col[4];
             uint32_t out;
 
-            if (w0 < 0 || w1 < 0 || w2 < 0) {
+            if (fix && (!edge_in(&e0, sx, sy) || !edge_in(&e1, sx, sy) ||
+                        !edge_in(&e2, sx, sy))) {
+                continue;
+            }
+            w0 = edge(b->x, b->y, c->x, c->y, px, py) * ia;
+            w1 = edge(c->x, c->y, a->x, a->y, px, py) * ia;
+            w2 = edge(a->x, a->y, b->x, b->y, px, py) * ia;
+            if (!fix && (w0 < 0 || w1 < 0 || w2 < 0)) {
                 continue;
             }
             r->st.frags++;
@@ -2469,6 +2543,19 @@ static void raster(MbxR *r, const MbxTri *t, const HostTex *tx,
                   (uint32_t)(col[0] * 255.f + .5f) << 16 |
                   (uint32_t)(col[1] * 255.f + .5f) << 8 |
                   (uint32_t)(col[2] * 255.f + .5f);
+            if (x == r->probe_x && y == r->probe_y &&
+                r->frames + 1 == r->dbg_frame) {
+                fprintf(stderr, "[nano7-mbxr] probe (%d,%d) isp %08x tex %d "
+                        "%08x %08x: tri (%.3f,%.3f uv %.4f,%.4f) (%.3f,%.3f "
+                        "uv %.4f,%.4f) (%.3f,%.3f uv %.4f,%.4f) bary %.4f "
+                        "%.4f %.4f -> %08x over %08x\n", x, y, t->isp,
+                        t->tex, t->tex >= 0 ? r->texs[t->tex].w[0] : 0,
+                        t->tex >= 0 ? r->texs[t->tex].w[1] : 0,
+                        a->x, a->y, a->u / a->iw, a->v / a->iw,
+                        b->x, b->y, b->u / b->iw, b->v / b->iw,
+                        c->x, c->y, c->u / c->iw, c->v / c->iw, w0, w1, w2,
+                        out, r->fb[y * W + x]);
+            }
             r->fb[y * W + x] = (out & ~t->keep) |
                                (r->fb[y * W + x] & t->keep);
         }
@@ -2534,8 +2621,14 @@ void mbxr_render(MbxR *r, const uint32_t *core)
     g_free(ht);
     r->frames++;
     r->st.frames++;
-    if (r->dump_fb && r->frames == 300) {
-        FILE *f = fopen(r->dump_fb, "wb");      /* RGBA, before display */
+    /* a '%' in the name ("fb%05u.pam"): every NANO7_MBXR_FRAME-th frame */
+    if (r->dump_fb && (strchr(r->dump_fb, '%') ?
+                       r->frames % r->dbg_frame == 0 :
+                       r->frames == r->dbg_frame)) {
+        g_autofree char *fn = strchr(r->dump_fb, '%') ?
+            g_strdup_printf(r->dump_fb, (unsigned)r->frames) :
+            g_strdup(r->dump_fb);
+        FILE *f = fopen(fn, "wb");              /* RGBA, before display */
 
         if (f) {
             fprintf(f, "P7\nWIDTH %d\nHEIGHT %d\nDEPTH 4\nMAXVAL 255\n"
@@ -2549,13 +2642,13 @@ void mbxr_render(MbxR *r, const uint32_t *core)
             fclose(f);
         }
     }
-    if (r->vgp_check && r->frames == 300) {
+    if (r->vgp_check && r->frames == r->dbg_frame) {
         fprintf(stderr, "[nano7-mbxr] vgpcheck %" PRIu64 " vertices: max diff "
                 "pos %g (rel) colour %g uv %g uv1 %g fog %g\n", r->chk_n,
                 r->chk[0], r->chk[1] * 255.f, r->chk[2], r->chk[3],
                 r->chk[4]);
     }
-    if (r->stats && r->frames == 300) {
+    if (r->stats && r->frames == r->dbg_frame) {
         for (i = 0; i < r->st_cnt; i++) {
             fprintf(stderr, "[nano7-mbxr] state isp %08x b1 %08x fmt %04x "
                     "tex0 %08x ctl %08x: %u vertices\n", r->st_key[i][0],

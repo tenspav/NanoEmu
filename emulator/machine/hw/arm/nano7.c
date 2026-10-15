@@ -55,6 +55,7 @@
 #include "nano7_pmu.h"
 #include "nano7_power.h"
 #include "nano7_hostpad.h"
+#include "nano7_accel.h"
 #include "nano7_torn.h"
 #include "qemu/cutils.h"
 #include "nano7_vic.h"
@@ -116,6 +117,7 @@ struct Nano7MachineState {
     char *state_dir;        /* save-state slots (F2 / F4, F1 reset) */
     char *screens_dir;      /* F12 screenshots */
     char *audio_out;        /* PCM sink for I2S0 (raw / .wav / FIFO) */
+    char *audiodev;         /* host audio for I2S0: a -audiodev id */
     char *aes_gid_key;      /* AES engine hardware keys (32 hex digits) */
     char *aes_uid_key;
     char *bt_hci;           /* BT UART: host socket for the raw H4 stream */
@@ -634,7 +636,8 @@ static void nano7_init(MachineState *machine)
                      s->vic_in[NANO7_IRQ_DMA2]);
     nano7_codec_attach(get_system_memory(), 0x3c300000,
                        s->vic_in[NANO7_IRQ_SPI0]);
-    nano7_i2s_attach(get_system_memory(), 0x3ca00000, s->audio_out);
+    nano7_i2s_attach(get_system_memory(), 0x3ca00000, s->audio_out,
+                     s->audiodev);
     /* 0x38c00000: AES engine (polled; hardware keys unknown unless given) */
     nano7_aes_attach(get_system_memory(), 0x38c00000, s->aes_gid_key,
                      s->aes_uid_key);
@@ -660,7 +663,7 @@ static void nano7_init(MachineState *machine)
 
         nano7_i2c_add_regfile_slave(i2c0, 0x08);
         nano7_i2c_add_regfile_slave(i2c1, 0x1a);
-        nano7_i2c_add_regfile_slave(i2c1, 0x18);
+        nano7_accel_attach(i2c1);       /* 0x18: LIS3DH accelerometer */
         nano7_pmu_attach(i2c1, s->buttons, s->rtc);
     }
     nano7_power_init();         /* after CLKCON and the PMU */
@@ -1053,6 +1056,7 @@ NANO7_STR_PROP(rtc)
 NANO7_STR_PROP(state_dir)
 NANO7_STR_PROP(screens_dir)
 NANO7_STR_PROP(audio_out)
+NANO7_STR_PROP(audiodev)
 NANO7_STR_PROP(aes_gid_key)
 NANO7_STR_PROP(aes_uid_key)
 NANO7_STR_PROP(bt_hci)
@@ -1221,6 +1225,7 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->state_dir);
     g_free(s->screens_dir);
     g_free(s->audio_out);
+    g_free(s->audiodev);
     g_free(s->aes_gid_key);
     g_free(s->aes_uid_key);
     g_free(s->bt_hci);
@@ -1380,6 +1385,12 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
     object_class_property_set_description(oc, "audio-out",
                                           "PCM sink for the audio output: raw "
                                           "s16le stereo, *.wav, or a FIFO");
+    object_class_property_add_str(oc, "audiodev", nano7_get_audiodev,
+                                  nano7_set_audiodev);
+    object_class_property_set_description(oc, "audiodev",
+                                          "id of a -audiodev to play the "
+                                          "audio output through (e.g. "
+                                          "coreaudio)");
     object_class_property_add_str(oc, "aes-gid-key", nano7_get_aes_gid_key,
                                   nano7_set_aes_gid_key);
     object_class_property_set_description(oc, "aes-gid-key",

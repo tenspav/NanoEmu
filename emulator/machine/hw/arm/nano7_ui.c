@@ -4,7 +4,9 @@
  * One QEMU keyboard handler (VNC, a display window, or the monitor's
  * sendkey) for everything:
  *   h / Esc / Home  Home     p  Power (sleep / wake)    space  Play-Pause
- *   Up = + / Down -          volume up / down            (nano7_pmu.c)
+ *   Up = + / Down -          volume up / down
+ *   Left / Right (held)      tilt the device like a steering wheel
+ *                            (accelerometer, nano7_accel.c)            (nano7_pmu.c)
  *   F1  reset                F2  save state      F4  load state
  *   F7  rotate the display 90 degrees clockwise (0 / 90 / 180 / 270; touch
  *       coordinates follow)
@@ -57,6 +59,7 @@
  */
 #include "qemu/osdep.h"
 #include "nano7_ui.h"
+#include "nano7_i2s.h"
 #include "nano7_pmu.h"
 #include "nano7_fmc.h"
 #include "qapi/error.h"
@@ -72,6 +75,7 @@
 #include "sysemu/runstate.h"
 #include "sysemu/cpus.h"
 #include "qemu/seqlock.h"
+#include "qemu/thread.h"
 #include "sysemu/cpu-timers-internal.h"
 #include "qemu/timer.h"
 #include "ui/input.h"
@@ -81,6 +85,12 @@
 #include "nano7_hud.h"
 #include "nano7_power.h"
 #include "nano7_btuart.h"
+#include "nano7_skin.h"
+#include <math.h>
+#ifdef CONFIG_DARWIN
+#include "nano7_macmenu.h"
+#endif
+#include "nano7_accel.h"
 #include <zlib.h>
 
 #define UI_MAX_RAM      8
@@ -106,6 +116,8 @@ typedef struct Nano7UiState {
     /* display */
     QemuConsole *con;
     const uint32_t *frame;      /* the LCD's panel frame (240x432 XRGB) */
+    const uint32_t *lcd;        /* the LCD frame even while dark */
+    bool dark;                  /* panel powered off (iPod asleep) */
     uint32_t *out;              /* rendered console surface */
     int rot;                    /* clockwise degrees: 0, 90, 180, 270 */
     int zoom;                   /* 1..UI_ZOOM_MAX */
@@ -113,6 +125,21 @@ typedef struct Nano7UiState {
     int ff_speed;               /* F6 setting; Tab overrides while held */
     bool paused;                /* soft pause (F5 / Pause) */
     bool meta_l, meta_r;        /* Cmd held: shortcuts, nothing to the iPod */
+    /* device frame (NANO7_FRAME=1, nano7_skin.c): the console shows the
+     * body with clickable buttons around the panel */
+    bool skin;
+    uint32_t *canvas;           /* unrotated skin canvas */
+    bool skin_valid;            /* out holds a full skin render of ... */
+    unsigned skin_pressed;      /* ... these pressed buttons */
+    int skin_panel_pressed;
+    bool skin_dark;
+    Nano7PanelInfo skin_pi;     /* ... and this panel content */
+    double ptr_x, ptr_y;        /* pointer on the device (units) */
+    bool ptr_panel;             /* the pointer is over the side panel */
+    double pan_x, pan_y;        /* ... at this panel point (units) */
+    int capture;                /* press began: 0 screen/none, 1 button, 2 off,
+                                 * 3 side-panel command button */
+    int held_btn;               /* capture 1: NANO7_BTN_*, 3: panel id */
     /* keys whose press was a Cmd shortcut: their release is dropped too
      * (it may arrive after Cmd is up, and p / h / space are iPod buttons) */
     bool swallowed[Q_KEY_CODE__MAX];
@@ -230,6 +257,9 @@ static bool ui_load_state(const char *slot)
     if (!g_file_test(dev, G_FILE_TEST_EXISTS)) {
         fprintf(stderr, "[nano7-ui] no saved state '%s' (%s)\n", slot, dir);
         return false;
+    /* a loaded state starts with the panel lit (the PMU's display-power
+     * write that put it to sleep is not replayed) */
+    nano7_ui_set_display(true);
     }
     vm_stop(RUN_STATE_RESTORE_VM);
     v_before = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
@@ -283,12 +313,177 @@ static bool ui_load_state(const char *slot)
 }
 
 /* -------------------------------------------------------------- display --- */
+static void ui_render_panel(void);
+/* skin canvas size in units, then rotated output size in pixels */
+/*
+ * Skin layout (units): the device (nano7_skin.c, rotated with the screen)
+ * on the left, vertically centred, and the side panel (live numbers and
+ * labelled buttons) on its right while the HUD is on (Cmd-U). The panel
+ * never rotates.
+ */
+static bool ui_panel_on(void)
+{
+    return nano7_hud_on();
+}
+
+/* the device as displayed: size (rotated) and top offset, in units */
+static void ui_dev_rect(int *rw, int *rh, int *oy)
+{
+    int dw, dh;
+
+    nano7_skin_size(&dw, &dh);
+    *rw = (ui->rot % 180) ? dh : dw;
+    *rh = (ui->rot % 180) ? dw : dh;
+    *oy = (MAX(dw, dh) - *rh) / 2;
+}
+
+/* the whole console in units */
+static void ui_skin_dims(int *cw, int *ch)
+{
+    int dw, dh, rw, rh, oy;
+
+    nano7_skin_size(&dw, &dh);
+    ui_dev_rect(&rw, &rh, &oy);
+    *cw = rw + (ui_panel_on() ? NANO7_PANEL_W : 0);
+    *ch = MAX(dw, dh);
+}
+
+static void ui_panel_info(Nano7PanelInfo *pi)
+{
+    uint32_t used, total;
+
+    memset(pi, 0, sizeof(*pi));
+    nano7_hud_stats(&pi->fps, &pi->cpu, &pi->gpu, &used, &total);
+    pi->ram_used = roundf(used / 1048576.0f * 10) / 10;
+    pi->ram_total = roundf(total / 1048576.0f);
+    pi->cpu_mhz = roundf(nano7_power_cpu_mhz());
+    pi->gpu_mhz = roundf(nano7_power_gpu_mhz());
+    pi->temp = roundf(nano7_power_temp());
+    pi->fps = roundf(pi->fps);
+    pi->cpu = roundf(pi->cpu * 100) / 100;
+    pi->gpu = roundf(pi->gpu * 100) / 100;
+    pi->profile = nano7_power_profile();
+    pi->rot = ui->rot;
+    pi->paused = ui->paused;
+    pi->muted = nano7_i2s_muted();
+}
+
+static void ui_render_skin(void)
+{
+    int dw, dh, rw, rh, oy, cw, ch, z = ui->zoom, x, y;
+    int pw, ph, w, h, dy;
+    unsigned pressed = ui->capture == 1 && ui->held_btn < 32 ?
+                       1u << ui->held_btn : 0;
+    uint32_t bg = nano7_skin_bg();
+    int panel_pressed = ui->capture == 1 || ui->capture == 3 ?
+                        ui->held_btn : -1;
+    Nano7PanelInfo pi;
+
+    nano7_skin_size(&dw, &dh);
+    ui_dev_rect(&rw, &rh, &oy);
+    ui_skin_dims(&cw, &ch);
+    memset(&pi, 0, sizeof(pi));
+    if (ui_panel_on()) {
+        ui_panel_info(&pi);
+    }
+    /* fast path (every guest frame): only the screen changed - scale the
+     * panel frame into its rectangle and update just that */
+    if (ui->skin_valid && !ui->rot && ui->out && ui->frame &&
+        ui->out_w == cw * z && ui->out_h == ch * z &&
+        ui->skin_pressed == pressed && ui->skin_panel_pressed ==
+        panel_pressed && !ui->skin_dark && !memcmp(&ui->skin_pi, &pi,
+                                                    sizeof(pi))) {
+        int sx, sy;
+
+        nano7_skin_screen_origin(&sx, &sy);
+        sx *= z;
+        sy = (sy + oy) * z;
+        for (y = 0; y < NANO7_LCD_H * z; y++) {
+            const uint32_t *src = ui->frame + (y / z) * NANO7_LCD_W;
+            uint32_t *dst = ui->out + (sy + y) * ui->out_w + sx;
+
+            for (x = 0; x < NANO7_LCD_W * z; x++) {
+                dst[x] = src[x / z];
+            }
+        }
+        dpy_gfx_update(ui->con, sx, sy, NANO7_LCD_W * z, NANO7_LCD_H * z);
+        return;
+    }
+    pw = dw * z;                        /* the unrotated device canvas */
+    ph = dh * z;
+    w = cw * z;
+    h = ch * z;
+    dy = oy * z;
+    if (w != ui->out_w || h != ui->out_h || !ui->out) {
+        uint32_t *old = ui->out;
+
+        ui->out = g_new0(uint32_t, w * h);
+        ui->out_w = w;
+        ui->out_h = h;
+        dpy_gfx_replace_surface(ui->con, qemu_create_displaysurface_from(
+                                    w, h, PIXMAN_x8r8g8b8, w * 4,
+                                    (uint8_t *)ui->out));
+        g_free(old);
+        g_free(ui->canvas);
+        ui->canvas = NULL;
+    }
+    if (!ui->canvas) {
+        ui->canvas = g_new0(uint32_t, pw * ph);
+    }
+    nano7_skin_draw(ui->canvas, z, ui->frame, pressed);
+    for (y = 0; y < h; y++) {           /* device, rotated, at (0, dy) */
+        uint32_t *row = ui->out + y * w;
+        int ry = y - dy;
+
+        if (ry < 0 || ry >= rh * z) {
+            for (x = 0; x < rw * z; x++) {
+                row[x] = bg;
+            }
+            continue;
+        }
+        if (!ui->rot) {
+            memcpy(row, ui->canvas + ry * pw, pw * sizeof(uint32_t));
+            continue;
+        }
+        for (x = 0; x < rw * z; x++) {  /* rotated pixel -> canvas pixel */
+            int sx, sy;
+
+            switch (ui->rot) {
+            case 90:  sx = ry;          sy = ph - 1 - x;  break;
+            case 180: sx = pw - 1 - x;  sy = ph - 1 - ry; break;
+            default:  sx = pw - 1 - ry; sy = x;           break;
+            }
+            row[x] = ui->canvas[sy * pw + sx];
+        }
+    }
+    if (ui_panel_on()) {
+        nano7_skin_panel_draw(ui->out + rw * z, w, z, ch, &pi, panel_pressed);
+    }
+    ui->skin_valid = !ui->rot;          /* the fast path is unrotated */
+    ui->skin_pressed = pressed;
+    ui->skin_panel_pressed = panel_pressed;
+    ui->skin_dark = !ui->frame;
+    ui->skin_pi = pi;
+    dpy_gfx_update_full(ui->con);
+}
+
 static void ui_render(void)
+{
+    if (ui->skin) {
+        ui_render_skin();
+        return;
+    }
+    ui_render_panel();
+}
+
+static void ui_render_panel(void)
 {
     int lw = (ui->rot % 180) ? NANO7_LCD_H : NANO7_LCD_W;   /* rotated */
     int lh = (ui->rot % 180) ? NANO7_LCD_W : NANO7_LCD_H;
     int hh = nano7_hud_on() ? NANO7_HUD_ROWS : 0;           /* HUD strip */
     int w = lw * ui->zoom, h = (lh + hh) * ui->zoom, x, y;
+
+    ui->skin_valid = false;
 
     if (w != ui->out_w || h != ui->out_h || !ui->out) {
         uint32_t *old = ui->out;
@@ -347,7 +542,19 @@ static void ui_render(void)
 void nano7_ui_frame(const uint32_t *frame)
 {
     if (ui) {
-        ui->frame = frame;
+        ui->lcd = frame;
+        ui->frame = ui->dark ? NULL : frame;
+        nano7_hud_lcd_frame();
+        ui_render();
+    }
+}
+
+void nano7_ui_set_display(bool on)
+{
+    if (ui && ui->dark == on) {
+        ui->dark = !on;
+        ui->frame = on ? ui->lcd : NULL;
+        fprintf(stderr, "[nano7-ui] display %s\n", on ? "on" : "off");
         ui_render();
     }
 }
@@ -360,7 +567,116 @@ void nano7_ui_redraw(void)
 }
 
 /* absolute pointer (0..range-1 over the console) -> panel pixel */
+static void nano7_ui_map_panel(int64_t u, int64_t v, int64_t range, int *px,
+                               int *py);
+
+/* skin: pointer -> canvas units (undoing the rotation), then the screen
+ * pixel under it (clamped: a drag that leaves the screen stays on its
+ * edge) */
+static void ui_map_skin(int64_t u, int64_t v, int64_t range, int *px, int *py)
+{
+    int dw, dh, rw, rh, oy, lw, lh;
+    double fx, fy;
+
+    nano7_skin_size(&dw, &dh);
+    ui_dev_rect(&rw, &rh, &oy);
+    ui_skin_dims(&lw, &lh);
+    fx = (double)u * lw / range;
+    fy = (double)v * lh / range;
+    ui->ptr_panel = fx >= rw;
+    if (ui->ptr_panel) {
+        ui->pan_x = fx - rw;
+        ui->pan_y = fy;
+        fx = fy = -1000;                /* off the device */
+    } else {
+        fy -= oy;
+    }
+    switch (ui->rot) {
+    case 90:  ui->ptr_x = fy;      ui->ptr_y = dh - fx; break;
+    case 180: ui->ptr_x = dw - fx; ui->ptr_y = dh - fy; break;
+    case 270: ui->ptr_x = dw - fy; ui->ptr_y = fx;      break;
+    default:  ui->ptr_x = fx;      ui->ptr_y = fy;      break;
+    }
+    nano7_skin_screen_xy(ui->ptr_x, ui->ptr_y, px, py);
+}
+
+/* a mouse button changed: true if the skin takes it (a drawn button, or a
+ * press that began off the screen), false = it is a touch */
+bool nano7_ui_pointer_button(bool down)
+{
+    int px, py, hit;
+
+    if (!ui || !ui->skin) {
+        return false;
+    }
+    if (!down) {
+        int c = ui->capture;
+
+        ui->capture = 0;
+        if (c == 1) {
+            nano7_pmu_button(ui->held_btn, false);
+        }
+        if (c == 1 || c == 3) {
+            ui_render();
+        }
+        return c != 0;
+    }
+    if (ui->ptr_panel) {
+        hit = nano7_skin_panel_hit(ui->pan_x, ui->pan_y);
+        fprintf(stderr, "[nano7-ui] panel press at (%.0f, %.0f) -> %d\n",
+                ui->pan_x, ui->pan_y, hit);
+        if (hit >= NANO7_SKIN_P_STOCK) {    /* an emulator command */
+            static const struct { int id, cmd, arg; } map[] = {
+                { NANO7_SKIN_P_STOCK, NANO7_UI_PROFILE, NANO7_PROFILE_STOCK },
+                { NANO7_SKIN_P_SAFE, NANO7_UI_PROFILE, NANO7_PROFILE_SAFE },
+                { NANO7_SKIN_P_MAX, NANO7_UI_PROFILE, NANO7_PROFILE_MAX },
+                { NANO7_SKIN_P_PAUSE, NANO7_UI_PAUSE, 0 },
+                { NANO7_SKIN_P_RESET, NANO7_UI_RESET, 0 },
+                { NANO7_SKIN_P_MUTE, NANO7_UI_MUTE, 0 },
+                { NANO7_SKIN_P_ROTATE, NANO7_UI_ROTATE, 0 },
+                { NANO7_SKIN_P_SHOT, NANO7_UI_SHOT, 0 },
+            };
+            unsigned i;
+
+            for (i = 0; i < ARRAY_SIZE(map); i++) {
+                if (map[i].id == hit) {
+                    nano7_ui_command(map[i].cmd, map[i].arg);
+                }
+            }
+            ui->capture = 3;
+            ui->held_btn = hit;
+            ui_render();
+            return true;
+        }
+    } else {
+        hit = nano7_skin_hit(ui->ptr_x, ui->ptr_y, &px, &py);
+    }
+    if (hit == NANO7_SKIN_SCREEN) {
+        ui->capture = 0;
+        return false;
+    }
+    if (hit == NANO7_SKIN_NONE) {
+        ui->capture = 2;
+        return true;
+    }
+    ui->capture = 1;
+    ui->held_btn = hit;
+    nano7_pmu_button(hit, true);
+    ui_render();
+    return true;
+}
+
 void nano7_ui_map_touch(int64_t u, int64_t v, int64_t range, int *px, int *py)
+{
+    if (ui && ui->skin) {
+        ui_map_skin(u, v, range, px, py);
+        return;
+    }
+    nano7_ui_map_panel(u, v, range, px, py);
+}
+
+static void nano7_ui_map_panel(int64_t u, int64_t v, int64_t range, int *px,
+                               int *py)
 {
     int lw = ui && (ui->rot % 180) ? NANO7_LCD_H : NANO7_LCD_W;
     int lh = ui && (ui->rot % 180) ? NANO7_LCD_W : NANO7_LCD_H;
@@ -400,6 +716,14 @@ static void ui_gfx_ui_info(void *opaque, uint32_t head, QemuUIInfo *info)
 
     if (!info->width || !info->height) {
         return;
+    }
+    if (ui->skin) {                     /* the whole device must fit */
+        int cw, ch;
+
+        ui_skin_dims(&cw, &ch);
+        lw = cw;
+        lh = ch;
+        hh = 0;
     }
     z = MIN(info->width / lw, info->height / (lh + hh));
     z = MAX(1, MIN(z, UI_ZOOM_MAX));
@@ -548,73 +872,9 @@ static void ui_set_zoom(int z)
     ui_render();
 }
 
-/* Cmd + key -> the F key with the same action (0: not a shortcut) */
-static int ui_meta_shortcut(int qcode)
+/* the F-key actions (also Cmd shortcuts and menu commands) */
+static void ui_fkey(int qcode)
 {
-    switch (qcode) {
-    case Q_KEY_CODE_S: return Q_KEY_CODE_F2;
-    case Q_KEY_CODE_L:
-    case Q_KEY_CODE_O: return Q_KEY_CODE_F4;
-    case Q_KEY_CODE_R: return Q_KEY_CODE_F1;
-    case Q_KEY_CODE_P: return Q_KEY_CODE_F5;
-    case Q_KEY_CODE_T: return Q_KEY_CODE_F7;
-    case Q_KEY_CODE_U: return Q_KEY_CODE_F10;
-    case Q_KEY_CODE_K: return Q_KEY_CODE_F11;
-    case Q_KEY_CODE_E: return Q_KEY_CODE_F12;
-    case Q_KEY_CODE_F: return Q_KEY_CODE_F6;
-    case Q_KEY_CODE_G: return Q_KEY_CODE_F8;
-    default:           return 0;
-    }
-}
-
-static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
-{
-    InputKeyEvent *key = evt->u.key.data;
-    int qcode = qemu_input_key_value_to_qcode(key->key);
-
-    if (qcode == Q_KEY_CODE_META_L || qcode == Q_KEY_CODE_META_R) {
-        *(qcode == Q_KEY_CODE_META_L ? &ui->meta_l : &ui->meta_r) = key->down;
-        return;
-    }
-    if (qcode < 0 || qcode >= Q_KEY_CODE__MAX) {
-        return;
-    }
-    if (key->down) {
-        /* macOS sends no release for a key let go while Cmd is down, so
-         * the flag must not outlive the next real press */
-        ui->swallowed[qcode] = false;
-    } else if (ui->swallowed[qcode]) {
-        ui->swallowed[qcode] = false;
-        return;
-    }
-    /* Cmd shortcuts (a release still reaches a button pressed before Cmd) */
-    if ((ui->meta_l || ui->meta_r) && key->down) {
-        ui->swallowed[qcode] = true;
-        if (qcode >= Q_KEY_CODE_1 && qcode <= Q_KEY_CODE_4) {
-            ui_set_zoom(qcode - Q_KEY_CODE_1 + 1);
-            return;
-        }
-        qcode = ui_meta_shortcut(qcode);
-        if (!qcode) {
-            return;
-        }
-    } else if (nano7_btuart_pad_key(qcode, key->down)) {    /* F8 pad mode */
-        return;
-    } else if (nano7_pmu_key(qcode, key->down)) {
-        return;
-    }
-    if (qcode == Q_KEY_CODE_TAB) {      /* hold to fast-forward */
-        if (ui->paused) {
-            return;
-        }
-        nano7_clock_set_speed(key->down ? 4 : ui->ff_speed);
-        fprintf(stderr, "[nano7-ui] speed %dx%s\n", nano7_clock_speed(),
-                key->down ? " (Tab held)" : "");
-        return;
-    }
-    if (!key->down) {
-        return;
-    }
     switch (qcode) {
     case Q_KEY_CODE_F1:
         ui_request(UI_RESET);
@@ -672,6 +932,209 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
     }
 }
 
+/* -------------------------------------------------- front-end commands --- */
+/* the macOS menu (nano7_macmenu.m) and other front ends: queued here from
+ * any thread, run in the main loop */
+typedef struct UiCmd {
+    int cmd, arg;
+} UiCmd;
+
+static QemuMutex ui_cmd_lock;
+static UiCmd ui_cmdq[32];
+static unsigned ui_cmd_n;
+static QEMUBH *ui_cmd_bh;
+static QEMUTimer *ui_tap_timer;
+static int ui_tapped = -1;              /* button pressed by a menu tap */
+
+static void ui_tap_release(void *opaque)
+{
+    if (ui_tapped >= 0) {
+        nano7_pmu_button(ui_tapped, false);
+        ui_tapped = -1;
+    }
+}
+
+static void ui_cmd_run(int cmd, int arg)
+{
+    switch (cmd) {
+    case NANO7_UI_SAVE:    ui_fkey(Q_KEY_CODE_F2);  break;
+    case NANO7_UI_LOAD:    ui_fkey(Q_KEY_CODE_F4);  break;
+    case NANO7_UI_RESET:   ui_fkey(Q_KEY_CODE_F1);  break;
+    case NANO7_UI_PAUSE:   ui_fkey(Q_KEY_CODE_F5);  break;
+    case NANO7_UI_ROTATE:  /* arg 0: next 90 degrees, 1..4: 0 / 90 / 180 / 270 */
+        if (arg >= 1 && arg <= 4) {
+            ui->rot = (arg - 1) * 90;
+            fprintf(stderr, "[nano7-ui] rotation %d\n", ui->rot);
+            ui_render();
+        } else {
+            ui_fkey(Q_KEY_CODE_F7);
+        }
+        break;
+    case NANO7_UI_PADKEYS: ui_fkey(Q_KEY_CODE_F8);  break;
+    case NANO7_UI_HUD:     ui_fkey(Q_KEY_CODE_F10); break;
+    case NANO7_UI_SHOT:    ui_fkey(Q_KEY_CODE_F12); break;
+    case NANO7_UI_ZOOM:
+        ui_set_zoom(MAX(1, MIN(arg, UI_ZOOM_MAX)));
+        break;
+    case NANO7_UI_SPEED:
+        ui->ff_speed = arg == 2 || arg == 4 ? arg : 1;
+        if (!ui->paused) {
+            nano7_clock_set_speed(ui->ff_speed);
+        }
+        fprintf(stderr, "[nano7-ui] speed %dx\n", ui->ff_speed);
+        break;
+    case NANO7_UI_PROFILE:
+        if (arg < 0) {
+            nano7_power_cycle_profile();
+        } else if (arg < NANO7_PROFILE_COUNT) {
+            nano7_power_set_profile(arg);
+        }
+        nano7_ui_redraw();
+        break;
+    case NANO7_UI_FRAME:
+        ui->skin = !ui->skin;
+        ui->capture = 0;
+        fprintf(stderr, "[nano7-ui] device frame %s\n", ui->skin ? "on" :
+                "off");
+        ui_render();
+        break;
+    case NANO7_UI_MUTE:
+        nano7_i2s_set_mute(!nano7_i2s_muted());
+        break;
+    case NANO7_UI_BUTTON:               /* a 100 ms tap */
+        if (arg < 0 || arg >= NANO7_BTN_COUNT) {
+            break;
+        }
+        ui_tap_release(NULL);
+        ui_tapped = arg;
+        nano7_pmu_button(arg, true);
+        timer_mod(ui_tap_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 100);
+        break;
+    default:
+        break;
+    }
+}
+
+static void ui_cmd_bh_fn(void *opaque)
+{
+    UiCmd q[ARRAY_SIZE(ui_cmdq)];
+    unsigned n, i;
+
+    qemu_mutex_lock(&ui_cmd_lock);
+    n = ui_cmd_n;
+    memcpy(q, ui_cmdq, n * sizeof(q[0]));
+    ui_cmd_n = 0;
+    qemu_mutex_unlock(&ui_cmd_lock);
+    for (i = 0; i < n; i++) {
+        ui_cmd_run(q[i].cmd, q[i].arg);
+    }
+}
+
+void nano7_ui_command(int cmd, int arg)
+{
+    if (!ui) {
+        return;
+    }
+    qemu_mutex_lock(&ui_cmd_lock);
+    if (ui_cmd_n < ARRAY_SIZE(ui_cmdq)) {
+        ui_cmdq[ui_cmd_n++] = (UiCmd){ cmd, arg };
+    }
+    qemu_mutex_unlock(&ui_cmd_lock);
+    qemu_bh_schedule(ui_cmd_bh);
+}
+
+int nano7_ui_state(int cmd)
+{
+    if (!ui) {
+        return 0;
+    }
+    switch (cmd) {
+    case NANO7_UI_PAUSE:   return ui->paused;
+    case NANO7_UI_HUD:     return nano7_hud_on();
+    case NANO7_UI_ZOOM:    return ui->zoom;
+    case NANO7_UI_SPEED:   return ui->ff_speed;
+    case NANO7_UI_PROFILE: return nano7_power_profile();
+    case NANO7_UI_FRAME:   return ui->skin;
+    case NANO7_UI_PADKEYS: return nano7_btuart_pad_state();
+    case NANO7_UI_ROTATE:  return ui->rot;
+    case NANO7_UI_MUTE:    return nano7_i2s_muted();
+    default:               return 0;
+    }
+}
+
+
+/* Cmd + key -> the F key with the same action (0: not a shortcut) */
+static int ui_meta_shortcut(int qcode)
+{
+    switch (qcode) {
+    case Q_KEY_CODE_S: return Q_KEY_CODE_F2;
+    case Q_KEY_CODE_L:
+    case Q_KEY_CODE_O: return Q_KEY_CODE_F4;
+    case Q_KEY_CODE_R: return Q_KEY_CODE_F1;
+    case Q_KEY_CODE_P: return Q_KEY_CODE_F5;
+    case Q_KEY_CODE_T: return Q_KEY_CODE_F7;
+    case Q_KEY_CODE_U: return Q_KEY_CODE_F10;
+    case Q_KEY_CODE_K: return Q_KEY_CODE_F11;
+    case Q_KEY_CODE_E: return Q_KEY_CODE_F12;
+    case Q_KEY_CODE_F: return Q_KEY_CODE_F6;
+    case Q_KEY_CODE_G: return Q_KEY_CODE_F8;
+    default:           return 0;
+    }
+}
+
+static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
+{
+    InputKeyEvent *key = evt->u.key.data;
+    int qcode = qemu_input_key_value_to_qcode(key->key);
+
+    if (qcode == Q_KEY_CODE_META_L || qcode == Q_KEY_CODE_META_R) {
+        *(qcode == Q_KEY_CODE_META_L ? &ui->meta_l : &ui->meta_r) = key->down;
+        return;
+    }
+    if (qcode < 0 || qcode >= Q_KEY_CODE__MAX) {
+        return;
+    }
+    if (key->down) {
+        /* macOS sends no release for a key let go while Cmd is down, so
+         * the flag must not outlive the next real press */
+        ui->swallowed[qcode] = false;
+    } else if (ui->swallowed[qcode]) {
+        ui->swallowed[qcode] = false;
+        return;
+    }
+    /* Cmd shortcuts (a release still reaches a button pressed before Cmd) */
+    if ((ui->meta_l || ui->meta_r) && key->down) {
+        ui->swallowed[qcode] = true;
+        if (qcode >= Q_KEY_CODE_1 && qcode <= Q_KEY_CODE_4) {
+            ui_set_zoom(qcode - Q_KEY_CODE_1 + 1);
+            return;
+        }
+        qcode = ui_meta_shortcut(qcode);
+        if (!qcode) {
+            return;
+        }
+    } else if (nano7_btuart_pad_key(qcode, key->down)) {    /* F8 pad mode */
+        return;
+    } else if (nano7_accel_key(qcode, key->down)) {     /* tilt */
+        return;
+    } else if (nano7_pmu_key(qcode, key->down)) {
+        return;
+    }
+    if (qcode == Q_KEY_CODE_TAB) {      /* hold to fast-forward */
+        if (ui->paused) {
+            return;
+        }
+        nano7_clock_set_speed(key->down ? 4 : ui->ff_speed);
+        fprintf(stderr, "[nano7-ui] speed %dx%s\n", nano7_clock_speed(),
+                key->down ? " (Tab held)" : "");
+        return;
+    }
+    if (!key->down) {
+        return;
+    }
+    ui_fkey(qcode);
+}
+
 static const QemuInputHandler ui_key_handler = {
     .name  = "nano7 keys",
     .mask  = INPUT_EVENT_MASK_KEY,
@@ -689,6 +1152,13 @@ void nano7_ui_init(const char *state_dir, const char *screens_dir)
     ui->zoom = getenv("NANO7_ZOOM") ? atoi(getenv("NANO7_ZOOM")) : 1;
     ui->zoom = MAX(1, MIN(ui->zoom, UI_ZOOM_MAX));
     ui->ff_speed = 1;
+    ui->skin = getenv("NANO7_FRAME") && atoi(getenv("NANO7_FRAME"));
+    qemu_mutex_init(&ui_cmd_lock);
+    ui_cmd_bh = qemu_bh_new(ui_cmd_bh_fn, NULL);
+    ui_tap_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, ui_tap_release, NULL);
+#ifdef CONFIG_DARWIN
+    nano7_macmenu_init();       /* native menu bar once SDL is up */
+#endif
     nano7_clock_set_speed(1);   /* registers the guest clock's vmstate */
     ui->con = graphic_console_init(NULL, 0, &ui_gfx_ops, ui);
     nano7_hud_init();           /* NANO7_HUD=1 (run.sh --hud) */

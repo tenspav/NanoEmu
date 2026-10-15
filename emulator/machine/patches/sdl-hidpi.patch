@@ -1,0 +1,74 @@
+--- a/ui/sdl2.c	2026-10-15 06:03:58.508205295 +0000
++++ b/ui/sdl2.c	2026-10-15 06:03:58.524205091 +0000
+@@ -65,6 +65,25 @@
+ 
+ static void sdl_update_caption(struct sdl2_console *scon);
+ 
++/*
++ * HiDPI (macOS Retina): the window is created with SDL_WINDOW_ALLOW_HIGHDPI
++ * and sized in points = surface pixels / backing scale, so a surface drawn
++ * at N x the display's density shows 1:1 on its physical pixels (whole-
++ * number scaling stays exact). Resize events report pixels to the console.
++ */
++static int sdl2_px_scale = 1;
++
++static void sdl2_update_px_scale(struct sdl2_console *scon)
++{
++    int ww, wh, ow = 0, oh = 0;
++
++    SDL_GetWindowSize(scon->real_window, &ww, &wh);
++    if (scon->real_renderer) {
++        SDL_GetRendererOutputSize(scon->real_renderer, &ow, &oh);
++    }
++    sdl2_px_scale = ww > 0 && ow >= ww ? ow / ww : 1;
++}
++
+ static struct sdl2_console *get_scon_from_window(uint32_t window_id)
+ {
+     int i;
+@@ -93,6 +112,7 @@
+     if (scon->hidden) {
+         flags |= SDL_WINDOW_HIDDEN;
+     }
++    flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+ #ifdef CONFIG_OPENGL
+     if (scon->opengl) {
+         flags |= SDL_WINDOW_OPENGL;
+@@ -120,6 +140,12 @@
+         /* The SDL renderer is only used by sdl2-2D, when OpenGL is disabled */
+         scon->real_renderer = SDL_CreateRenderer(scon->real_window, -1, 0);
+     }
++    sdl2_update_px_scale(scon);
++    if (sdl2_px_scale > 1) {
++        SDL_SetWindowSize(scon->real_window,
++                          surface_width(scon->surface) / sdl2_px_scale,
++                          surface_height(scon->surface) / sdl2_px_scale);
++    }
+     sdl_update_caption(scon);
+ }
+ 
+@@ -147,9 +173,10 @@
+         return;
+     }
+ 
++    sdl2_update_px_scale(scon);
+     SDL_SetWindowSize(scon->real_window,
+-                      surface_width(scon->surface),
+-                      surface_height(scon->surface));
++                      surface_width(scon->surface) / sdl2_px_scale,
++                      surface_height(scon->surface) / sdl2_px_scale);
+ }
+ 
+ static void sdl2_redraw(struct sdl2_console *scon)
+@@ -596,8 +623,9 @@
+         {
+             QemuUIInfo info;
+             memset(&info, 0, sizeof(info));
+-            info.width = ev->window.data1;
+-            info.height = ev->window.data2;
++            sdl2_update_px_scale(scon);
++            info.width = ev->window.data1 * sdl2_px_scale;
++            info.height = ev->window.data2 * sdl2_px_scale;
+             dpy_set_ui_info(scon->dcl.con, &info, true);
+         }
+         sdl2_redraw(scon);

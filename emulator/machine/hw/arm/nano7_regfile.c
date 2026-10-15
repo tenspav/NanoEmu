@@ -19,6 +19,7 @@
 #include "target/arm/cpu.h"
 #include "migration/vmstate.h"
 #include "nano7_ui.h"
+#include "exec/address-spaces.h"
 
 typedef struct Nano7RegfileState {
     MemoryRegion mr;
@@ -132,6 +133,41 @@ static void nano7_regfile_write(void *opaque, hwaddr offset, uint64_t value,
         s->written[offset + i] = 1;
     }
     if (s->name && strcmp(s->name, "clkcon") == 0 && offset == 0x50 && (value & 0xff) == 0xa5) {
+        /* the OS's reboot routine 0x08417c9c first leaves the next boot's
+         * mode at 0x2202fe00 (8 chars: retailOS, diskmode, vbuswait,
+         * softupdt, ...; Session 66): log it to tell the callers apart */
+        char mode[9] = { 0 };
+        CPUState *cs = current_cpu;
+
+        address_space_read(&address_space_memory, 0x2202fe00,
+                           MEMTXATTRS_UNSPECIFIED, mode, 8);
+        for (i = 0; i < 8; i++) {
+            if (mode[i] < 0x20 || mode[i] > 0x7e) {
+                mode[i] = '.';
+            }
+        }
+        fprintf(stderr, "[nano7-pmgr] guest reboot: next-boot mode '%s', "
+                "lr 0x%08x\n", mode,
+                cs ? ARM_CPU(cs)->env.regs[14] : 0);
+        if (cs) {   /* likely return addresses on the stack: the caller */
+            uint32_t st[96];
+            uint32_t sp = ARM_CPU(cs)->env.regs[13];
+            unsigned n = 0;
+
+            if (cpu_memory_rw_debug(cs, sp, (uint8_t *)st, sizeof(st),
+                                    false) == 0) {
+                fprintf(stderr, "[nano7-pmgr] stack 0x%08x code refs:", sp);
+                for (i = 0; i < ARRAY_SIZE(st) && n < 16; i++) {
+                    uint32_t w = le32_to_cpu(st[i]);
+
+                    if ((w & 1) && w >= 0x08000000 && w < 0x08800000) {
+                        fprintf(stderr, " %08x", w);
+                        n++;
+                    }
+                }
+                fprintf(stderr, "\n");
+            }
+        }
         nano7_ui_reset();
     }
 }

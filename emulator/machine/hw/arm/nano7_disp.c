@@ -24,6 +24,26 @@
  *                bytes 0-2 colour, byte 0 alpha), 27:24 op (0 one, 1 source
  *                alpha, 7 constant alpha = low byte of w1 / w3), bit 28 =
  *                1 - factor. out = S * fs + D * fd per channel.
+ *   +0x04 bit 17 (Session 66): set by the record builder 0x081bb8e8 from
+ *                a per-blit state flag (params +0x2c), seen only on the
+ *                compositor's blit of an OpenGL ES layer (mode 0x22020000,
+ *                same factors as every other blend) and on the home
+ *                screen's icon blits. Modeled as "source premultiplied":
+ *                a source-alpha colour factor becomes one (out = S + D *
+ *                (1 - sa), like AC_SRC_ALPHA). Evidence: the icon images
+ *                (0x089d47b0, 0x089c8388 in snap6) are premultiplied -
+ *                98 % of their partly transparent pixels have no channel
+ *                above alpha; ignoring the bit multiplied them by alpha a
+ *                second time (dark edges), "opaque" gave black squares.
+ *                For a GL layer whose alpha is < 1 on opaque surfaces
+ *                (N64-style games: the GPU writes the blended alpha) the
+ *                straight reading darkened it to S * sa over the cleared
+ *                surface; now one blit shows the GPU's colours exactly.
+ *                When two GL frames land in the intermediate surface before
+ *                a composite (it is cleared only after), the second adds
+ *                the first * (1 - sa): such pixels come out brighter, as
+ *                they would on the device under this reading.
+ *                NANO7_DISP_BIT17=0 ignores the bit (old behaviour).
  *   +0x290 fill colour (ARGB)   +0x260 version, driver wants >= 0x60005
  * Other offsets (+0x60.. scaler taps, +0x220.. colour matrix) are stored.
  *
@@ -50,6 +70,7 @@
 #define DISP_LOG_MAX    64      /* then every 256th kick */
 #define DISP_MAX_W      1024
 #define DISP_MAX_H      1024
+#define DISP_PREMUL     (1u << 17)      /* +0x04: source premultiplied */
 
 typedef struct Nano7DispState {
     MemoryRegion mr;
@@ -57,6 +78,7 @@ typedef struct Nano7DispState {
     uint32_t status, irq_status;
     QEMUTimer *timer;
     uint64_t last_px;
+    bool bit17;                 /* model +0x04 bit 17 (NANO7_DISP_BIT17=0: no) */
     qemu_irq irq;
     uint64_t kicks, frames;
     uint64_t blits, blit_px;
@@ -141,7 +163,10 @@ static unsigned disp_factor(uint32_t w, unsigned sa, unsigned konst,
     return (w & (1u << 28)) ? 255 - f : f;
 }
 
-static uint32_t disp_blend(Nano7DispState *s, uint32_t S, uint32_t D)
+/* premul: mode bit 17 (see the header): the source colour is already
+ * multiplied by its alpha, so a "source alpha" colour factor is one */
+static uint32_t disp_blend(Nano7DispState *s, uint32_t S, uint32_t D,
+                           bool premul)
 {
     uint32_t w0 = s->regs[0x280 / 4], w1 = s->regs[0x284 / 4];
     uint32_t w2 = s->regs[0x288 / 4], w3 = s->regs[0x28c / 4];
@@ -152,7 +177,8 @@ static uint32_t disp_blend(Nano7DispState *s, uint32_t S, uint32_t D)
     for (sh = 0; sh < 32; sh += 8) {
         bool alpha = sh == 24;
         unsigned fs = alpha ? disp_factor(w1, sa, w1 & 0xff, w1 & 0xff) :
-                      disp_factor(w0, sa, w1 & 0xff, (w0 >> sh) & 0xff);
+                      disp_factor(w0, premul ? 255 : sa, w1 & 0xff,
+                                  (w0 >> sh) & 0xff);
         unsigned fd = alpha ? disp_factor(w3, sa, w3 & 0xff, w3 & 0xff) :
                       disp_factor(w2, sa, w3 & 0xff, (w2 >> sh) & 0xff);
         unsigned v = (((S >> sh) & 0xff) * fs + ((D >> sh) & 0xff) * fd +
@@ -217,7 +243,9 @@ static void disp_blit(Nano7DispState *s, uint32_t ctl)
             /* copy and fill write the source; only mode 2 blends (a fill
              * clears to +0x290 incl. alpha: keeping the old alpha left
              * opaque black boxes where the old clock digits were) */
-            row[x] = cpu_to_le32(mode == 2 ? disp_blend(s, S, D) : S);
+            row[x] = cpu_to_le32(mode == 2 ?
+                                 disp_blend(s, S, D, (ctl & DISP_PREMUL) &&
+                                            s->bit17) : S);
         }
         address_space_write(&address_space_memory, drow & 0x7fffffff,
                             MEMTXATTRS_UNSPECIFIED, row, dw * 4);
@@ -309,12 +337,17 @@ static void disp_write(void *opaque, hwaddr offset, uint64_t value,
                 !(s->kicks & 0xff)) {
                 fprintf(stderr, "[nano7-disp] t=%.3f s pc=0x%08x kick #%" PRIu64
                         " mode 0x%08x L0 0x%08x %08x -> L1 0x%08x size "
-                        "%08x at %08x, irq en %u\n",
+                        "%08x at %08x, irq en %u, fmt %u/%u, blend %08x "
+                        "%08x %08x %08x, fill %08x\n",
                         qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) / 1e9,
                         disp_guest_pc(), s->kicks, v & ~1u,
                         s->regs[0x14 / 4], s->regs[0x24 / 4],
                         s->regs[0x34 / 4], s->regs[0x40 / 4],
-                        s->regs[0x44 / 4], s->regs[0x08 / 4] & 1);
+                        s->regs[0x44 / 4], s->regs[0x08 / 4] & 1,
+                        s->regs[0x10 / 4], s->regs[0x30 / 4],
+                        s->regs[0x280 / 4], s->regs[0x284 / 4],
+                        s->regs[0x288 / 4], s->regs[0x28c / 4],
+                        s->regs[0x290 / 4]);
                 fflush(stderr);
             }
             s->status = 2;
@@ -368,10 +401,12 @@ static const VMStateDescription vmstate_disp = {
 void nano7_disp_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
 {
     Nano7DispState *s = g_new0(Nano7DispState, 1);
+    const char *b17 = getenv("NANO7_DISP_BIT17");
 
     s->irq = irq;
     s->status = 1;
     s->trace = getenv("NANO7_DISP_TRACE") != NULL;
+    s->bit17 = !b17 || strcmp(b17, "0");
     s->regs[0x260 / 4] = 0x60005;
     s->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, disp_frame_done, s);
     nano7_clock_track(s->timer, false);

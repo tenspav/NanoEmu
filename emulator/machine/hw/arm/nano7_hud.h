@@ -19,5 +19,11 @@ bool nano7_hud_on(void);
 void nano7_hud_set(bool on);
 /* draw the strip: w x NANO7_HUD_ROWS XRGB pixels (row stride w) */
 void nano7_hud_draw(uint32_t *buf, int w);
+/* the latest window: frames per second, CPU / GPU load 0..1, OS heap
+ * bytes (0 = unknown) */
+void nano7_hud_stats(float *fps, float *cpu, float *gpu, uint32_t *heap_used,
+                     uint32_t *heap_total);
+/* the panel showed a new frame (counts toward the HUD's FPS) */
+void nano7_hud_lcd_frame(void);
 
 #endif

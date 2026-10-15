@@ -23,16 +23,33 @@
  * reader keeps up). The exit summary gives seconds and peak level, to tell
  * real music from silence.
  *
+ * Host audio (audiodev=ID, run.sh --audiodev, the macOS app): the same
+ * stream also goes to a QEMU -audiodev (CoreAudio on macOS) through a ring
+ * buffer. The guest's DMA paces the producer at the I2S rate and the host
+ * device the consumer; whatever the ring holds beyond I2S_LAT_MAX_MS is
+ * dropped (oldest first), so latency stays bounded if the two clocks
+ * drift or the guest is fast-forwarded, and an empty ring plays silence
+ * (pause, no music).
+ *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "qemu/osdep.h"
 #include "nano7_i2s.h"
 #include "nano7_dma.h"
 #include "migration/vmstate.h"
+#include "audio/audio.h"
+#include "qemu/timer.h"
+#include "qapi/error.h"
 
 #define I2S_SIZE        0x1000
 #define I2S_TX_FIFO     0x10
 #define I2S_BUF         65536
+#define I2S_RING        (512 * 1024)    /* 2.9 s at 44.1 kHz */
+#define I2S_LAT_MAX_MS  250
+#define I2S_LAT_KEEP_MS 80              /* what is left after a trim */
+#define I2S_PRIME_MS    60              /* the DMA writes 4 KB (23 ms) bursts:
+                                         * buffer more before playing */
+#define I2S_STOP_MS     250             /* dry this long = stopped */
 
 typedef struct Nano7I2sState {
     MemoryRegion mr;
@@ -45,6 +62,15 @@ typedef struct Nano7I2sState {
     unsigned buf_len;
     uint64_t bytes, dropped;
     int peak;
+    /* host audio */
+    QEMUSoundCard card;
+    SWVoiceOut *voice;
+    bool muted;                 /* host audio muted (menu) */
+    uint8_t *ring;
+    unsigned ring_rd, ring_fill;
+    bool primed;                /* enough buffered: draining */
+    int64_t dry_since;          /* realtime ms the ring ran empty, or 0 */
+    uint64_t trimmed, underruns;
 } Nano7I2sState;
 
 static Nano7I2sState *i2s_singleton;
@@ -100,6 +126,97 @@ static void i2s_flush(Nano7I2sState *s)
     s->buf_len = 0;
 }
 
+/* ------------------------------------------------------- host audio --- */
+static void i2s_ring_put(Nano7I2sState *s, uint8_t b)
+{
+    unsigned max = (uint64_t)s->rate * 4 * I2S_LAT_MAX_MS / 1000;
+
+    if (s->ring_fill >= max) {          /* too far ahead: drop the oldest */
+        unsigned keep = (uint64_t)s->rate * 4 * I2S_LAT_KEEP_MS / 1000 & ~3u;
+        unsigned drop = s->ring_fill - keep;
+
+        s->ring_rd = (s->ring_rd + drop) % I2S_RING;
+        s->ring_fill = keep;
+        s->trimmed += drop;
+    }
+    s->ring[(s->ring_rd + s->ring_fill) % I2S_RING] = b;
+    s->ring_fill++;
+}
+
+/* the host device wants up to `avail` bytes */
+static void i2s_audio_cb(void *opaque, int avail)
+{
+    Nano7I2sState *s = opaque;
+    int64_t now = qemu_clock_get_ms(QEMU_CLOCK_REALTIME);
+
+    /* nothing new since I2S_STOP_MS = the music stopped: prime again so the
+     * next start does not stutter (an empty ring after a callback is
+     * normal: QEMU's mixer buffers what it was given) */
+    if (s->ring_fill >= 4) {
+        s->dry_since = 0;
+    } else if (!s->dry_since) {
+        s->dry_since = now;
+    } else if (s->primed && now - s->dry_since > I2S_STOP_MS) {
+        s->primed = false;
+        s->underruns++;
+    }
+    if (!s->primed) {
+        if (s->ring_fill < (uint64_t)s->rate * 4 * I2S_PRIME_MS / 1000) {
+            return;                     /* silence until primed */
+        }
+        s->primed = true;
+    }
+    while (avail > 0 && s->ring_fill >= 4) {
+        unsigned n = MIN(MIN((unsigned)avail, s->ring_fill & ~3u),
+                         I2S_RING - s->ring_rd);
+        size_t done = AUD_write(s->voice, s->ring + s->ring_rd, n);
+
+        if (!done) {
+            break;
+        }
+        s->ring_rd = (s->ring_rd + done) % I2S_RING;
+        s->ring_fill -= done;
+        avail -= done;
+    }
+}
+
+static void i2s_open_voice(Nano7I2sState *s)
+{
+    struct audsettings as = {
+        .freq = s->rate, .nchannels = 2, .fmt = AUDIO_FORMAT_S16,
+        .endianness = 0,
+    };
+
+    s->voice = AUD_open_out(&s->card, s->voice, "nano7.i2s0", s, i2s_audio_cb,
+                            &as);
+    if (s->voice) {
+        AUD_set_active_out(s->voice, 1);
+        AUD_set_volume_out(s->voice, s->muted, 255, 255);
+    }
+    s->ring_rd = s->ring_fill = 0;
+    s->primed = false;
+    s->dry_since = 0;
+}
+
+void nano7_i2s_set_mute(bool mute)
+{
+    Nano7I2sState *s = i2s_singleton;
+
+    if (!s) {
+        return;
+    }
+    s->muted = mute;
+    if (s->voice) {
+        AUD_set_volume_out(s->voice, mute, 255, 255);
+    }
+    fprintf(stderr, "[nano7-i2s] host audio %s\n", mute ? "muted" : "on");
+}
+
+bool nano7_i2s_muted(void)
+{
+    return i2s_singleton && i2s_singleton->muted;
+}
+
 static void i2s_summary(void)
 {
     Nano7I2sState *s = i2s_singleton;
@@ -115,6 +232,11 @@ static void i2s_summary(void)
             "%u Hz s16 stereo, peak %d / 32767%s, %" PRIu64 " dropped\n",
             s->bytes, s->rate ? s->bytes / 4.0 / s->rate : 0, s->rate,
             s->peak, s->peak ? "" : " (silence)", s->dropped);
+    if (s->voice) {
+        fprintf(stderr, "[nano7-i2s] host audio: %" PRIu64 " bytes trimmed "
+                "(latency cap), %" PRIu64 " stops\n", s->trimmed,
+                s->underruns);
+    }
 }
 
 static void i2s_set_rate(Nano7I2sState *s)
@@ -127,6 +249,9 @@ static void i2s_set_rate(Nano7I2sState *s)
                 s->regs[0x40 / 4]);
         if (s->fd >= 0 && s->wav) {
             i2s_wav_header(s);
+        }
+        if (s->voice) {
+            i2s_open_voice(s);
         }
     }
     nano7_dma_set_fifo_rate(s->base + I2S_TX_FIFO, s->rate * 4);
@@ -155,6 +280,12 @@ static void i2s_write(void *opaque, hwaddr off, uint64_t v, unsigned size)
 
     if ((off & ~3) == I2S_TX_FIFO) {
         for (i = 0; i < size; i++) {
+            if (s->voice) {
+                i2s_ring_put(s, v >> (8 * i));
+            }
+            if (s->fd < 0) {
+                continue;
+            }
             s->buf[s->buf_len++] = v >> (8 * i);
             if (s->buf_len == I2S_BUF) {
                 i2s_flush(s);
@@ -203,7 +334,7 @@ static const VMStateDescription vmstate_i2s = {
 };
 
 void nano7_i2s_attach(MemoryRegion *parent, hwaddr base,
-                      const char *audio_out)
+                      const char *audio_out, const char *audiodev)
 {
     Nano7I2sState *s = g_new0(Nano7I2sState, 1);
     struct stat st;
@@ -229,6 +360,20 @@ void nano7_i2s_attach(MemoryRegion *parent, hwaddr base,
         fprintf(stderr, "[nano7-i2s] audio-out %s (%s)\n", audio_out,
                 s->fifo ? "FIFO, raw s16le stereo" : s->wav ? "WAV" :
                 "raw s16le stereo");
+    }
+    if (audiodev) {
+        Error *err = NULL;
+
+        s->card.state = audio_state_by_name(audiodev, &err);
+        if (!s->card.state || !AUD_register_card("nano7.i2s", &s->card,
+                                                 &err)) {
+            error_reportf_err(err, "nano7: audiodev %s: ", audiodev);
+            exit(1);
+        }
+        s->ring = g_malloc(I2S_RING);
+        i2s_open_voice(s);
+        fprintf(stderr, "[nano7-i2s] host audio via audiodev '%s'%s\n",
+                audiodev, s->voice ? "" : ": cannot open a voice");
     }
     i2s_singleton = s;
     atexit(i2s_summary);

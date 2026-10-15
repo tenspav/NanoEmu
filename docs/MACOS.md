@@ -74,15 +74,59 @@ includes the flash store.
 Shell syntax, all optional:
 
 ```sh
-ZOOM=auto            # or 1-6; auto = largest whole factor that fits the screen
-HUD=1                # start with the CPU / GPU / RAM usage HUD
+ZOOM=auto            # or 100 / 150 / 200 / 300 (percent of the iPod's size)
+FRAME=1              # 0 = the bare screen, no iPod frame
+HUD=0                # start without the side panel (default: shown)
 CLOCK_PROFILE=safe   # stock | safe | max (with the 65 C governor)
 PAD_KEYS=1           # start with the keyboard driving the fake BT gamepad
-AUDIO=1              # live sound through ffplay (brew install ffmpeg)
+AUDIO=0              # no sound (default 1: CoreAudio, no extra install)
+BATTERY_DRAIN=30     # run on battery, empty in 30 guest minutes (default:
+                     # always on USB power with a full battery)
+HOME_AT_START=0      # stay in the app the snapshot was taken in
 EXTRA_ARGS=""        # extra QEMU arguments, e.g. "-M nano7,bt-peer=none"
 ```
 
 ## 3. Using it
+
+The app opens on the iPod's first home page (Music, Videos, Fitness ...):
+the snap6 capture was taken inside the DumpRAM probe app, so the launcher
+presses Home at 3, 6 and 9 seconds (`HOME_AT_START`). The window is
+780 x 836 points on a 13" MacBook (1.5x the iPod's pixels); Size in the View
+menu or a window drag picks another whole zoom.
+
+Left: the iPod itself, drawn around the screen, with clickable Sleep/Wake
+(top), Volume Up, Play/Pause, Volume Down (left side) and Home (below the
+screen). Right: the side panel.
+
+- **Numbers:** FPS, CPU clock and load, GPU clock and load, RAM (the OS
+  heap), temperature, rotation. They update four times a second.
+- **Clock profile:** Stock (342 / 133 MHz), Safe (684 / 171), Max (684 / 266);
+  the active one is blue. None blue = the clocks the OS set itself.
+- **iPod buttons:** Home, Sleep, Vol -, Vol +, Play / Pause.
+- **Emulator:** Pause (Resume while paused), Reset, Mute (Unmute), Rotate,
+  Screenshot.
+
+Cmd-U hides or shows the panel. The battery always reads full and on USB
+power, so the OS never warns about a low battery or shuts down. Sound plays
+through CoreAudio. The iPod locks itself after a minute without input, as
+the real one does: the screen goes black, and Home or Sleep wakes it.
+
+Menu bar: **File** (Save State, Load State, Reset, Save Screenshot),
+**Emulation** (Pause, Mute Shift-Cmd-M, Speed, Clock Profile Stock / Safe /
+Max, Gamepad Keys), **View** (Size, Rotate, Rotation 0 / 90 / 180 / 270,
+Device Frame, Side Panel (HUD), Full Screen), **Device** (Home, Sleep /
+Wake, Play / Pause, Volume Up / Down). Full screen scales the whole window
+(iPod, buttons and panel) by a whole factor.
+
+## Installer
+
+```sh
+cd emulator && ./build.sh && macos/make-app.sh && ../packaging/macos/make-dmg.sh
+```
+
+gives `emulator/dist/NanoEmu-<version>.dmg` (the version comes from
+CHANGELOG.md) with NanoEmu.app, an Applications link and a README. It refuses
+an app built with `--snapshot`.
 
 ### Window
 

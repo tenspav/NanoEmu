@@ -20,6 +20,9 @@
 #   --rtc snapshot|host|SECONDS  PMU real-time clock at start (default snapshot)
 #   --audio-play                 play the audio live on the host (ffplay, else
 #                                aplay, reading a FIFO; 44.1 kHz s16 stereo)
+#   --host-audio [DRIVER]        play the audio through QEMU's own audio
+#                                backend (default: coreaudio on macOS, pa
+#                                elsewhere; needs a build with that driver)
 #   --audio-out FILE|FIFO        audio PCM sink: raw s16le stereo, *.wav adds a
 #                                header, a FIFO streams (e.g. into aplay/ffplay)
 #   keys (VNC/display/sendkey): F1 reset (reload the boot state), F2 save
@@ -53,11 +56,19 @@
 #                                HID: auto, or a product-name substring
 #                                (NANO7_HOST_PAD_BUTTONS / _TRACE: see
 #                                nano7_hostpad.c)
+#   --tilt DEG                   pin the accelerometer tilt (steering-wheel
+#                                angle, + = right; default: Left / Right keys)
 #   --clock-profile stock|safe|max  start with a clock profile (CPU/GPU MHz
 #                                342/133, 684/171, 684/266; F11 cycles) and the
 #                                65 C governor; default: the guest's own clocks
+#   --battery-drain [MIN]        run on battery, draining it over MIN guest
+#                                minutes (default 30); without it the PMU
+#                                reports USB power and a full battery
 #   --temp C                     pin the PMU die temperature (default: an
 #                                illustrative thermal model)
+#   --frame                      draw the iPod around the screen, with
+#                                clickable Sleep / Home / Volume / Play
+#                                buttons (the macOS app's look)
 #   --zoom N                     start zoom 1-6 (default 1; F9 cycles 1-3,
 #                                and a resized SDL window picks the
 #                                largest whole factor that fits)
@@ -130,6 +141,10 @@ while [ $# -gt 0 ]; do
             MARGS="$MARGS,nand-rsrc=${2:?--nand-rsrc needs a file}"; shift 2 ;;
         --audio-play)
             AUDIO_PLAY=1; shift ;;
+        --host-audio)
+            d=coreaudio; [ "$(uname -s)" = Darwin ] || d=pa
+            v=$(optval "$d" "${2:-}") && shift 2 || shift
+            EXTRA+=(-audiodev "$v,id=hostsnd"); MARGS="$MARGS,audiodev=hostsnd" ;;
         --audio-out)
             MARGS="$MARGS,audio-out=${2:?--audio-out needs a file or FIFO}"; shift 2 ;;
         --bt-hci-socket)
@@ -148,10 +163,17 @@ while [ $# -gt 0 ]; do
             export NANO7_PAD_KEYS=1; shift ;;
         --host-pad)
             export NANO7_HOST_PAD="${2:?--host-pad needs auto, a path or a name}"; shift 2 ;;
+        --tilt)
+            export NANO7_TILT="${2:?--tilt needs degrees}"; shift 2 ;;
         --clock-profile)
             export NANO7_CLOCK_PROFILE="${2:?--clock-profile needs stock, safe or max}"; shift 2 ;;
+        --frame)
+            export NANO7_FRAME=1; shift ;;
         --zoom)
             export NANO7_ZOOM="${2:?--zoom needs a factor 1-6}"; shift 2 ;;
+        --battery-drain)
+            v=$(optval 30 "${2:-}") && shift 2 || shift
+            export NANO7_BATTERY_DRAIN="$v" ;;
         --temp)
             export NANO7_TEMP="${2:?--temp needs degrees C}"; shift 2 ;;
         --rtc)

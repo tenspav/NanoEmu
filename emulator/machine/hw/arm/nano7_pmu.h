@@ -26,5 +26,8 @@ bool nano7_pmu_key(int qcode, bool down);
  * 0x0818a4e8: C = ((r5 - r6) * 100 / a) * 4, a = r6 = 500, so r5 = 500 +
  * 1.25 C; the snapshot's 24 C = 0x08 0x84 0x7d 0x7d) */
 void nano7_pmu_set_temp(float celsius);
+/* set event status bits (regs 1..4) and pull the event line low, as a
+ * device wired to the PMU's interrupt inputs would */
+void nano7_pmu_raise(unsigned reg, uint8_t bits);
 
 #endif

@@ -11,7 +11,9 @@
  *     vertex-program instructions (one per clock, VGP) per guest second, over
  *     the GPU clock the guest programmed (nano7_power.c; stock 133 MHz).
  *     It is a model of the hardware's load, not the host's rendering time.
- *   GL fps - render jobs per guest second.
+ *   FPS - frames per guest second: the larger of GL render jobs and panel
+ *     updates (nano7_hud_lcd_frame(), a TE after a GRAM change), so 2D apps
+ *     show a rate too.
  *   RAM - the OS main heap as the OS itself reports it (Session 59): the
  *     heap object *0x08909134; total = heap[+0xa8], used = heap[+0xc0]
  *     minus the unused part of the 6 sub-pool caches when heap[+0x1684] is
@@ -61,6 +63,7 @@ typedef struct Hud {
     uint32_t heap_used, heap_total;     /* last reading, 0 = unknown */
     unsigned head, count;
     float fps;
+    unsigned lcd_frames, lcd_frames0;   /* panel updates, window start */
 } Hud;
 
 static Hud hud;
@@ -178,8 +181,10 @@ static void hud_window(void)
                         (double)(st.vgp_ins - hud.st0.vgp_ins);
 
         gpu = cycles / (nano7_power_gpu_mhz() * 1e6 * dt / 1e9);
-        hud.fps = (st.frames - hud.st0.frames) / (dt / 1e9);
+        hud.fps = MAX((st.frames - hud.st0.frames),
+                      hud.lcd_frames - hud.lcd_frames0) / (dt / 1e9);
     }
+    hud.lcd_frames0 = hud.lcd_frames;
     hud.cpu[hud.head] = hud.samples ?
         1.f - (float)hud.halted / hud.samples : 0;
     hud.gpu[hud.head] = MIN(gpu, 1.0);
@@ -239,6 +244,7 @@ void nano7_hud_set(bool on)
         hud.samples = hud.halted = 0;
         hud.head = hud.count = 0;
         hud.fps = 0;
+        hud.lcd_frames0 = hud.lcd_frames;
         hud.t0 = nano7_now_ns();
         nano7_mbx_stats(&hud.st0);
         timer_mod_ns(hud.timer,
@@ -310,11 +316,34 @@ void nano7_hud_draw(uint32_t *buf, int w)
              nano7_power_profile_name(nano7_power_profile()),
              nano7_power_temp());
     hud_text(buf, w, 2, 9, line, HUD_TEXT);
+    if (nano7_ui_state(NANO7_UI_ROTATE)) {      /* screen rotation */
+        int x0 = 2 + 4 * (int)strlen(line) + 4;
+
+        snprintf(line, sizeof(line), "ROT %d", nano7_ui_state(NANO7_UI_ROTATE));
+        hud_text(buf, w, x0, 9, line, HUD_TEXT);
+    }
     if (nano7_btuart_pad_state()) {     /* F8 pad mode: link state */
         hud_text(buf, w, w - 30, 9, nano7_btuart_pad_state() == 2 ?
                  "PAD OK" : "PAD --", nano7_btuart_pad_state() == 2 ?
                  HUD_CPU : HUD_GPU);
     }
+}
+
+void nano7_hud_stats(float *fps, float *cpu, float *gpu, uint32_t *heap_used,
+                     uint32_t *heap_total)
+{
+    unsigned last = (hud.head + HUD_HIST - 1) % HUD_HIST;
+
+    *fps = hud.fps;
+    *cpu = hud.count ? hud.cpu[last] : 0;
+    *gpu = hud.count ? hud.gpu[last] : 0;
+    *heap_used = hud.heap_used;
+    *heap_total = hud.heap_total;
+}
+
+void nano7_hud_lcd_frame(void)
+{
+    hud.lcd_frames++;
 }
 
 void nano7_hud_init(void)

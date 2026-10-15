@@ -26,6 +26,19 @@
  * 431 / 5250 (inverted here). Down / move / up are separate reports, each
  * announced by a falling edge on GPIO 0x26 once the OS has re-armed it.
  *
+ * Loader protocol (Session 66; after a sleep / wake the OS restarts the
+ * chip and uploads its firmware: 0x0801937c -> 0x0801f9dc -> probe
+ * 0x08024988, upload 0x0802579c; failing 3 times panics at 0x08012b64 and
+ * reboots - the wake crash). Frames are keyed by their first two bytes
+ * (report frames start ea 01):
+ *   19 c1 + 18 e1 x7   reset / enter loader            (status = 4bc1)
+ *   1a a1 ...          status read: every 2 RX bytes = status, big endian;
+ *                      the probe accepts 4bc1 (and a few other codes)
+ *   18 e1 + data       firmware chunk, up to 0x1ff0 + 0x10 bytes, TX only
+ *                                                      (status = 4bc1)
+ *   1e 33 + 12 bytes   chip register write             (status = 4ad1)
+ *   1f 01, 1d 53 ...   start the firmware / final setup (nothing checked)
+ * The driver checks no checksum, only the status codes.
  * Model: transfers complete ~20 us after the last TX byte; the ready line
  * goes low while a report is queued and the line is armed, and back high
  * when the chip select is released after the transfer that served it.
@@ -66,6 +79,9 @@ typedef struct Nano7TouchState {
     MemoryRegion mr;
     uint32_t regs[TP_SIZE / 4];
     uint32_t flags;                     /* latched status bits */
+    bool trace;                         /* NANO7_TOUCH_TRACE: log transfers */
+    uint16_t ld_status;                 /* loader status (firmware upload) */
+    unsigned ld_frames;                 /* loader frames seen (log a few) */
     qemu_irq irq;
     QEMUTimer *xfer_timer, *poll_timer;
     uint8_t tx[TP_MAX_XFER], rx[TP_MAX_XFER];
@@ -158,12 +174,36 @@ static void tp_put16(uint8_t *p, unsigned v)
 /* all TX bytes are in: build the full-duplex reply */
 static void tp_reply(Nano7TouchState *s)
 {
-    unsigned n = s->tx_want, i, sum = 0;
+    unsigned n = MIN(s->tx_want, TP_MAX_XFER), i, sum = 0;
     uint8_t *r = s->rx;
+    uint16_t cmd = n >= 2 ? s->tx[0] << 8 | s->tx[1] : 0;
 
     memset(r, 0, n);
     s->served = false;
-    if (n >= 3 && s->tx[2] == 0 && n >= 16) {           /* length query */
+    if (cmd != 0xea01) {                /* loader protocol (see the top) */
+        switch (cmd) {
+        case 0x1aa1:                    /* status read */
+            for (i = 0; i + 1 < n; i += 2) {
+                r[i] = s->ld_status >> 8;
+                r[i + 1] = s->ld_status;
+            }
+            break;
+        case 0x19c1:                    /* reset */
+        case 0x18e1:                    /* firmware chunk */
+            s->ld_status = 0x4bc1;
+            break;
+        case 0x1e33:                    /* register write */
+            s->ld_status = 0x4ad1;
+            break;
+        default:
+            break;
+        }
+        if (s->ld_frames++ < 4 || cmd == 0x1f01) {
+            fprintf(stderr, "[nano7-touch] t=%.3f s loader frame %04x, %u "
+                    "bytes (status %04x)\n", nano7_now_ns() / 1e9, cmd,
+                    s->tx_want, s->ld_status);
+        }
+    } else if (n >= 3 && s->tx[2] == 0 && n >= 16) {    /* length query */
         r[0] = 0xea;
         tp_put16(r + 1, s->q_n ? TP_PAYLOAD + 2 : 0);
         for (i = 0; i < 14; i++) {
@@ -199,6 +239,18 @@ static void tp_reply(Nano7TouchState *s)
     }
     s->rx_len = n;
     s->rx_pos = 0;
+    if (s->trace) {                     /* NANO7_TOUCH_TRACE=1 */
+        fprintf(stderr, "[nano7-touch] t=%.3f s xfer %u: tx",
+                nano7_now_ns() / 1e9, n);
+        for (i = 0; i < MIN(n, 24u); i++) {
+            fprintf(stderr, " %02x", s->tx[i]);
+        }
+        fprintf(stderr, "%s / rx", n > 24 ? " ..." : "");
+        for (i = 0; i < MIN(n, 8u); i++) {
+            fprintf(stderr, " %02x", r[i]);
+        }
+        fprintf(stderr, "\n");
+    }
 }
 
 static void tp_xfer_done(void *opaque)
@@ -238,8 +290,10 @@ static void tp_write(void *opaque, hwaddr off, uint64_t value, unsigned size)
         break;
     case 0x04:
         if ((v & 0x100) && !(old & 0x100) && !s->busy) {    /* START */
-            s->tx_want = MIN(s->regs[0x4c / 4] ? s->regs[0x4c / 4] :
-                             s->regs[0x34 / 4], TP_MAX_XFER);
+            /* firmware chunks are ~8 KB: count every byte, keep the
+             * first TP_MAX_XFER (all a reply needs) */
+            s->tx_want = MIN(MAX(s->regs[0x4c / 4], s->regs[0x34 / 4]),
+                             0x10000);
             s->tx_len = 0;
             s->busy = true;
             s->flags |= ST_TXREQ;
@@ -258,7 +312,10 @@ static void tp_write(void *opaque, hwaddr off, uint64_t value, unsigned size)
         break;
     case 0x10:
         if (s->busy && s->tx_len < s->tx_want) {
-            s->tx[s->tx_len++] = v;
+            if (s->tx_len < TP_MAX_XFER) {
+                s->tx[s->tx_len] = v;
+            }
+            s->tx_len++;
             if (s->tx_len == s->tx_want) {
                 s->flags &= ~ST_TXREQ;
                 timer_mod_ns(s->xfer_timer,
@@ -305,7 +362,15 @@ static void tp_input_event(DeviceState *dev, QemuConsole *src,
     case INPUT_EVENT_KIND_BTN: {
         InputBtnEvent *b = evt->u.btn.data;
 
-        if (b->button != INPUT_BUTTON_LEFT || b->down == s->down) {
+        if (b->button != INPUT_BUTTON_LEFT) {
+            break;
+        }
+        /* not touching: the front end may take it (a button drawn on the
+         * device frame; that press's release comes here too) */
+        if (!s->down && nano7_ui_pointer_button(b->down)) {
+            break;
+        }
+        if (b->down == s->down) {
             break;
         }
         s->down = b->down;
@@ -425,6 +490,8 @@ void nano7_touch_attach(MemoryRegion *parent, hwaddr base, qemu_irq irq)
     Nano7TouchState *s = g_new0(Nano7TouchState, 1);
     QemuInputHandlerState *hs;
 
+    s->trace = getenv("NANO7_TOUCH_TRACE") != NULL;
+    s->ld_status = 0x4bc1;
     s->irq = irq;
     s->xfer_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, tp_xfer_done, s);
     s->poll_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, tp_poll, s);

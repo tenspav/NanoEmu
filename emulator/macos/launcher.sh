@@ -12,8 +12,11 @@
 #   rsrc.img1         optional: OS resource partition (UI images)
 #   bootrom-vrom.bin  optional: the real bootrom
 #   nanoemu.conf      optional settings (shell syntax), e.g.
-#                       ZOOM=auto|1-6  HUD=1  CLOCK_PROFILE=safe  PAD_KEYS=1
-#                       AUDIO=1 (needs ffplay)  EXTRA_ARGS="-M nano7,..."
+#                       ZOOM=auto|100|150|200|300 (percent, points)
+#                       FRAME=0 (screen only)  HUD=1  CLOCK_PROFILE=safe
+#                       PAD_KEYS=1  AUDIO=0 (mute)  BATTERY_DRAIN=MIN
+#                       HOME_AT_START=0 (stay in the captured app)
+#                       EXTRA_ARGS="-M nano7,..."
 #   state/            save states (Cmd-S / Cmd-L) and the reset point
 # Screenshots (Cmd-E) go to ~/Pictures/NanoEmu, the log to
 # ~/Library/Logs/NanoEmu.log (capped at 20 MB per run).
@@ -35,7 +38,8 @@ alert() {   # alert TEXT [open-data-dir]
     exit 1
 }
 
-ZOOM=auto; HUD=0; CLOCK_PROFILE=""; PAD_KEYS=0; AUDIO=0; EXTRA_ARGS=""
+ZOOM=auto; FRAME=1; HUD=1; CLOCK_PROFILE=""; PAD_KEYS=0; AUDIO=1
+BATTERY_DRAIN=""; HOME_AT_START=1; EXTRA_ARGS=""
 # shellcheck disable=SC1091
 [ -f "$DATA/nanoemu.conf" ] && . "$DATA/nanoemu.conf"
 ZOOM="${NANOEMU_ZOOM:-$ZOOM}"
@@ -60,39 +64,47 @@ M="$M,mmu=0x08b28000,torn-ignore-pc=0x093d2a80:0x093d4100"
     M="$M,nand-disk=$(q "$DATA/ipod-disk.dd"),nand-disk-offset=49216"
 [ -f "$DATA/rsrc.img1" ] && M="$M,nand-rsrc=$(q "$DATA/rsrc.img1")"
 [ -f "$DATA/bootrom-vrom.bin" ] && M="$M,bootrom=$(q "$DATA/bootrom-vrom.bin")"
-
-if [ "$ZOOM" = auto ]; then
-    # the largest whole factor whose window (plus its title bar, 32 pt on
-    # macOS 26) fits
-    # the screen's visible area; macOS would clip a bigger one
-    vis=$(/usr/bin/osascript -l JavaScript -e 'ObjC.import("AppKit");
-        var f = $.NSScreen.mainScreen.visibleFrame;
-        Math.floor(f.size.width) + " " + Math.floor(f.size.height)' 2>/dev/null)
-    rows=432; [ "$HUD" = 1 ] && rows=$((432 + 47))     # NANO7_HUD_ROWS
-    ZOOM=1
-    if [ -n "$vis" ]; then
-        read -r vw vh <<<"$vis"
-        z=$(( (vh - 32) / rows )); zw=$(( vw / 240 ))
-        [ $zw -lt $z ] && z=$zw
-        [ $z -gt 6 ] && z=6
-        [ $z -ge 1 ] && ZOOM=$z
-    fi
+# the snap6 capture resumes inside the DumpRAM probe app ("OK - REBOOT ME"):
+# press Home at 3, 6 and 9 s (300 ms each): the first leaves DumpRAM, the
+# next ones go to the first home page (Music, Videos, Fitness ...); the
+# repeats also cover a press the guest misses while the window comes up
+[ "$HOME_AT_START" = 1 ] && M="$M,buttons=3:home:300/6:home:300/9:home:300"
+AUDIOARGS=()
+if [ "$AUDIO" = 1 ]; then       # CoreAudio, through QEMU's audio layer
+    AUDIOARGS=(-audiodev coreaudio,id=hostsnd)
+    M="$M,audiodev=hostsnd"
 fi
-export NANO7_ZOOM="$ZOOM"
+
+# window size: the screen's backing scale (2 on Retina) and the canvas
+# (device 320 x 536 units plus the 200-unit side panel with the HUD on, or
+# the bare 240 x 432 screen plus the HUD strip)
+read -r VW VH SCALE <<<"$(/usr/bin/osascript -l JavaScript -e '
+    ObjC.import("AppKit"); var s = $.NSScreen.mainScreen,
+    f = s.visibleFrame;
+    Math.floor(f.size.width) + " " + Math.floor(f.size.height) + " " +
+    Math.round(s.backingScaleFactor)' 2>/dev/null)"
+SCALE=${SCALE:-1}
+if [ "$FRAME" = 1 ]; then CW=320; CH=536; [ "$HUD" = 1 ] && CW=$((CW + 200))
+else CW=240; CH=432; [ "$HUD" = 1 ] && CH=$((CH + 47)); fi
+if [ "$ZOOM" = auto ]; then
+    # the largest pixel zoom whose window (in points, plus the 32 pt title
+    # bar of macOS 26) fits the screen's visible area
+    PZ=$SCALE
+    if [ -n "$VH" ]; then
+        z=$(( (VH - 32) * SCALE / CH )); zw=$(( VW * SCALE / CW ))
+        [ $zw -lt $z ] && z=$zw
+        [ $z -gt $((6 * SCALE)) ] && z=$((6 * SCALE))
+        [ $z -ge 1 ] && PZ=$z
+    fi
+else
+    PZ=$(( ZOOM * SCALE / 100 )); [ $PZ -ge 1 ] || PZ=1
+fi
+export NANO7_ZOOM="$PZ"
+[ "$FRAME" = 1 ] && export NANO7_FRAME=1
 [ "$HUD" = 1 ] && export NANO7_HUD=1
 [ "$PAD_KEYS" = 1 ] && export NANO7_PAD_KEYS=1
 [ -n "$CLOCK_PROFILE" ] && export NANO7_CLOCK_PROFILE="$CLOCK_PROFILE"
-
-if [ "$AUDIO" = 1 ]; then
-    FFPLAY=$(PATH="/opt/homebrew/bin:/usr/local/bin:$PATH" command -v ffplay)
-    if [ -n "$FFPLAY" ]; then
-        fifo="$DATA/state/audio.fifo"
-        [ -p "$fifo" ] || { rm -f "$fifo"; mkfifo "$fifo"; }
-        "$FFPLAY" -nodisp -autoexit -loglevel error -f s16le -ar 44100 \
-            -ac 2 "$fifo" >/dev/null 2>&1 &
-        M="$M,audio-out=$(q "$fifo")"
-    fi
-fi
+[ -n "$BATTERY_DRAIN" ] && export NANO7_BATTERY_DRAIN="$BATTERY_DRAIN"
 
 ARGS=()                 # drop the -psn_* argument old Finders pass
 for a in "$@"; do case "$a" in -psn_*) ;; *) ARGS+=("$a") ;; esac; done
@@ -104,6 +116,6 @@ for a in "$@"; do case "$a" in -psn_*) ;; *) ARGS+=("$a") ;; esac; done
 # shellcheck disable=SC2086
 exec "$MACOS_DIR/qemu-system-arm" -M "$M" -name NanoEmu \
     -display sdl,show-cursor=on -serial none -monitor none \
-    $EXTRA_ARGS ${ARGS[@]+"${ARGS[@]}"} \
+    ${AUDIOARGS[@]+"${AUDIOARGS[@]}"} $EXTRA_ARGS ${ARGS[@]+"${ARGS[@]}"} \
     2> >(awk -v max=20000000 -v f="$LOG" \
          '{ n += length($0) + 1; if (n < max) { print >> f; fflush(f) } }')
