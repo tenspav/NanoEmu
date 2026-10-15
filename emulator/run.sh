@@ -53,6 +53,9 @@
 #                                65 C governor; default: the guest's own clocks
 #   --temp C                     pin the PMU die temperature (default: an
 #                                illustrative thermal model)
+#   --zoom N                     start zoom 1-6 (default 1; F9 cycles 1-3,
+#                                and a resized SDL window picks the
+#                                largest whole factor that fits)
 #   --vnc [N]                    serve the LCD on VNC display :N (port 5900+N,
 #                                default :0); mouse = touch, keys h/p/space
 #   extra qemu args are passed through
@@ -142,6 +145,8 @@ while [ $# -gt 0 ]; do
             export NANO7_HOST_PAD="${2:?--host-pad needs auto or a path}"; shift 2 ;;
         --clock-profile)
             export NANO7_CLOCK_PROFILE="${2:?--clock-profile needs stock, safe or max}"; shift 2 ;;
+        --zoom)
+            export NANO7_ZOOM="${2:?--zoom needs a factor 1-6}"; shift 2 ;;
         --temp)
             export NANO7_TEMP="${2:?--temp needs degrees C}"; shift 2 ;;
         --rtc)

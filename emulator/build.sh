@@ -90,6 +90,15 @@ grep -q "CONFIG_NANO7" "$QEMU_DIR/configs/devices/arm-softmmu/default.mak" || \
     cat "$HERE/machine/default-mak.snippet" >> \
         "$QEMU_DIR/configs/devices/arm-softmmu/default.mak"
 
+# SDL window (macOS): the title is just the -name value (not "QEMU (name-0)"),
+# and the panel is scaled by whole factors only (letterboxed otherwise)
+grep -q '"QEMU (%s-%d)%s"' "$QEMU_DIR/ui/sdl2.c" && \
+    sed -i${SED_I} 's|"QEMU (%s-%d)%s", qemu_name,|"%s%.0d%s", qemu_name,|' \
+        "$QEMU_DIR/ui/sdl2.c"
+grep -q "SDL_RenderSetIntegerScale" "$QEMU_DIR/ui/sdl2-2d.c" || \
+    sed -i${SED_I} 's|^    SDL_RenderSetLogicalSize(scon->real_renderer,$|    SDL_RenderSetIntegerScale(scon->real_renderer, SDL_TRUE);\
+&|' "$QEMU_DIR/ui/sdl2-2d.c"
+
 # --- configure & build ------------------------------------------------------
 if [ "$(uname -s)" = "Darwin" ]; then
     export PKG_CONFIG="pkg-config"

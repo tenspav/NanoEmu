@@ -3,12 +3,14 @@
  *
  * One QEMU keyboard handler (VNC, a display window, or the monitor's
  * sendkey) for everything:
- *   h / p / space            Home / Power / Play-Pause   (nano7_pmu.c)
- *   Up = + / Down -          volume up / down
+ *   h / Esc / Home  Home     p  Power (sleep / wake)    space  Play-Pause
+ *   Up = + / Down -          volume up / down            (nano7_pmu.c)
  *   F1  reset                F2  save state      F4  load state
  *   F7  rotate the display 90 degrees clockwise (0 / 90 / 180 / 270; touch
  *       coordinates follow)
- *   F9  integer zoom 1x / 2x / 3x (nearest neighbour, no blur)
+ *   F9  integer zoom 1x / 2x / 3x (nearest neighbour, no blur); NANO7_ZOOM
+ *       (run.sh --zoom) sets the start zoom, and when a display window is
+ *       resized (SDL) the zoom follows: the largest integer factor that fits
  *   F10 usage HUD on / off: a strip under the display with CPU / GPU load
  *       graphs (nano7_hud.c; run.sh --hud starts with it shown)
  *   F8  BT gamepad keys on / off: the keyboard drives the fake Bluetooth
@@ -25,6 +27,11 @@
  *       virtual-clock queue - either would make the pause unrecoverable)
  *   F6  fast-forward 1x / 2x / 4x (cycle)   Tab (held)  4x while held
  *       (guest time base, nano7_clock.c; the RTC runs fast too)
+ * Cmd (Meta / Super) shortcuts, for keyboards whose F keys are media keys
+ * (Macs); while Cmd is held no key reaches the iPod or the gamepad:
+ *   Cmd-S save   Cmd-L / Cmd-O load   Cmd-R reset   Cmd-P pause
+ *   Cmd-1..4 zoom   Cmd-T rotate   Cmd-U HUD   Cmd-K clock profile
+ *   Cmd-F fast-forward   Cmd-G gamepad keys   Cmd-E screenshot
  * Actions run from a bottom half in the main loop, not inside the input
  * dispatch.
  *
@@ -77,6 +84,7 @@
 #include <zlib.h>
 
 #define UI_MAX_RAM      8
+#define UI_ZOOM_MAX     6       /* window-fit limit (F9 cycles 1..3) */
 
 typedef enum UiAction {
     UI_NONE, UI_SAVE, UI_LOAD, UI_RESET, UI_BOOT_SAVE, UI_SHOT,
@@ -100,10 +108,14 @@ typedef struct Nano7UiState {
     const uint32_t *frame;      /* the LCD's panel frame (240x432 XRGB) */
     uint32_t *out;              /* rendered console surface */
     int rot;                    /* clockwise degrees: 0, 90, 180, 270 */
-    int zoom;                   /* 1..3 */
+    int zoom;                   /* 1..UI_ZOOM_MAX */
     int out_w, out_h;
     int ff_speed;               /* F6 setting; Tab overrides while held */
     bool paused;                /* soft pause (F5 / Pause) */
+    bool meta_l, meta_r;        /* Cmd held: shortcuts, nothing to the iPod */
+    /* keys whose press was a Cmd shortcut: their release is dropped too
+     * (it may arrive after Cmd is up, and p / h / space are iPod buttons) */
+    bool swallowed[Q_KEY_CODE__MAX];
 } Nano7UiState;
 
 static Nano7UiState *ui;
@@ -375,9 +387,34 @@ static void ui_gfx_update(void *opaque)
     /* frames are pushed by the LCD model (nano7_ui_frame) */
 }
 
+/* the display window was resized (SDL, debounced by the console layer):
+ * take the largest integer zoom that fits, so pixels stay square and
+ * sharp; the window then snaps to that size (the renderer letterboxes at
+ * an integer scale if it cannot, e.g. in full screen) */
+static void ui_gfx_ui_info(void *opaque, uint32_t head, QemuUIInfo *info)
+{
+    int lw = (ui->rot % 180) ? NANO7_LCD_H : NANO7_LCD_W;
+    int lh = (ui->rot % 180) ? NANO7_LCD_W : NANO7_LCD_H;
+    int hh = nano7_hud_on() ? NANO7_HUD_ROWS : 0;
+    int z;
+
+    if (!info->width || !info->height) {
+        return;
+    }
+    z = MIN(info->width / lw, info->height / (lh + hh));
+    z = MAX(1, MIN(z, UI_ZOOM_MAX));
+    if (z != ui->zoom) {
+        ui->zoom = z;
+        fprintf(stderr, "[nano7-ui] zoom %dx (window %ux%u)\n", z,
+                info->width, info->height);
+        ui_render();
+    }
+}
+
 static const GraphicHwOps ui_gfx_ops = {
     .invalidate = ui_gfx_invalidate,
     .gfx_update = ui_gfx_update,
+    .ui_info    = ui_gfx_ui_info,
 };
 
 /* F12: the panel frame (unrotated, 240x432) as an RGB PNG */
@@ -497,15 +534,64 @@ static void ui_vm_state(void *opaque, bool running, RunState state)
     }
 }
 
+static void ui_set_zoom(int z)
+{
+    ui->zoom = z;
+    fprintf(stderr, "[nano7-ui] zoom %dx\n", ui->zoom);
+    ui_render();
+}
+
+/* Cmd + key -> the F key with the same action (0: not a shortcut) */
+static int ui_meta_shortcut(int qcode)
+{
+    switch (qcode) {
+    case Q_KEY_CODE_S: return Q_KEY_CODE_F2;
+    case Q_KEY_CODE_L:
+    case Q_KEY_CODE_O: return Q_KEY_CODE_F4;
+    case Q_KEY_CODE_R: return Q_KEY_CODE_F1;
+    case Q_KEY_CODE_P: return Q_KEY_CODE_F5;
+    case Q_KEY_CODE_T: return Q_KEY_CODE_F7;
+    case Q_KEY_CODE_U: return Q_KEY_CODE_F10;
+    case Q_KEY_CODE_K: return Q_KEY_CODE_F11;
+    case Q_KEY_CODE_E: return Q_KEY_CODE_F12;
+    case Q_KEY_CODE_F: return Q_KEY_CODE_F6;
+    case Q_KEY_CODE_G: return Q_KEY_CODE_F8;
+    default:           return 0;
+    }
+}
+
 static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
 {
     InputKeyEvent *key = evt->u.key.data;
     int qcode = qemu_input_key_value_to_qcode(key->key);
 
-    if (nano7_btuart_pad_key(qcode, key->down)) {       /* F8 pad mode */
+    if (qcode == Q_KEY_CODE_META_L || qcode == Q_KEY_CODE_META_R) {
+        *(qcode == Q_KEY_CODE_META_L ? &ui->meta_l : &ui->meta_r) = key->down;
         return;
     }
-    if (nano7_pmu_key(qcode, key->down)) {
+    if (qcode < 0 || qcode >= Q_KEY_CODE__MAX) {
+        return;
+    }
+    if (!key->down && ui->swallowed[qcode]) {
+        ui->swallowed[qcode] = false;
+        return;
+    }
+    if (ui->meta_l || ui->meta_r) {     /* Cmd shortcuts */
+        if (!key->down) {
+            return;
+        }
+        ui->swallowed[qcode] = true;
+        if (qcode >= Q_KEY_CODE_1 && qcode <= Q_KEY_CODE_4) {
+            ui_set_zoom(qcode - Q_KEY_CODE_1 + 1);
+            return;
+        }
+        qcode = ui_meta_shortcut(qcode);
+        if (!qcode) {
+            return;
+        }
+    } else if (nano7_btuart_pad_key(qcode, key->down)) {    /* F8 pad mode */
+        return;
+    } else if (nano7_pmu_key(qcode, key->down)) {
         return;
     }
     if (qcode == Q_KEY_CODE_TAB) {      /* hold to fast-forward */
@@ -536,9 +622,7 @@ static void ui_key_event(DeviceState *dev, QemuConsole *src, InputEvent *evt)
         ui_render();
         break;
     case Q_KEY_CODE_F9:
-        ui->zoom = ui->zoom % 3 + 1;
-        fprintf(stderr, "[nano7-ui] zoom %dx\n", ui->zoom);
-        ui_render();
+        ui_set_zoom(ui->zoom % 3 + 1);
         break;
     case Q_KEY_CODE_F12:
         ui_request(UI_SHOT);
@@ -594,7 +678,8 @@ void nano7_ui_init(const char *state_dir, const char *screens_dir)
     ui->state_dir = g_strdup(state_dir ? state_dir : "state");
     ui->screens_dir = g_strdup(screens_dir ? screens_dir : "screens");
     ui->bh = qemu_bh_new(ui_bh, NULL);
-    ui->zoom = 1;
+    ui->zoom = getenv("NANO7_ZOOM") ? atoi(getenv("NANO7_ZOOM")) : 1;
+    ui->zoom = MAX(1, MIN(ui->zoom, UI_ZOOM_MAX));
     ui->ff_speed = 1;
     nano7_clock_set_speed(1);   /* registers the guest clock's vmstate */
     ui->con = graphic_console_init(NULL, 0, &ui_gfx_ops, ui);

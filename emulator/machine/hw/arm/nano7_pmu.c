@@ -338,14 +338,17 @@ static void pmu_parse_script(Nano7PmuState *s, const char *script)
     }
 }
 
-/* keyboard (VNC / display window / monitor `sendkey`): h home, p power,
- * space play, Up / = / keypad + volume up, Down / - / keypad - volume down */
+/* keyboard (VNC / display window / monitor `sendkey`): h / Esc / Home home,
+ * p power, space play, Up / = / keypad + volume up, Down / - / keypad -
+ * volume down */
 bool nano7_pmu_key(int qcode, bool down)
 {
     int btn;
 
     switch (qcode) {
-    case Q_KEY_CODE_H:     btn = NANO7_BTN_HOME;  break;
+    case Q_KEY_CODE_H:
+    case Q_KEY_CODE_ESC:
+    case Q_KEY_CODE_HOME:  btn = NANO7_BTN_HOME;  break;
     case Q_KEY_CODE_P:     btn = NANO7_BTN_POWER; break;
     case Q_KEY_CODE_SPC:   btn = NANO7_BTN_PLAY;  break;
     case Q_KEY_CODE_UP:
