@@ -98,14 +98,18 @@ else
     export PKG_CONFIG="$HERE/tools/pkg-config"
 fi
 
-PYFLAG=""; [ "$(uname -s)" = "Darwin" ] && [ -x /opt/homebrew/bin/python3.12 ] && PYFLAG="--python=/opt/homebrew/bin/python3.12"
+PYFLAG=""; SDLFLAG="--disable-sdl"
+if [ "$(uname -s)" = "Darwin" ]; then
+    [ -x /opt/homebrew/bin/python3.12 ] && PYFLAG="--python=/opt/homebrew/bin/python3.12"
+    SDLFLAG="--enable-sdl"
+fi
 if [ ! -f "$HERE/build/build.ninja" ]; then
     echo "[build] configuring"
     mkdir -p "$HERE/build"
     (cd "$HERE/build" && "$QEMU_DIR/configure" \
         --target-list=arm-softmmu \
         --disable-user --disable-docs --disable-guest-agent \
-        --disable-slirp --disable-sdl --disable-gtk --disable-opengl \
+        --disable-slirp $SDLFLAG --disable-gtk --disable-opengl \
         --disable-virglrenderer --disable-xen --disable-kvm \
         --disable-werror --audio-drv-list= $PYFLAG)
 fi

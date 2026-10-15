@@ -2056,3 +2056,37 @@ REGRESSION: GPU frames byte-identical to the earlier dumps, under both VGP inter
   (bilinear), v31 (mipmaps), v34 (near clip), v68 (wrap) and Blocks. Blocks needs RUN=40 to reach frame 300
   at ~12 fps.
 Screens: screens/session63/. docs/NanoGL.md feature matrix updated.
+
+## Session 64 (2026-10-15): Chainloader round-trip in NanoEmu - RetailOS -> bare-metal green payload -> PMGR reset -> RetailOS
+PIECE 5 GOAL: prove the full chainloader round trip on NanoEmu: RetailOS running (snap6) -> launch chainloader app -> orderly hardware shutdown -> SRAM takeover -> MMU/cache disable -> bare-metal hello payload fills screen 100 % green -> QMP Home button press -> PMGR reset back into RetailOS.
+APP INJECTION (same flow as gltest / hidhost in Sessions 31/49):
+  - Target slot: /Apps/Executables/Blocks.hbapp (20708 B, Kind 2 / GL surface in AllApps-B.pack, home page 2 at (64,215)).
+  - tools/disk_patch.py pads chainloader.hbapp (2468 B) inside its HRL1 image section to 20708 B, matching the directory entry and FAT cluster chain without modifying ipod-disk.dd.
+  - Output: probe/chainloader/build/chainloader-as-blocks.patch (6 blocks, served via run.sh --nand-patch).
+TAKEOVER & PAYLOAD EXECUTION:
+  - Launch = tap (8700, 17500) normalized on home page 2. Resident relocates and executes chainloader.hbapp entry payload_entry.
+  - chainloader_main(): falls back to statically embedded default_payload_bin (304 B payload.bin), calls hw_shutdown_all() (Piece 2: stops LCD commits, masks TE IRQ 32, settles & deselects FMC NAND, drains/aborts DMA engines 1 & 2, stops all 8 timer channels and clears pending IRQs, masks VIC0/VIC1).
+  - handoff_to_payload() (Piece 3): copies position-independent trampoline to internal SRAM 0x22000000, warm-reset trap to 0x22008100, populates struct n7_handoff at 0x22009000.
+  - Supervisor escalation: hooks RetailOS kernel dispatch slot 0 (*(uint32_t *)0x08917714 = 0x22000000) and executes svc #70 (r12=0). Dispatcher at 0x08002390 jumps to SRAM 0x22000000 via bx r3 in ARM state, SVC mode.
+  - Trampoline: CPSID aif, L1 D-Cache clean and invalidate by Set/Way (CCSIDR geometry: 4 ways, 128 sets), DSB, clears SCTLR bits M, C, Z, I, V (MMU and caches off), ICIALLU / BPIALL / TLBIALL, DSB/ISB.
+  - Relocates payload from DRAM staging to physical 0x08000000.
+  - ABI setup: r0=0, r1=0x1097, r2=0x22009000, sp=0x22010000, lr=0x22008100; bx 0x08000000.
+  - Bare-metal payload (start.S -> payload_hello.c): sets private stack, clears BSS, configures LCD Window 0 (240x432, ARGB8888, stride 240) and fills framebuffer with solid bright green (0x0000ff00).
+  - Screen capture 04_payload_green.png: all 103,680 pixels verified exactly RGB (0, 255, 0).
+RESET & RETAILOS RESTORATION:
+  - Payload polls GPIO 0x56 (PMU IRQ line, 0x3cf00144 bit 6, active-low).
+  - QMP `sendkey h` asserts PMU event register 3 bit 0, pulling GPIO 0x56 low.
+  - Payload detects press, arms watchdog (0x3c800000 = 0x00104a00) and triggers warm reset by writing 0xa5 to PMGR reset (0x3c500050).
+  - NanoEmu model (nano7_regfile.c): clkcon register +0x50 write of 0xa5 hooks nano7_ui_reset() (reloads boot state from emulator/state/boot).
+  - Boot snapshot reloads instantly; subsequent Home press confirms interactive RetailOS home screen (pixel-identical to pre-launch state).
+AUTOMATION:
+  - Standalone regression test: probe/chainloader/test_roundtrip.py.
+  - Evidence screenshots: emulator/screens/session64/
+    - 01_retailos_boot.png: snap6 resume state
+    - 02_retailos_home_p3.png: home screen page 3
+    - 03_retailos_home_p2.png: home screen page 2 (Blocks slot)
+    - 04_payload_green.png: bare-metal green payload (100 % solid RGB 0, 255, 0)
+    - 05_retailos_reset.png: RetailOS reloaded immediately following PMGR reset
+    - 06_retailos_restored.png: restored interactive RetailOS home screen
+RESULT: PASS. Zero CPU crashes, clean handoff, 100 % pixel-accurate green payload, flawless warm reset back to RetailOS.
+

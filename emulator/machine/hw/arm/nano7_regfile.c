@@ -18,6 +18,7 @@
 #include "qemu/timer.h"
 #include "target/arm/cpu.h"
 #include "migration/vmstate.h"
+#include "nano7_ui.h"
 
 typedef struct Nano7RegfileState {
     MemoryRegion mr;
@@ -129,6 +130,9 @@ static void nano7_regfile_write(void *opaque, hwaddr offset, uint64_t value,
     for (i = 0; i < size; i++) {
         s->regs[offset + i] = (value >> (8 * i)) & 0xff;
         s->written[offset + i] = 1;
+    }
+    if (s->name && strcmp(s->name, "clkcon") == 0 && offset == 0x50 && (value & 0xff) == 0xa5) {
+        nano7_ui_reset();
     }
 }
 
