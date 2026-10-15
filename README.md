@@ -10,17 +10,33 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.1.0-blue">
-  <img alt="platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey">
+  <img alt="version" src="https://img.shields.io/badge/version-1.2.0-blue">
+  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey">
   <img alt="guest" src="https://img.shields.io/badge/guest-RetailOS%2037A40005-green">
   <img alt="license" src="https://img.shields.io/badge/code-GPLv2%20(QEMU)-orange">
 </p>
+
+<p align="center">
+  <img src="docs/images/nanoemu-macos.png" width="560" alt="NanoEmu.app on macOS">
+</p>
+
+<p align="center"><i>NanoEmu.app on macOS: the real iPod home screen, live FPS/clocks/RAM panel, and every physical button one click away.</i></p>
 
 ---
 
 ## What it does today
 
-Boots the **real RetailOS** from a live device snapshot into a **clickable window** (VNC), with working buttons, touch, persistent flash storage, and correct power behavior. The OS renders its own UI, opens apps when you tap them, dims and locks the screen when idle, and wakes when you press Home.
+Boots the **real RetailOS** from a live device snapshot into a clickable window, with working buttons, touch, persistent flash storage, sound, and correct power behavior. The OS renders its own UI, opens apps when you tap them, dims and locks the screen when idle, and wakes when you press Home.
+
+- 🎵 The same home screen, Music library, Settings and Bluetooth as on the device
+- 🖱️ Mouse is the touchscreen: click to tap, drag to swipe
+- 🔘 Home, Sleep/Wake, Volume Up/Down and Play/Pause on screen, in the panel, in the menu bar and on the keyboard
+- 🔊 Sound through your Mac or Linux host
+- 🔋 Battery always full: no low battery warning, no surprise shutdown
+- 📊 Live side panel: FPS, CPU/GPU clock and load, RAM, temperature
+- ⚡ Clock profiles: Stock, Safe or Max, one click each
+- 🎮 Homebrew apps: GBA emulator at 60 FPS, 3D games on the emulated GPU
+- 💾 Save states, reset, pause, rotate, full screen and screenshots
 
 <table align="center">
   <tr>
@@ -37,9 +53,19 @@ Boots the **real RetailOS** from a live device snapshot into a **clickable windo
   <img src="docs/images/bluetooth-on.png" width="180" alt="Bluetooth ON and searching">
 </p>
 
-<p align="center"><i>Settings &gt; Bluetooth: ON and searching for devices.</i></p>
+<p align="center"><i>Settings > Bluetooth: ON and searching for devices.</i></p>
 
-## NanoGL — the GPU renderer
+## Download (macOS)
+
+Get **NanoEmu-1.2.0.dmg** from the [Releases page](https://github.com/tenspav/NanoEmu/releases/latest).
+
+1. Open the `.dmg` and drag **NanoEmu** to **Applications**.
+2. The first time, right-click NanoEmu and choose **Open** (the app is not notarized yet).
+3. Give it your iPod data (see below) and open it again.
+
+Requires an Apple Silicon Mac.
+
+## NanoGL - the GPU renderer
 
 <p align="center">
   <img src="assets/nanogl-logo-256.png" width="128" alt="NanoGL logo">
@@ -103,18 +129,18 @@ Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 | Interrupts (dual VIC) + timers | ✅ Complete |
 | NAND flash (FMC + FMSS sequencer) | ✅ With sparse backing store; FTL accepts read-after-write |
 | Display (blitter + LCD, 60 Hz) | ✅ OS-rendered frames (60 Hz and 240x432 confirmed as hard panel limits, [verdict](docs/research/display-cap.md)) |
-| Live window (VNC) + touch + keys | ✅ Working |
+| Live window + touch + keys | ✅ Working |
 | PMU (battery, charger, RTC) | ✅ Working |
-| Audio (ADSP + I2S + codec) | ✅ **Working: real MP3 decode (minimp3), live playback via `--audio-play`** |
+| Audio (ADSP + I2S + codec) | ✅ Working: real MP3 decode (minimp3), live playback via `--audio-play` |
 | Real disk content | ✅ Cloned disk image boots; homebrew apps and real music library work |
 | Save states + controls | ✅ Save/load, reset, rotate, pause, fast-forward, zoom, screenshots |
 | Usage HUD | ✅ Live CPU/GPU/RAM graphs (reads the real OS heap), F10 toggle |
 | Clock profiles + thermals | ✅ STOCK / SAFE / MAX profiles, thermal governor, F11 cycling |
-| GPU (PowerVR MBX Lite) | ✅ **NanoGL renderer**: full VGP interpreter, textures, depth, blending, culling, alpha test, filtering, mipmaps, clipping, lighting, fog, lines, points, sprites ([full feature matrix](docs/NanoGL.md)) |
+| GPU (PowerVR MBX Lite) | ✅ NanoGL renderer: full VGP interpreter, textures, depth, blending, culling, alpha test, filtering, mipmaps, clipping, lighting, fog, lines, points, sprites ([full feature matrix](docs/NanoGL.md)) |
 | Video decoders (M2) | 🟡 MPEG-4/H.263 block modeled; real H.264 block identified (0x38f00000/IRQ35) |
 | Bluetooth (classic + BLE) | ✅ HID gamepad host working: pairing with security (L2CAP + bonding), HID descriptor over SDP, live reports drive an on-screen app ([research](docs/research/bluetooth-stack.md)) |
 | Cold boot (zero device) | 🟡 Route confirmed: rebuild Type 4 plaintext images from dumps we already have + bypass signature checks in the emulated boot chain ([`docs/research/coldboot-zero-device.md`](docs/research/coldboot-zero-device.md), milestone plan in [`coldboot-plan.md`](docs/research/coldboot-plan.md)) |
-| macOS build | ✅ Working: **NanoEmu.app** bundle (Dock icon, integer-zoom window, Mac key mapping, Cmd-S/L/R save/load/reset); see [`docs/MACOS.md`](docs/MACOS.md) |
+| macOS build | ✅ Working: NanoEmu.app bundle (Dock icon, integer-zoom window, Mac key mapping, Cmd-S/L/R save/load/reset); see [`docs/MACOS.md`](docs/MACOS.md) |
 | Windows build | ⬜ Planned (native window; the browser/noVNC route proved unreliable for keyboard+touch input) |
 
 Full hardware specs live in [`docs/HARDWARE.md`](docs/HARDWARE.md); reverse-engineering notes live in [`docs/research/`](docs/research/). The session-by-session development journal is [`emulator/boot-progress.md`](emulator/boot-progress.md).
@@ -126,7 +152,7 @@ cd emulator
 ./build.sh   # downloads QEMU 9.1.2, installs the nano7 machine, builds qemu-system-arm
 ```
 
-On macOS, `macos/make-app.sh` then packages a self-contained `NanoEmu.app`; see [`docs/MACOS.md`](docs/MACOS.md).
+On macOS, `macos/make-app.sh` packages a self-contained `NanoEmu.app`; see [`docs/MACOS.md`](docs/MACOS.md).
 
 ## Running
 
@@ -140,6 +166,43 @@ Resuming a captured device snapshot (see [`probe/`](probe/) for how to capture o
 ```
 
 Then point any VNC viewer at `HOST:5905`. Mouse clicks are touch input; `h`, `p` and `space` are the Home, Power and Play/Pause buttons.
+
+## Your iPod data
+
+NanoEmu ships **no Apple firmware**. It runs a snapshot of your own iPod nano 7G, captured with the free probe apps in [`probe/`](probe/) (see [`probe/INSTALL.md`](probe/INSTALL.md)).
+
+On macOS, put the files here:
+
+```
+~/Library/Application Support/NanoEmu/
+  snapshot/      ram-full.bin  iram.bin  overlay.bin  torn-map.bin   (required)
+  ipod-disk.dd   your iPod's disk image: music and apps              (recommended)
+  rsrc.img1      the OS resource partition                           (recommended)
+```
+
+If the snapshot is missing, NanoEmu tells you and opens that folder for you.
+
+## Controls
+
+| On the iPod | Mouse | Keyboard |
+|---|---|---|
+| Touch the screen | click / drag on the screen | |
+| Home | Home button, or HOME in the panel | `H` or `Esc` |
+| Sleep / Wake | top button, or SLEEP in the panel | `P` |
+| Play / Pause | side button, or PLAY / PAUSE in the panel | `Space` |
+| Volume | side buttons, or VOL - / VOL + in the panel | `↑` / `↓` |
+
+| Emulator | Panel / menu | Shortcut |
+|---|---|---|
+| Clock profile | STOCK / SAFE / MAX | `Cmd-K` cycles |
+| Pause / resume | PAUSE | `Cmd-P` |
+| Reset | RESET | `Cmd-R` |
+| Mute | MUTE | `Shift-Cmd-M` |
+| Rotate | ROTATE | `Cmd-T` |
+| Screenshot | SCREENSHOT | `Cmd-E` |
+| Save / load state | File menu | `Cmd-S` / `Cmd-L` |
+| Full screen | View menu | `Ctrl-Cmd-F` |
+| Show / hide the side panel | View menu | `Cmd-U` |
 
 ## On-device probes
 
