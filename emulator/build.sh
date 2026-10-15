@@ -34,7 +34,10 @@ if ! command -v ninja >/dev/null 2>&1; then
     fi
 fi
 
-if [ ! -x "$SYSROOT/root/usr/bin/pkg-config" ]; then
+if [ "$(uname -s)" = "Darwin" ]; then
+    # macOS: use Homebrew pkg-config/glib/pixman instead of the .deb sysroot
+    export PATH="/opt/homebrew/bin:$PATH"
+elif [ ! -x "$SYSROOT/root/usr/bin/pkg-config" ]; then
     echo "[build] fetching build-dep .debs into local sysroot"
     mkdir -p "$SYSROOT/debs" "$SYSROOT/root"
     (cd "$SYSROOT/debs" && apt-get download pkg-config libglib2.0-dev \
@@ -87,8 +90,12 @@ grep -q "CONFIG_NANO7" "$QEMU_DIR/configs/devices/arm-softmmu/default.mak" || \
         "$QEMU_DIR/configs/devices/arm-softmmu/default.mak"
 
 # --- configure & build ------------------------------------------------------
-export PATH="$HERE/tools:$PATH"   # pkg-config wrapper
-export PKG_CONFIG="$HERE/tools/pkg-config"
+if [ "$(uname -s)" = "Darwin" ]; then
+    export PKG_CONFIG="pkg-config"
+else
+    export PATH="$HERE/tools:$PATH"   # pkg-config wrapper
+    export PKG_CONFIG="$HERE/tools/pkg-config"
+fi
 
 if [ ! -f "$HERE/build/build.ninja" ]; then
     echo "[build] configuring"
@@ -101,8 +108,9 @@ if [ ! -f "$HERE/build/build.ninja" ]; then
         --disable-werror --audio-drv-list=)
 fi
 
-echo "[build] building (ninja -j$(nproc) qemu-system-arm)"
+JOBS=$(command -v nproc >/dev/null && nproc || sysctl -n hw.ncpu)
+echo "[build] building (ninja -j$JOBS qemu-system-arm)"
 # Only the emulator target: the bundled qtest suite mislinks against the
 # sysroot's static glib and is not needed here.
-ninja -C "$HERE/build" -j"$(nproc)" qemu-system-arm
+ninja -C "$HERE/build" -j"$JOBS" qemu-system-arm
 echo "[build] done: $HERE/build/qemu-system-arm"
