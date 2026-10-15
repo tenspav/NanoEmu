@@ -11,7 +11,7 @@
 
 <p align="center">
   <img alt="version" src="https://img.shields.io/badge/version-1.1.0-blue">
-  <img alt="platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20(soon)-lightgrey">
+  <img alt="platform" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey">
   <img alt="guest" src="https://img.shields.io/badge/guest-RetailOS%2037A40005-green">
   <img alt="license" src="https://img.shields.io/badge/code-GPLv2%20(QEMU)-orange">
 </p>
@@ -113,7 +113,7 @@ Full register-level details: [`docs/HARDWARE.md`](docs/HARDWARE.md)
 | Video decoders (M2) | 🟡 MPEG-4/H.263 block modeled; real H.264 block identified (0x38f00000/IRQ35) |
 | Bluetooth (classic + BLE) | ✅ HID gamepad host working: pairing with security (L2CAP + bonding), HID descriptor over SDP, live reports drive an on-screen app ([research](docs/research/bluetooth-stack.md)) |
 | Cold boot (zero device) | 🟡 Route confirmed: rebuild Type 4 plaintext images from dumps we already have + bypass signature checks in the emulated boot chain ([`docs/research/coldboot-zero-device.md`](docs/research/coldboot-zero-device.md), milestone plan in [`coldboot-plan.md`](docs/research/coldboot-plan.md)) |
-| macOS build | ⬜ Planned (user's MacBook M2; interactive window + touch there) |
+| macOS build | ✅ Working (SDL2 native window, keyboard + touch via mouse; build deps via Homebrew) |
 | Windows build | ⬜ Planned (native window; the browser/noVNC route proved unreliable for keyboard+touch input) |
 
 Full hardware specs live in [`docs/HARDWARE.md`](docs/HARDWARE.md); reverse-engineering notes live in [`docs/research/`](docs/research/). The session-by-session development journal is [`emulator/boot-progress.md`](emulator/boot-progress.md).
@@ -152,7 +152,7 @@ Then point any VNC viewer at `HOST:5905`. Mouse clicks are touch input; `h`, `p`
 4. ~~Classic Bluetooth channel + HID gamepad~~ ✅ done in emulator (paired, encrypted, descriptor-driven)
 5. Cold boot from reconstructed plaintext images (zero-device route confirmed)
 6. Dualboot chainloader (pieces 1-2 of 4 built; [plan](docs/research/dualboot-chainloader-plan.md))
-7. macOS and Windows native builds
+7. Windows native build (macOS done)
 
 See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
