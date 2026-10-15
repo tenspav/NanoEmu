@@ -98,6 +98,7 @@ else
     export PKG_CONFIG="$HERE/tools/pkg-config"
 fi
 
+PYFLAG=""; [ "$(uname -s)" = "Darwin" ] && [ -x /opt/homebrew/bin/python3.12 ] && PYFLAG="--python=/opt/homebrew/bin/python3.12"
 if [ ! -f "$HERE/build/build.ninja" ]; then
     echo "[build] configuring"
     mkdir -p "$HERE/build"
@@ -106,7 +107,7 @@ if [ ! -f "$HERE/build/build.ninja" ]; then
         --disable-user --disable-docs --disable-guest-agent \
         --disable-slirp --disable-sdl --disable-gtk --disable-opengl \
         --disable-virglrenderer --disable-xen --disable-kvm \
-        --disable-werror --audio-drv-list=)
+        --disable-werror --audio-drv-list= $PYFLAG)
 fi
 
 JOBS=$(command -v nproc >/dev/null && nproc || sysctl -n hw.ncpu)
