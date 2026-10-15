@@ -47,6 +47,7 @@ elif [ ! -x "$SYSROOT/root/usr/bin/pkg-config" ]; then
 fi
 
 # --- apply nano7 machine ----------------------------------------------------
+SED_I=""; [ "$(uname -s)" = "Darwin" ] && SED_I=" ''"
 echo "[build] installing nano7 machine files"
 cp "$HERE/machine/hw/arm/nano7.c" "$HERE/machine/hw/arm/nano7_unimpl.c" \
    "$HERE/machine/hw/arm/nano7_unimpl.h" "$HERE/machine/hw/arm/nano7_regfile.c" \
@@ -79,10 +80,10 @@ grep -q "^config NANO7" "$QEMU_DIR/hw/arm/Kconfig" || \
     cat "$HERE/machine/kconfig.snippet" >> "$QEMU_DIR/hw/arm/Kconfig"
 SNIPPET=$(tr -d '\n' < "$HERE/machine/meson.snippet")
 if grep -q "CONFIG_NANO7" "$QEMU_DIR/hw/arm/meson.build"; then
-    sed -i "s|^arm_ss.add(when: 'CONFIG_NANO7'.*|$SNIPPET|" \
+    sed -i${SED_I} "s|^arm_ss.add(when: 'CONFIG_NANO7'.*|$SNIPPET|" \
         "$QEMU_DIR/hw/arm/meson.build"
 else
-    sed -i "s|^hw_arch += {'arm': arm_ss}|$SNIPPET\n\nhw_arch += {'arm': arm_ss}|" \
+    sed -i${SED_I} "s|^hw_arch += {'arm': arm_ss}|$SNIPPET\n\nhw_arch += {'arm': arm_ss}|" \
         "$QEMU_DIR/hw/arm/meson.build"
 fi
 grep -q "CONFIG_NANO7" "$QEMU_DIR/configs/devices/arm-softmmu/default.mak" || \
