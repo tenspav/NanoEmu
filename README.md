@@ -87,6 +87,8 @@ NanoGL is our reimplementation of the iPod nano 7G's PowerVR MBX Lite (GLES 1.1 
 
 Runs: gltest (77 variants) + Blocks (full 3D game) + your homebrew. [Full matrix and evidence](docs/NanoGL.md)
 
+**2026-10-17: NanoGL escaped the emulator.** The same renderer now exists as a bare-metal driver in [NanoOS](https://github.com/tenspav/NanoOS) v0.0.2 beta and renders on the real iPod nano 7G GPU: colored triangle, textured quad, and a continuous 3D world preview, all confirmed on the device screen. The two breakthroughs that made it work on hardware: a 210-word VGP startup prefix extracted from the RetailOS first-launch trace, and one doorbell per draw segment (the MBX TA has no vertex count and eats everything until the bell).
+
 ## The hardware inside
 
 | | |
