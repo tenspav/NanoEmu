@@ -118,8 +118,7 @@
 #define RAM_BLKS    (RAM_BYTES / BLK_BYTES)        /* 1024 */
 #define BLKS_PER_CHUNK (CHUNK_BYTES / BLK_BYTES)   /* 16   */
 
-/* NAND flash controller (see emulator/machine/hw/arm/nano7_fmc.c and
- * workers/claude-nand.txt / claude-ppn.txt). */
+/* NAND flash controller (see emulator/machine/hw/arm/nano7_fmc.c). */
 #define FMC_BASE        0x38a00000u
 #define FMC_STATUS      (*(volatile uint32_t *)(FMC_BASE + 0x48))   /* W1C  */
 #define FMSS_CS_STATUS  (*(volatile uint32_t *)(FMC_BASE + 0xc0c))  /* W1C  */

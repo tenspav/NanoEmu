@@ -3,7 +3,7 @@
  * for the iPod nano 7G machine (0x38a00000).
  *
  * Models just enough of the command / address / data-in flow for the
- * RetailOS PPN driver's device detection (see workers/claude-ppn.txt):
+ * RetailOS PPN driver's device detection:
  *
  *   +0x00  CE select: base | (1<<ce)<<1 | 1 selects, 1 deselects
  *   +0x04  "go": 2 = cmd, 1 = address, 0x22 = data-in arm,

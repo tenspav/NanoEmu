@@ -204,7 +204,7 @@ Implemented `machine/hw/arm/nano7_fmc.[ch]` (replaces the FMC regfile at 0x38a00
 added to build.sh + meson.snippet): CE select (+0x00), cmd issued on +0x08 write,
 address latch (+0x0c/+0x10, +0x2c=n-1, go +0x04=1), W1C status +0x48 (every go
 sets bits 1/2/3/20/23/24), +0x4c=0x40, data-in FIFO +0x80 with byte count +0x28.
-Responses per claude-ppn.txt: CE0/CE1 READID(00)="PPN"01 00 00, READID(30)=45..,
+Responses: CE0/CE1 READID(00)="PPN"01 00 00, READID(30)=45..,
 cmd 0xEE ctrl ver "NANO7EMU PPN1.00", cmd 0x92 512-B params (caus=8, cau_bits=4,
 blocks/cau=0x1000, block_bits=12, ppb=128, ppb_slc=64, pab=7, +2c=1, +30=2,
 page=0x4000, timings 20, +e0..ec=0x200, +f0/f4=10, +f8/fc=100: checked against
@@ -723,8 +723,8 @@ RUNS (300 s, both): swtimer-only and full resume set behave the same: 9 kicks / 
   engine frame 0x6200 (PMU reg 0x62 = 0?), and the FIRST LCD access: 0x38900008 = 0. CPU idles after.
   Reading: the OS's dim/auto-lock path (screen off after inactivity) - plausible, NOT yet proven.
 NEXT: confirm the sleep path (find the idle/auto-lock timer and the 0x6200 PMU write meaning); a wake
-  source (button via I2C1 slave 0x73 reg 0x07 per workers/codex-touch.txt, or touch) to bring it back;
-  that also starts the CLAUDE.md button/touch checklist.
+  source (button via I2C1 slave 0x73 reg 0x07, or touch) to bring it back;
+  that also starts the button/touch checklist.
 CMD: ./run.sh --ramfull ../dumps/snap6/ram-full.bin --iram ../dumps/snap6/iram.bin --ctx fixups/snap6-ctx.bin
   --overlay ../dumps/snap6/overlay.bin --os-poke-file fixups/snap6-resume.poke --torn-map
   ../dumps/snap6/torn-map.bin --pcsample 1000 --nand-miss oracle [--disp-dump DIR]
@@ -1937,7 +1937,7 @@ THERMAL MODEL (illustrative, NOT calibrated):
   - Published via nano7_pmu_set_temp() into PMU regs 0x3c..0x3f, the registers the OS decodes at
     0x0818a4e8 in 4 C steps. 24 C reproduces the snapshot bytes 08 84 7d 7d exactly.
   - run.sh --temp C (NANO7_TEMP) pins the temperature.
-  NOTE: CLAUDE.md says "PMU reg 0x08" for temperature. The OS actually reads 0x3c..0x3f.
+  NOTE: earlier notes said "PMU reg 0x08" for temperature. The OS actually reads 0x3c..0x3f.
 CPU MHz cannot change the TCG execution rate: it only feeds the HUD and the thermal model. The GPU clock
   does time the MBX model:
   - Render-job completion = max(100 us, work / fGPU), capped at 50 ms.

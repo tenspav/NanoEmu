@@ -246,7 +246,7 @@ RANK 8: 16-BIT RENDER TARGET OUTPUT & MMU INVAL COMPLETION FIX
      allocations never fail.
 - Concrete Evidence:
   1. Core +0x650 / +0x65c in mbx-gltest-frame.txt:473-477.
-  2. MMU invalidation disassembly at 0x08484e0c (workers/codex-vbo.txt:85-98).
+  2. MMU invalidation disassembly at 0x08484e0c.
 - Risk Level: LOW.
 
 ================================================================================
