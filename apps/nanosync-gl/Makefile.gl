@@ -1,0 +1,14 @@
+# NanoSync, GL surface build (engine stepped from gl_app_frame; for residents without the LVGL heartbeat).
+# Usage: make -f Makefile.gl [NS_GUID=<16 hex digits>]; without NS_GUID the serial is read from the iPod's SysInfo at start.
+APP_NAME    := nanosync
+CORE        ?= core
+SRCS        := nanosync_gl.c ns_engine.c ns_art.c $(CORE)/tjpgd.c ns_hb.c \
+               $(CORE)/mdb_sig.c $(CORE)/sha1.c $(CORE)/calcHashAB.c $(CORE)/cipher.c $(CORE)/cipher_tables.c $(CORE)/edonr.c \
+               $(CORE)/hash.c $(CORE)/reduce.c $(CORE)/expand.c $(CORE)/mdb_zlib.c $(CORE)/mdb_text.c $(CORE)/mdb_cdb.c \
+               $(CORE)/mdb_sqlite.c $(CORE)/mdb_sqlgen.c $(CORE)/mdb_tags.c $(CORE)/mdb_deflate.c
+GL_SURFACE  := 1
+EXTRA_CFLAGS += -O2 -mword-relocations -I$(CORE) -DMDB_NO_MALLOC -DMDB_TAGS_DFLT_X=16
+ifneq ($(NS_GUID),)
+EXTRA_CFLAGS += -DNS_GUID_HEX='"$(NS_GUID)"'
+endif
+include ../../sdk/hb_app.mk

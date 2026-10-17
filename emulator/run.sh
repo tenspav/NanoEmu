@@ -8,6 +8,8 @@
 #   --nand-store FILE / --nand-miss blank|oracle / --nand-disk IMG: NAND page
 #                                store (see nano7_fmc.c); --nand-disk-offset LBA:
 #                                FTL LBA of the image's sector 0 (snap6 device: 49216)
+#   --nanosync-app FILE          GL NanoSync .hbapp laid over the disk's Nanosync.hbapp
+#   --import-dir DIR             host folder added to the disk's /Apps/Data/Importar
 #   --nand-patch FILE            replaced disk blocks, e.g. a test app in place of
 #                                an installed one (make it with tools/disk_patch.py)
 #   --nand-rsrc FILE[@LBA]       resource partition image for NAND misses (OS UI
@@ -137,6 +139,10 @@ while [ $# -gt 0 ]; do
             EXTRA+=(-vnc ":$v") ;;
         --nand-patch)
             MARGS="$MARGS,nand-patch=${2:?--nand-patch needs a file}"; shift 2 ;;
+        --nanosync-app)
+            MARGS="$MARGS,nanosync-app=${2:?--nanosync-app needs a .hbapp}"; shift 2 ;;
+        --import-dir)
+            MARGS="$MARGS,import-dir=${2:?--import-dir needs a folder}"; shift 2 ;;
         --nand-rsrc)
             MARGS="$MARGS,nand-rsrc=${2:?--nand-rsrc needs a file}"; shift 2 ;;
         --audio-play)

@@ -58,6 +58,7 @@
 #include "nano7_accel.h"
 #include "nano7_torn.h"
 #include "qemu/cutils.h"
+#include "qemu/guest-random.h"
 #include "nano7_vic.h"
 #include "nano7_timer.h"
 #include "nano7_spicmd.h"
@@ -90,6 +91,7 @@ struct Nano7MachineState {
     MemoryRegion extra_mr;   /* PA 0x0c000000 test region (extra-dram=) */
     uint64_t extra_dram;     /* 0 none, 1 open bus RAZ/WI, 2 own RAM, 3 alias */
     MemoryRegion vrom;
+    MemoryRegion rng_mr;     /* 0x3c100000 random number generator */
 
     char *bootrom;
     char *os_image;
@@ -111,6 +113,8 @@ struct Nano7MachineState {
     char *nand_disk_off;    /* FTL LBA of the image's first sector */
     char *nand_rsrc;        /* resource partition image [@LBA] */
     char *nand_patch;       /* replaced disk blocks (tools/disk_patch.py) */
+    char *nanosync_app;     /* GL NanoSync .hbapp over Nanosync.hbapp */
+    char *import_dir;       /* host folder added to /Apps/Data/Importar */
     char *disp_dump;        /* directory for display-pipe frame dumps */
     char *buttons;          /* timed button script "SEC:BTN[:MS]/..." */
     char *rtc;              /* PMU RTC start: snapshot, host or Unix secs */
@@ -437,10 +441,77 @@ static void nano7_load_vrom(Nano7MachineState *s)
                                 &s->vrom);
 }
 
+/* NanoSync in the captured RAM: the homebrew resident registered it as an
+ * LVGL surface app (hb_app_launch_t {app_id, u16 app_kind, ..., sbid[24] at
+ * +24, name[24] at +48}, sdk/hb_app_bundle.h), which the RAM snapshot's
+ * resident can no longer run. With nanosync-app= its file on the disk is
+ * the GL build, so mark every copy of its launch record GL_SURFACE (2): the
+ * resident then loads /Apps/Executables/Nanosync.hbapp as a GL app. */
+#define NANOSYNC_DISK_PATH  "/Apps/Executables/Nanosync.hbapp"
+#define IMPORT_DISK_PATH    "/Apps/Data/Importar"
+
+static void nano7_nanosync_kind(uint8_t *dram)
+{
+    static const char sbid[] = "hb.nanosync", name[] = "Nanosync";
+    uint32_t off, n = 0;
+
+    for (off = 0; off + 72 <= NANO7_DRAM_SIZE; off += 4) {
+        uint8_t *r = dram + off;
+
+        if (r[24] == 'h' && !memcmp(r + 24, sbid, sizeof(sbid)) &&
+            !memcmp(r + 48, name, sizeof(name)) && lduw_le_p(r + 4) == 1) {
+            stw_le_p(r + 4, 2);
+            nano7_torn_mark(NANO7_DRAM_BASE + off + 4);
+            n++;
+        }
+    }
+    info_report("nano7: NanoSync launch records set to GL: %u", n);
+}
+
 static uint64_t nano7_openbus_read(void *o, hwaddr a, unsigned sz) { return 0; }
 static void nano7_openbus_write(void *o, hwaddr a, uint64_t v, unsigned sz) { }
 static const MemoryRegionOps nano7_openbus_ops = {
     .read = nano7_openbus_read, .write = nano7_openbus_write,
+    .endianness = DEVICE_LITTLE_ENDIAN,
+};
+
+/* Hardware random number generator at 0x3c100000 (clock gate 0x2d). The
+ * OS's entropy routine (0x08423d4c) gates it on, writes 0 to +0x00, then
+ * for each word polls +0x00 until any of bits 2:0 is set and reads the
+ * word at +0x04 (20 words per call). Unmodeled, the poll spun forever; it
+ * is reached rarely (a key or ID generation), e.g. mid-way through a
+ * database write. The status reads ready only after that write to +0x00,
+ * as 0 otherwise (other code reads the block too: an always-ready status
+ * broke waking from sleep); data from the host's generator. */
+static bool nano7_rng_armed;
+
+static unsigned nano7_rng_log;
+
+static uint64_t nano7_rng_read(void *o, hwaddr a, unsigned sz)
+{
+    if (nano7_rng_log < 64 && getenv("NANO7_RNG_TRACE")) {
+        nano7_rng_log++;
+        fprintf(stderr, "[nano7-rng] R +0x%02x pc=0x%08x\n", (unsigned)a,
+                current_cpu ? (unsigned)ARM_CPU(current_cpu)->env.regs[15] : 0);
+    }
+    if (a == 0x04) {
+        uint32_t v;
+
+        qemu_guest_getrandom_nofail(&v, sizeof(v));
+        return v;
+    }
+    return a == 0x00 && nano7_rng_armed ? 0x7 : 0;
+}
+
+static void nano7_rng_write(void *o, hwaddr a, uint64_t v, unsigned sz)
+{
+    if (a == 0x00) {
+        nano7_rng_armed = true;
+    }
+}
+
+static const MemoryRegionOps nano7_rng_ops = {
+    .read = nano7_rng_read, .write = nano7_rng_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
@@ -471,6 +542,9 @@ static void nano7_init(MachineState *machine)
         nano7_regfile_attach2(get_system_memory(), "pmgr", 0x3d100000,
                               0x1000, &o);
     }
+    memory_region_init_io(&s->rng_mr, NULL, &nano7_rng_ops, NULL,
+                          "nano7.rng", 0x1000);
+    memory_region_add_subregion(get_system_memory(), 0x3c100000, &s->rng_mr);
     /* blocks touched by early RetailOS init (generous windows) */
     nano7_regfile_attach(get_system_memory(), "b3e0",  0x3e000000, 0x1000);
     nano7_regfile_attach(get_system_memory(), "b3c8",  0x3c800000, 0x1000);
@@ -616,6 +690,12 @@ static void nano7_init(MachineState *machine)
                      s->vic_in[NANO7_IRQ_FMSS]);
     nano7_fmc_nand_config(s->nand_store, s->nand_miss, s->nand_disk,
                           s->nand_disk_off, s->nand_rsrc, s->nand_patch);
+    if (s->nanosync_app || s->import_dir) {
+        nano7_fmc_disk_extras(s->nanosync_app ? NANOSYNC_DISK_PATH : NULL,
+                              s->nanosync_app,
+                              s->import_dir ? IMPORT_DISK_PATH : NULL,
+                              s->import_dir);
+    }
     /* 0x39000000: display pipe = 2D blitter, done = IRQ 37 */
     nano7_disp_attach(get_system_memory(), 0x39000000,
                       s->vic_in[NANO7_IRQ_DISP]);
@@ -871,6 +951,10 @@ static void nano7_init(MachineState *machine)
         g_free(data);
     }
 
+    if (s->nanosync_app) {
+        nano7_nanosync_kind(memory_region_get_ram_ptr(&s->dram));
+    }
+
     qemu_register_reset(nano7_cpu_reset, s);
 
     if (s->pcsample_ms) {
@@ -1050,6 +1134,8 @@ NANO7_STR_PROP(nand_disk)
 NANO7_STR_PROP(nand_disk_off)
 NANO7_STR_PROP(nand_rsrc)
 NANO7_STR_PROP(nand_patch)
+NANO7_STR_PROP(nanosync_app)
+NANO7_STR_PROP(import_dir)
 NANO7_STR_PROP(disp_dump)
 NANO7_STR_PROP(buttons)
 NANO7_STR_PROP(rtc)
@@ -1219,6 +1305,8 @@ static void nano7_instance_finalize(Object *obj)
     g_free(s->nand_disk_off);
     g_free(s->nand_rsrc);
     g_free(s->nand_patch);
+    g_free(s->nanosync_app);
+    g_free(s->import_dir);
     g_free(s->disp_dump);
     g_free(s->buttons);
     g_free(s->rtc);
@@ -1380,6 +1468,19 @@ static void nano7_machine_class_init(ObjectClass *oc, void *data)
     object_class_property_set_description(oc, "nand-patch",
                                           "replaced 4 KB disk blocks for NAND "
                                           "misses (tools/disk_patch.py)");
+    object_class_property_add_str(oc, "nanosync-app",
+                                  nano7_get_nanosync_app,
+                                  nano7_set_nanosync_app);
+    object_class_property_set_description(oc, "nanosync-app",
+                                          "GL build of the NanoSync homebrew "
+                                          "app, laid over the disk's "
+                                          "Nanosync.hbapp (needs nand-disk)");
+    object_class_property_add_str(oc, "import-dir", nano7_get_import_dir,
+                                  nano7_set_import_dir);
+    object_class_property_set_description(oc, "import-dir",
+                                          "host folder whose files are added "
+                                          "to /Apps/Data/Importar on the "
+                                          "disk (needs nand-disk)");
     object_class_property_add_str(oc, "audio-out", nano7_get_audio_out,
                                   nano7_set_audio_out);
     object_class_property_set_description(oc, "audio-out",

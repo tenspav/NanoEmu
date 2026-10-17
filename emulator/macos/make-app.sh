@@ -45,6 +45,8 @@ cp "$BIN" "$C/MacOS/qemu-system-arm"
 chmod u+w "$C/MacOS/qemu-system-arm"
 cp "$HERE/fixups/snap6-ctx.bin" "$HERE/fixups/snap6-resume.poke" \
    "$C/Resources/fixups/"
+# the NanoSync homebrew app, GL build (apps/nanosync-gl): music import
+cp "$ROOT/apps/nanosync-gl/nanosync.hbapp" "$C/Resources/"
 sed "s/@VERSION@/$VERSION/g" "$HERE/macos/Info.plist.in" > "$C/Info.plist"
 printf 'APPL????' > "$C/PkgInfo"
 

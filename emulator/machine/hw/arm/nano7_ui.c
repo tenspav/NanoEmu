@@ -821,6 +821,7 @@ static void ui_bh(void *opaque)
         break;
     case UI_RESET:
         fprintf(stderr, "[nano7-ui] reset: reloading the boot state\n");
+        nano7_fmc_disk_rebuild();       /* picks up newly imported files */
         ui_load_state("boot");
         break;
     case UI_BOOT_SAVE:
@@ -1000,6 +1001,14 @@ static void ui_cmd_run(int cmd, int arg)
         break;
     case NANO7_UI_MUTE:
         nano7_i2s_set_mute(!nano7_i2s_muted());
+        break;
+    case NANO7_UI_IMPORT:
+        /* a reset puts the new files on the disk overlay; the boot state
+         * then sees them in /Apps/Data/Importar (a running OS would not:
+         * its FAT and directory caches predate them) */
+        fprintf(stderr, "[nano7-ui] import: %d file(s), reloading the boot "
+                "state\n", arg);
+        ui_fkey(Q_KEY_CODE_F1);
         break;
     case NANO7_UI_BUTTON:               /* a 100 ms tap */
         if (arg < 0 || arg >= NANO7_BTN_COUNT) {

@@ -2,6 +2,17 @@
 
 All notable milestones of NanoEmu, in reverse order. This project uses semantic-ish versioning: every guest-visible capability bump is a minor version.
 
+## [v1.3.0] - 2026-10-17
+### Added
+- **Music import into the emulated iPod**: File > Import Music (Cmd-I), or drop MP3 files on the window. NanoEmu copies them to the iPod's import folder and restarts it; open **Nanosync** on the Home screen, tap Import, and the songs are in Music, ready to play. No real iPod, no USB
+  - The imported files are kept in the data folder (`Import/`, File > Show Import Folder) and put back on the iPod at every start and Reset, so a new session only needs Import in NanoSync again
+  - NanoEmu.app bundles a GL build of the NanoSync homebrew app (`apps/nanosync-gl`), laid over the disk's Nanosync app at start: it runs on the resident in the RAM snapshot, reads the iPod's serial from SysInfo and reloads the music library in place when the import is done
+  - Machine options `nanosync-app=` and `import-dir=` (`run.sh --nanosync-app`, `--import-dir`)
+
+### Fixed
+- NanoSync writes the library databases with the schema of firmware 1.1.2 (version 1109). With the older schema, songs could not start after an in-place library reload
+- The hardware random number generator (0x3c100000) is modeled: the OS waited on it forever when it needed entropy, freezing the emulated iPod
+
 ## [v1.2.1] - 2026-10-15
 ### Added
 - **NanoSync Mac**: a small Mac app that sends music to a real iPod nano 7G for the NanoSync homebrew app to add to the library. Drag songs or folders onto its window, plug the iPod in over USB (it shows up as a drive), click Sync, eject, then tap Importar in NanoSync on the iPod

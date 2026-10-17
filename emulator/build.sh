@@ -78,6 +78,7 @@ cp "$HERE/machine/hw/arm/nano7.c" "$HERE/machine/hw/arm/nano7_unimpl.c" \
    "$HERE/machine/hw/arm/nano7_hostpad.c" "$HERE/machine/hw/arm/nano7_hostpad.h" \
    "$HERE/machine/hw/arm/nano7_accel.c" "$HERE/machine/hw/arm/nano7_accel.h" \
    "$HERE/machine/hw/arm/nano7_skin.c" "$HERE/machine/hw/arm/nano7_skin.h" \
+   "$HERE/machine/hw/arm/nano7_diskfs.c" "$HERE/machine/hw/arm/nano7_diskfs.h" \
    "$HERE/machine/hw/arm/nano7_macmenu.m" "$HERE/machine/hw/arm/nano7_macmenu.h" "$QEMU_DIR/hw/arm/"
 
 grep -q "^config NANO7" "$QEMU_DIR/hw/arm/Kconfig" || \

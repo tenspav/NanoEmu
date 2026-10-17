@@ -31,6 +31,16 @@ void nano7_fmc_nand_config(const char *store, const char *miss,
                            const char *disk, const char *disk_off,
                            const char *rsrc, const char *patch);
 
+/* NanoEmu.app's music import: lay app_file over the existing app_path
+ * (a homebrew .hbapp) and add every file of the host folder import_dir to
+ * the volume folder import_path, as an overlay served before nand-patch=
+ * (nano7_diskfs.c). Needs nand-disk=. nano7_fmc_disk_rebuild() rescans the
+ * folder (call it before reloading the boot state). */
+void nano7_fmc_disk_extras(const char *app_path, const char *app_file,
+                           const char *import_path, const char *import_dir);
+void nano7_fmc_disk_rebuild(void);
+const char *nano7_fmc_import_dir(void);
+
 /* save state: copy the NAND page store out to / back in from a file */
 bool nano7_fmc_store_save(const char *path);
 bool nano7_fmc_store_load(const char *path);

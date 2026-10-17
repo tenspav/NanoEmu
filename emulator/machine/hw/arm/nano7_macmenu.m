@@ -3,8 +3,9 @@
  * (NanoEmu.app): File / Emulation / View / Device menus added to the menu
  * bar SDL creates (it keeps its own application menu: About, Hide, Quit).
  *
- *   File       Save State (Cmd-S), Load State (Cmd-L), Reset (Cmd-R),
- *              Screenshot (Cmd-E)
+ *   File       Import Music (Cmd-I), Show Import Folder, Save State
+ *              (Cmd-S), Load State (Cmd-L), Reset (Cmd-R), Screenshot
+ *              (Cmd-E)
  *   Emulation  Pause (Cmd-P), Mute (Shift-Cmd-M), Speed 1x / 2x / 4x, Clock Profile (Stock /
  *              Safe / Max; none checked = the guest's own clocks), Gamepad
  *              Keys (Cmd-G)
@@ -17,6 +18,11 @@
  * (machine/patches/sdl-hidpi.patch), so 100 % on a Retina display is pixel
  * zoom 2 and 150 % is zoom 3 - whole device pixels either way. Items whose
  * size would not be a whole pixel zoom are left out.
+ *
+ * Import Music copies the chosen MP3 files (or MP3s dropped on the window)
+ * into the import folder (import-dir=, set by NanoEmu.app) and reloads the
+ * boot state with them in the iPod's /Apps/Data/Importar, where the
+ * NanoSync app adds them to the music library.
  *
  * Every action goes through nano7_ui_command() (queued, run in QEMU's main
  * loop); check marks come from nano7_ui_state(). The menu is installed by
@@ -33,10 +39,14 @@
 #include "nano7_ui.h"
 #include "nano7_pmu.h"
 #include "nano7_power.h"
+#include "nano7_fmc.h"
+#include <SDL.h>
 
 #define TAG(cmd, arg)   ((cmd) * 100 + (arg) + 10)
 #define TAG_CMD(t)      ((int)(t) / 100)
 #define TAG_ARG(t)      ((int)(t) % 100 - 10)
+
+static void n7_import_panel(void);
 
 @interface N7MenuTarget : NSObject <NSMenuItemValidation>
 @end
@@ -45,6 +55,25 @@
 - (void)run:(NSMenuItem *)item
 {
     nano7_ui_command(TAG_CMD(item.tag), TAG_ARG(item.tag));
+}
+
+- (void)importMusic:(NSMenuItem *)item
+{
+    n7_import_panel();
+}
+
+- (void)showImportFolder:(NSMenuItem *)item
+{
+    const char *dir = nano7_fmc_import_dir();
+
+    if (dir) {
+        NSString *d = [NSString stringWithUTF8String:dir];
+
+        [NSFileManager.defaultManager createDirectoryAtPath:d
+                                withIntermediateDirectories:YES
+                                                 attributes:nil error:nil];
+        [NSWorkspace.sharedWorkspace openURL:[NSURL fileURLWithPath:d]];
+    }
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem *)item
@@ -75,6 +104,95 @@
     return YES;
 }
 @end
+
+/* copy MP3s into the import folder; true if any was copied */
+static int n7_import_urls(NSArray<NSURL *> *urls)
+{
+    const char *dir = nano7_fmc_import_dir();
+    NSFileManager *fm = NSFileManager.defaultManager;
+    NSURL *dst;
+    int n = 0;
+
+    if (!dir) {
+        return 0;
+    }
+    dst = [NSURL fileURLWithPath:[NSString stringWithUTF8String:dir]
+                     isDirectory:YES];
+    [fm createDirectoryAtURL:dst withIntermediateDirectories:YES
+                  attributes:nil error:nil];
+    for (NSURL *u in urls) {
+        NSURL *to = [dst URLByAppendingPathComponent:u.lastPathComponent];
+
+        if ([u.pathExtension caseInsensitiveCompare:@"mp3"] != NSOrderedSame) {
+            continue;
+        }
+        [fm removeItemAtURL:to error:nil];
+        if ([fm copyItemAtURL:u toURL:to error:nil]) {
+            n++;
+        }
+    }
+    return n;
+}
+
+static void n7_import_done(int n, NSUInteger offered)
+{
+    NSAlert *a = [[NSAlert alloc] init];
+    NSWindow *win = NSApp.windows.firstObject;
+
+    if (n) {
+        nano7_ui_command(NANO7_UI_IMPORT, n);
+        a.messageText = [NSString stringWithFormat:@"%d song%s copied to the "
+                         "iPod", n, n == 1 ? "" : "s"];
+        a.informativeText = @"The iPod restarts with them in its import "
+                            "folder. Open NanoSync on the Home screen and "
+                            "tap Import, then find them in Music.";
+    } else {
+        a.messageText = @"No MP3 files";
+        a.informativeText = offered ? @"NanoSync imports MP3 files only." :
+                            @"Choose one or more MP3 files.";
+    }
+    if (win) {
+        [a beginSheetModalForWindow:win completionHandler:nil];
+    } else {
+        [a runModal];
+    }
+}
+
+static void n7_import_panel(void)
+{
+    NSOpenPanel *p = [NSOpenPanel openPanel];
+
+    p.allowsMultipleSelection = YES;
+    p.canChooseDirectories = NO;
+    p.message = @"Choose MP3 files to copy to the iPod";
+    p.prompt = @"Copy to iPod";
+    if ([p runModal] == NSModalResponseOK) {
+        n7_import_done(n7_import_urls(p.URLs), p.URLs.count);
+    }
+}
+
+/* files dropped on the window: SDL reports them as SDL_DROPFILE events
+ * (which QEMU's SDL front end ignores), one per file, then DROPCOMPLETE */
+static NSMutableArray<NSURL *> *n7_dropped;
+
+static int n7_drop_watch(void *opaque, SDL_Event *e)
+{
+    if (e->type == SDL_DROPFILE && e->drop.file) {
+        if (!n7_dropped) {
+            n7_dropped = [NSMutableArray array];
+        }
+        [n7_dropped addObject:[NSURL fileURLWithPath:
+                               [NSString stringWithUTF8String:e->drop.file]]];
+    } else if (e->type == SDL_DROPCOMPLETE && n7_dropped.count) {
+        NSArray<NSURL *> *urls = n7_dropped;
+
+        n7_dropped = nil;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            n7_import_done(n7_import_urls(urls), urls.count);
+        });
+    }
+    return 1;
+}
 
 static N7MenuTarget *n7_target;
 static QEMUTimer *n7_install_timer;
@@ -137,6 +255,25 @@ static void n7_build(NSMenu *bar, int scale)
     unsigned i;
 
     m = n7_top(bar, @"File");
+    if (nano7_fmc_import_dir()) {
+        NSMenuItem *it;
+
+        it = [[NSMenuItem alloc] initWithTitle:@"Import Music\u2026"
+                                        action:@selector(importMusic:)
+                                 keyEquivalent:@"i"];
+        it.target = n7_target;
+        it.keyEquivalentModifierMask = cmd;
+        [m addItem:it];
+        it = [[NSMenuItem alloc] initWithTitle:@"Show Import Folder"
+                                        action:@selector(showImportFolder:)
+                                 keyEquivalent:@""];
+        it.target = n7_target;
+        [m addItem:it];
+        [m addItem:[NSMenuItem separatorItem]];
+        SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+        SDL_EventState(SDL_DROPCOMPLETE, SDL_ENABLE);
+        SDL_AddEventWatch(n7_drop_watch, NULL);
+    }
     n7_item(m, @"Save State", NANO7_UI_SAVE, 0, @"s", cmd);
     n7_item(m, @"Load State", NANO7_UI_LOAD, 0, @"l", cmd);
     [m addItem:[NSMenuItem separatorItem]];

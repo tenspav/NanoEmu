@@ -8,7 +8,10 @@
 #             (a DumpRAM v6 capture, the snap6 layout; or bundled into
 #             the app by make-app.sh --snapshot)
 #   ipod-disk.dd      optional: the disk image (apps, music); without it
-#                     unread flash comes from the snapshot's caches
+#                     unread flash comes from the snapshot's caches (and
+#                     there is no music import)
+#   Import/           MP3s for the iPod's import folder (File > Import
+#                     Music copies them here)
 #   rsrc.img1         optional: OS resource partition (UI images)
 #   bootrom-vrom.bin  optional: the real bootrom
 #   nanoemu.conf      optional settings (shell syntax), e.g.
@@ -60,8 +63,17 @@ M="$M,ctx=$(q "$RES/fixups/snap6-ctx.bin"),overlay=$(q "$SNAP/overlay.bin")"
 M="$M,os-poke-file=$(q "$RES/fixups/snap6-resume.poke")"
 M="$M,torn-map=$(q "$SNAP/torn-map.bin"),nand-miss=oracle"
 M="$M,mmu=0x08b28000,torn-ignore-pc=0x093d2a80:0x093d4100"
-[ -f "$DATA/ipod-disk.dd" ] && \
+if [ -f "$DATA/ipod-disk.dd" ]; then
     M="$M,nand-disk=$(q "$DATA/ipod-disk.dd"),nand-disk-offset=49216"
+    # music import: File > Import Music (or MP3s dropped on the window)
+    # copies files to $DATA/Import; at every start and reset they are put
+    # in the iPod's /Apps/Data/Importar, and the Nanosync app on the Home
+    # screen (the GL build bundled here) adds them to the library
+    mkdir -p "$DATA/Import"
+    M="$M,import-dir=$(q "$DATA/Import")"
+    [ -f "$RES/nanosync.hbapp" ] && \
+        M="$M,nanosync-app=$(q "$RES/nanosync.hbapp")"
+fi
 [ -f "$DATA/rsrc.img1" ] && M="$M,nand-rsrc=$(q "$DATA/rsrc.img1")"
 [ -f "$DATA/bootrom-vrom.bin" ] && M="$M,bootrom=$(q "$DATA/bootrom-vrom.bin")"
 # the snap6 capture resumes inside the DumpRAM probe app ("OK - REBOOT ME"):

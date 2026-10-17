@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img alt="version" src="https://img.shields.io/badge/version-1.2.1-blue">
+  <img alt="version" src="https://img.shields.io/badge/version-1.3.0-blue">
   <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey">
   <img alt="guest" src="https://img.shields.io/badge/guest-RetailOS%2037A40005-green">
   <img alt="license" src="https://img.shields.io/badge/code-GPLv2%20(QEMU)-orange">
@@ -58,7 +58,7 @@ Boots the **real RetailOS** from a live device snapshot into a clickable window,
 
 ## Download (macOS)
 
-Get **NanoEmu-1.2.1.dmg** from the [Releases page](https://github.com/tenspav/NanoEmu/releases/latest).
+Get **NanoEmu-1.3.0.dmg** from the [Releases page](https://github.com/tenspav/NanoEmu/releases/latest).
 
 1. Open the `.dmg` and drag **NanoEmu** to **Applications**.
 2. The first time, right-click NanoEmu and choose **Open** (the app is not notarized yet).

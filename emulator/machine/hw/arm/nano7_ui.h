@@ -40,6 +40,8 @@ enum {
     NANO7_UI_ROTATE, NANO7_UI_PADKEYS, NANO7_UI_HUD, NANO7_UI_SHOT,
     NANO7_UI_ZOOM, NANO7_UI_SPEED, NANO7_UI_PROFILE, NANO7_UI_FRAME,
     NANO7_UI_BUTTON, NANO7_UI_MUTE,
+    NANO7_UI_IMPORT,    /* files were added to the import folder: put them
+                           on the disk and reload the boot state */
 };
 void nano7_ui_command(int cmd, int arg);
 /* current value for a menu check mark (paused, HUD on, zoom, speed,

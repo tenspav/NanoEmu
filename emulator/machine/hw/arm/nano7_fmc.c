@@ -26,6 +26,7 @@
  */
 #include "qemu/osdep.h"
 #include "nano7_fmc.h"
+#include "nano7_diskfs.h"
 #include "hw/core/cpu.h"
 #include "target/arm/cpu.h"
 #include "hw/irq.h"
@@ -125,6 +126,7 @@ typedef struct NandStore {
     int disk_fd;                /* nand-disk=: 4 KB-LBA image for misses */
     int64_t disk_off;           /* FTL LBA of the image's sector 0 */
     GHashTable *patch;          /* nand-patch=: FTL LBA -> 4 KB block */
+    GHashTable *extra;          /* nano7_fmc_disk_extras(): served first */
     int rsrc_fd;                /* nand-rsrc=: resource partition image */
     int64_t rsrc_lba, rsrc_blocks;
     NandMiss miss[NAND_MISS_MAX];
@@ -837,7 +839,9 @@ static void nand_oracle(Nano7FmcState *s)
         address_space_write(&address_space_memory, m->meta_dst,
                             MEMTXATTRS_UNSPECIFIED, meta, sizeof(meta));
         memset(data, 0, sizeof(data));
-        if (n->patch && g_hash_table_contains(n->patch, &lba)) {
+        if (n->extra && g_hash_table_contains(n->extra, &lba)) {
+            memcpy(data, g_hash_table_lookup(n->extra, &lba), NAND_SECT);
+        } else if (n->patch && g_hash_table_contains(n->patch, &lba)) {
             memcpy(data, g_hash_table_lookup(n->patch, &lba), NAND_SECT);
         } else if (n->rsrc_fd >= 0 && (int64_t)lba >= n->rsrc_lba &&
             (int64_t)lba < n->rsrc_lba + n->rsrc_blocks) {
@@ -1043,6 +1047,67 @@ void nano7_fmc_nand_config(const char *store, const char *miss,
                 "..0x%" PRIx64 "\n", path, s->nand.rsrc_lba,
                 s->nand.rsrc_lba + s->nand.rsrc_blocks - 1);
     }
+}
+
+/* ------------------------------------------- disk extras (NanoEmu.app) --- */
+static char *dx_app_path, *dx_app_file, *dx_import_path, *dx_import_dir;
+
+/* the disk as the guest first sees it: nand-patch=, then the image */
+static bool dx_read(void *opaque, uint64_t lba, uint8_t *blk)
+{
+    NandStore *n = opaque;
+
+    if (n->patch && g_hash_table_contains(n->patch, &lba)) {
+        memcpy(blk, g_hash_table_lookup(n->patch, &lba), NAND_SECT);
+        return true;
+    }
+    if (n->disk_fd < 0 || (int64_t)lba < n->disk_off) {
+        return false;
+    }
+    return pread(n->disk_fd, blk, NAND_SECT,
+                 (off_t)(lba - n->disk_off) * NAND_SECT) == NAND_SECT;
+}
+
+void nano7_fmc_disk_extras(const char *app_path, const char *app_file,
+                           const char *import_path, const char *import_dir)
+{
+    g_free(dx_app_path);
+    g_free(dx_app_file);
+    g_free(dx_import_path);
+    g_free(dx_import_dir);
+    dx_app_path = g_strdup(app_path);
+    dx_app_file = g_strdup(app_file);
+    dx_import_path = g_strdup(import_path);
+    dx_import_dir = g_strdup(import_dir);
+    nano7_fmc_disk_rebuild();
+}
+
+void nano7_fmc_disk_rebuild(void)
+{
+    Nano7FmcState *s = fmc_singleton;
+    NandStore *n;
+
+    if (!s || (!dx_app_file && !dx_import_dir)) {
+        return;
+    }
+    n = &s->nand;
+    if (n->disk_fd < 0) {
+        fprintf(stderr, "[nano7-fmc] app / import need nand-disk=\n");
+        return;
+    }
+    if (n->extra) {
+        g_hash_table_unref(n->extra);
+    }
+    n->extra = nano7_diskfs_build(dx_read, n, n->disk_off, dx_app_path,
+                                  dx_app_file, dx_import_path,
+                                  dx_import_dir);
+    fprintf(stderr, "[nano7-fmc] disk extras: %u blocks\n",
+            g_hash_table_size(n->extra));
+}
+
+const char *nano7_fmc_import_dir(void)
+{
+    return dx_import_dir;
 }
 
 /* ---------------------------------------------------- FMSS sequencer --- */
